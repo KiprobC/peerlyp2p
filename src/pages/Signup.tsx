@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, Check } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Signup = () => {
+  const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    phone: "",
     password: "",
-    confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -22,9 +24,25 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!agreedToTerms) {
+      toast.error("Please agree to the terms and conditions");
+      return;
+    }
+
     setIsLoading(true);
-    // TODO: Implement signup logic
-    setTimeout(() => setIsLoading(false), 1000);
+    
+    const { error } = await signUp(formData.email, formData.password, formData.fullName);
+    
+    if (error) {
+      toast.error(error.message || "Failed to create account");
+      setIsLoading(false);
+      return;
+    }
+
+    toast.success("Account created successfully!");
+    navigate("/profile-setup");
+    setIsLoading(false);
   };
 
   const passwordRequirements = [
@@ -119,22 +137,6 @@ const Signup = () => {
                   name="email"
                   placeholder="Enter your email"
                   value={formData.email}
-                  onChange={handleChange}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Phone Number</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  type="tel"
-                  name="phone"
-                  placeholder="+254 7XX XXX XXX"
-                  value={formData.phone}
                   onChange={handleChange}
                   className="pl-10"
                   required
