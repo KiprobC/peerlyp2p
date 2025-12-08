@@ -12,6 +12,9 @@ import ProfileSetup from "./pages/ProfileSetup";
 import Dashboard from "./pages/Dashboard";
 import HowItWorks from "./pages/HowItWorks";
 import CreateOffer from "./pages/CreateOffer";
+import Trade from "./pages/Trade";
+import Trades from "./pages/Trades";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +67,30 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <CreateOffer />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trade/:id"
+        element={
+          <ProtectedRoute>
+            <Trade />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trades"
+        element={
+          <ProtectedRoute>
+            <Trades />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         }
       />
