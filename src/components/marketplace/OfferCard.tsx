@@ -94,7 +94,7 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           <span>{offer.timeLimit} min</span>
         </div>
         <Button
-          variant={isBuy ? "sell" : "buy"}
+          variant={isBuy ? "destructive" : "default"}
           size="sm"
           onClick={onAction}
         >
