@@ -1,41 +1,65 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search } from "lucide-react";
 
 interface MarketplaceFiltersProps {
-  onFilterChange?: (filters: {
-    type: "buy" | "sell" | "all";
+  onFilterChange: (filters: {
+    type: "buy" | "sell" | null;
     crypto: string;
     paymentMethod: string;
     amount: string;
   }) => void;
+  initialFilters?: {
+    type: "buy" | "sell" | null;
+    crypto: string;
+    paymentMethod: string;
+    amount: string;
+  };
 }
 
-const cryptos = ["All", "BTC", "USDT", "ETH", "BNB"];
+const cryptos = ["All", "BTC", "USDT", "ETH"];
 const paymentMethods = ["All", "MPESA", "Bank Transfer", "Airtel Money"];
 
-const MarketplaceFilters = ({ onFilterChange }: MarketplaceFiltersProps) => {
-  const [type, setType] = useState<"buy" | "sell" | "all">("all");
-  const [selectedCrypto, setSelectedCrypto] = useState("All");
-  const [selectedPayment, setSelectedPayment] = useState("All");
-  const [amount, setAmount] = useState("");
+const MarketplaceFilters = ({ onFilterChange, initialFilters }: MarketplaceFiltersProps) => {
+  const [type, setType] = useState<"buy" | "sell" | null>(initialFilters?.type || null);
+  const [selectedCrypto, setSelectedCrypto] = useState(initialFilters?.crypto || "All");
+  const [selectedPayment, setSelectedPayment] = useState(initialFilters?.paymentMethod || "All");
+  const [amount, setAmount] = useState(initialFilters?.amount || "");
+
+  useEffect(() => {
+    onFilterChange({
+      type,
+      crypto: selectedCrypto,
+      paymentMethod: selectedPayment,
+      amount,
+    });
+  }, [type, selectedCrypto, selectedPayment]);
+
+  const handleSearch = () => {
+    onFilterChange({
+      type,
+      crypto: selectedCrypto,
+      paymentMethod: selectedPayment,
+      amount,
+    });
+  };
 
   return (
     <div className="glass-card mb-8">
       {/* Trade Type Toggle */}
       <div className="flex gap-2 mb-6">
         <Button
-          variant={type === "buy" ? "buy" : "secondary"}
+          variant={type === "sell" ? "default" : "secondary"}
           className="flex-1"
-          onClick={() => setType("buy")}
+          onClick={() => setType(type === "sell" ? null : "sell")}
         >
           Buy Crypto
         </Button>
         <Button
-          variant={type === "sell" ? "sell" : "secondary"}
+          variant={type === "buy" ? "default" : "secondary"}
           className="flex-1"
-          onClick={() => setType("sell")}
+          onClick={() => setType(type === "buy" ? null : "buy")}
         >
           Sell Crypto
         </Button>
@@ -89,7 +113,7 @@ const MarketplaceFilters = ({ onFilterChange }: MarketplaceFiltersProps) => {
 
         {/* Search Button */}
         <div className="flex items-end">
-          <Button variant="hero" className="w-full">
+          <Button variant="default" className="w-full" onClick={handleSearch}>
             <Search className="w-4 h-4 mr-2" />
             Search Offers
           </Button>

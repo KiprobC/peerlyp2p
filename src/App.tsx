@@ -11,6 +11,7 @@ import Signup from "./pages/Signup";
 import ProfileSetup from "./pages/ProfileSetup";
 import Dashboard from "./pages/Dashboard";
 import HowItWorks from "./pages/HowItWorks";
+import CreateOffer from "./pages/CreateOffer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/create-offer"
+        element={
+          <ProtectedRoute>
+            <CreateOffer />
           </ProtectedRoute>
         }
       />
