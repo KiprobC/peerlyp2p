@@ -21,6 +21,10 @@ import { AdminOverview } from "./pages/admin/AdminOverview";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminDisputes } from "./pages/admin/AdminDisputes";
 import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
+import { AdminTrades } from "./pages/admin/AdminTrades";
+import { AdminOffers } from "./pages/admin/AdminOffers";
+import { AdminWallets, AdminTransactions } from "./pages/admin/AdminWallets";
+import { AdminNotifications, AdminSettings, AdminLogs } from "./pages/admin/AdminPlaceholders";
 
 const queryClient = new QueryClient();
 
@@ -102,8 +106,15 @@ const AppRoutes = () => {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminOverview />} />
         <Route path="users" element={<AdminUsers />} />
+        <Route path="offers" element={<AdminOffers />} />
+        <Route path="trades" element={<AdminTrades />} />
+        <Route path="wallets" element={<AdminWallets />} />
+        <Route path="transactions" element={<AdminTransactions />} />
         <Route path="disputes" element={<AdminDisputes />} />
         <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="logs" element={<AdminLogs />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

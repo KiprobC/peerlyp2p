@@ -1,16 +1,51 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { useAdminRole } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
+import { Shield, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 export const AdminLayout = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { isAdmin, loading: roleLoading } = useAdminRole();
+  const navigate = useNavigate();
+  const [lastActivity, setLastActivity] = useState(Date.now());
+
+  // Session timeout handling
+  useEffect(() => {
+    const handleActivity = () => setLastActivity(Date.now());
+
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("click", handleActivity);
+
+    const checkTimeout = setInterval(() => {
+      if (Date.now() - lastActivity > SESSION_TIMEOUT) {
+        signOut();
+        navigate("/login");
+      }
+    }, 60000); // Check every minute
+
+    return () => {
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("click", handleActivity);
+      clearInterval(checkTimeout);
+    };
+  }, [lastActivity, signOut, navigate]);
 
   if (authLoading || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <Shield className="h-8 w-8 text-primary animate-pulse" />
+          </div>
+          <p className="text-muted-foreground">Verifying admin access...</p>
+        </div>
       </div>
     );
   }
@@ -21,15 +56,18 @@ export const AdminLayout = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="glass-card text-center max-w-md">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
           <p className="text-muted-foreground mb-6">
-            You don't have permission to access the admin panel.
+            You don't have administrator privileges to access this panel. Please contact system support if you believe this is an error.
           </p>
-          <a href="/dashboard" className="text-primary hover:underline">
+          <Button onClick={() => navigate("/dashboard")} className="w-full">
             Return to Dashboard
-          </a>
+          </Button>
         </div>
       </div>
     );
@@ -38,8 +76,10 @@ export const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-background flex">
       <AdminSidebar />
-      <main className="flex-1 p-8 overflow-auto">
-        <Outlet />
+      <main className="flex-1 overflow-auto">
+        <div className="p-8">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

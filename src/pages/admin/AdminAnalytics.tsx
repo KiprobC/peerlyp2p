@@ -95,8 +95,7 @@ export const AdminAnalytics = () => {
           title="Total Users"
           value={stats.totalUsers}
           icon={Users}
-          trend={`${stats.verifiedUsers} verified`}
-          trendUp
+          subtitle={`${stats.verifiedUsers} verified`}
         />
         <StatsCard
           title="Total Trades"
@@ -107,7 +106,6 @@ export const AdminAnalytics = () => {
           title="Total Volume"
           value={`KES ${(stats.totalVolume / 1000000).toFixed(2)}M`}
           icon={DollarSign}
-          trendUp
         />
         <StatsCard
           title="Active Offers"
@@ -252,7 +250,7 @@ export const AdminAnalytics = () => {
           </div>
           <div className="text-center">
             <p className="text-3xl font-bold">
-              {stats.totalTrades > 0 ? (stats.totalVolume / stats.totalTrades).toFixed(0) : 0}
+              {stats.totalTrades > 0 ? Math.round(stats.totalVolume / stats.totalTrades).toLocaleString() : 0}
             </p>
             <p className="text-sm text-muted-foreground">Avg Trade Value (KES)</p>
           </div>

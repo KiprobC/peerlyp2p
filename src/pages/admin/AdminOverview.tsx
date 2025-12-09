@@ -1,13 +1,30 @@
-import { Users, ArrowRightLeft, AlertTriangle, TrendingUp, DollarSign, Package } from "lucide-react";
+import { 
+  Users, 
+  ArrowRightLeft, 
+  AlertTriangle, 
+  DollarSign, 
+  Package,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Shield
+} from "lucide-react";
 import { StatsCard } from "@/components/admin/StatsCard";
-import { usePlatformStats, useAdminTrades } from "@/hooks/useAdmin";
+import { usePlatformStats, useAdminTrades, useAdminUsers } from "@/hooks/useAdmin";
 import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 export const AdminOverview = () => {
   const { stats, loading: statsLoading } = usePlatformStats();
-  const { disputedTrades, loading: tradesLoading } = useAdminTrades();
+  const { trades, disputedTrades } = useAdminTrades();
+  const { users } = useAdminUsers();
 
-  if (statsLoading || tradesLoading) {
+  const recentTrades = trades.slice(0, 5);
+  const pendingKYCUsers = users.filter((u) => u.kyc_status === "submitted").slice(0, 5);
+
+  if (statsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -19,82 +36,212 @@ export const AdminOverview = () => {
     <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-        <p className="text-muted-foreground">Monitor platform activity and performance</p>
+        <p className="text-muted-foreground">Real-time platform monitoring and statistics</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Users"
           value={stats.totalUsers}
           icon={Users}
-          trend={`${stats.verifiedUsers} verified`}
-          trendUp
+          subtitle={`${stats.verifiedUsers} verified`}
+          variant="primary"
         />
         <StatsCard
-          title="Total Trades"
-          value={stats.totalTrades}
+          title="Active Trades"
+          value={stats.activeTrades}
           icon={ArrowRightLeft}
-          trend={`${stats.completedTrades} completed`}
-          trendUp
+          subtitle={`${stats.totalTrades} total`}
+          variant="success"
         />
         <StatsCard
-          title="Active Disputes"
+          title="Pending Disputes"
           value={stats.disputedTrades}
           icon={AlertTriangle}
-          className={stats.disputedTrades > 0 ? "border-destructive/30" : ""}
+          subtitle="Requires attention"
+          variant={stats.disputedTrades > 0 ? "destructive" : "default"}
         />
         <StatsCard
-          title="Trade Volume"
-          value={`KES ${stats.totalVolume.toLocaleString()}`}
-          icon={DollarSign}
-          trendUp
-        />
-        <StatsCard
-          title="Active Offers"
-          value={stats.activeOffers}
-          icon={Package}
-        />
-        <StatsCard
-          title="Success Rate"
-          value={stats.totalTrades > 0 
-            ? `${((stats.completedTrades / stats.totalTrades) * 100).toFixed(1)}%` 
-            : "N/A"}
-          icon={TrendingUp}
-          trendUp
+          title="Escrow Locked"
+          value={`${stats.totalEscrowLocked.toFixed(4)}`}
+          icon={Shield}
+          subtitle="Total crypto in escrow"
+          variant="warning"
         />
       </div>
 
-      {disputedTrades.length > 0 && (
+      {/* Volume Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatsCard
+          title="Today's Volume"
+          value={`KES ${stats.todayVolume.toLocaleString()}`}
+          icon={DollarSign}
+          variant="default"
+        />
+        <StatsCard
+          title="Weekly Volume"
+          value={`KES ${stats.weekVolume.toLocaleString()}`}
+          icon={TrendingUp}
+          variant="default"
+        />
+        <StatsCard
+          title="Monthly Volume"
+          value={`KES ${stats.monthVolume.toLocaleString()}`}
+          icon={TrendingUp}
+          trend={stats.monthVolume > 0 ? { value: "Active trading", isPositive: true } : undefined}
+          variant="default"
+        />
+      </div>
+
+      {/* Trade Status Distribution */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="glass-card text-center">
+          <Clock className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+          <p className="text-2xl font-bold">{stats.activeTrades}</p>
+          <p className="text-xs text-muted-foreground">Pending</p>
+        </div>
+        <div className="glass-card text-center">
+          <CheckCircle className="h-6 w-6 mx-auto mb-2 text-primary" />
+          <p className="text-2xl font-bold">{stats.completedTrades}</p>
+          <p className="text-xs text-muted-foreground">Completed</p>
+        </div>
+        <div className="glass-card text-center">
+          <XCircle className="h-6 w-6 mx-auto mb-2 text-destructive" />
+          <p className="text-2xl font-bold">{stats.cancelledTrades}</p>
+          <p className="text-xs text-muted-foreground">Cancelled</p>
+        </div>
+        <div className="glass-card text-center">
+          <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-accent" />
+          <p className="text-2xl font-bold">{stats.disputedTrades}</p>
+          <p className="text-xs text-muted-foreground">Disputed</p>
+        </div>
+        <div className="glass-card text-center">
+          <Package className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+          <p className="text-2xl font-bold">{stats.activeOffers}</p>
+          <p className="text-xs text-muted-foreground">Active Offers</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Trades */}
         <div className="glass-card">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
-            Recent Disputes
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Recent Trades</h2>
+            <Link to="/admin/trades" className="text-sm text-primary hover:underline">
+              View all
+            </Link>
+          </div>
           <div className="space-y-3">
-            {disputedTrades.slice(0, 5).map((trade) => (
+            {recentTrades.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">No trades yet</p>
+            ) : (
+              recentTrades.map((trade) => (
+                <div
+                  key={trade.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {trade.crypto_amount} {trade.crypto_type}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {trade.fiat_currency} {trade.fiat_amount.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <Badge
+                      variant={
+                        trade.status === "completed"
+                          ? "default"
+                          : trade.status === "disputed"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {trade.status}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(trade.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Pending KYC Approvals */}
+        <div className="glass-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Shield className="h-5 w-5 text-accent" />
+              Pending KYC Approvals
+            </h2>
+            <Link to="/admin/users" className="text-sm text-primary hover:underline">
+              View all
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {pendingKYCUsers.length === 0 ? (
+              <p className="text-center text-muted-foreground py-4">No pending approvals</p>
+            ) : (
+              pendingKYCUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                >
+                  <div>
+                    <p className="font-medium">{user.full_name || "No name"}</p>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant="outline" className="border-accent text-accent">
+                      Submitted
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Active Disputes Alert */}
+      {disputedTrades.length > 0 && (
+        <div className="glass-card border-destructive/30 bg-destructive/5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Active Disputes ({disputedTrades.length})
+            </h2>
+            <Link to="/admin/disputes" className="text-sm text-primary hover:underline">
+              Resolve now
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {disputedTrades.slice(0, 3).map((trade) => (
               <div
                 key={trade.id}
-                className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-destructive/20"
+                className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/20"
               >
                 <div>
                   <p className="font-medium">
-                    {trade.crypto_amount} {trade.crypto_type}
+                    Trade #{trade.id.slice(0, 8)} - {trade.crypto_amount} {trade.crypto_type}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {trade.dispute_reason || "No reason provided"}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(trade.disputed_at || trade.created_at), { addSuffix: true })}
-                  </p>
-                  <a
-                    href={`/admin/disputes`}
-                    className="text-sm text-primary hover:underline"
-                  >
-                    View Details
-                  </a>
-                </div>
+                <Link
+                  to="/admin/disputes"
+                  className="text-sm text-primary hover:underline"
+                >
+                  Review
+                </Link>
               </div>
             ))}
           </div>
