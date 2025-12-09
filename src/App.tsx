@@ -16,6 +16,11 @@ import Trade from "./pages/Trade";
 import Trades from "./pages/Trades";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
+import { AdminLayout } from "./pages/admin/AdminLayout";
+import { AdminOverview } from "./pages/admin/AdminOverview";
+import { AdminUsers } from "./pages/admin/AdminUsers";
+import { AdminDisputes } from "./pages/admin/AdminDisputes";
+import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +99,12 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminOverview />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="disputes" element={<AdminDisputes />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+      </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
