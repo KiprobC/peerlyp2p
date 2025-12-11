@@ -8,12 +8,15 @@ export interface Profile {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  username: string | null;
   phone: string | null;
   date_of_birth: string | null;
   country: string | null;
   city: string | null;
   address: string | null;
   kyc_status: "pending" | "submitted" | "verified" | "rejected";
+  kyc_submitted_at: string | null;
+  kyc_verified_at: string | null;
   id_type: string | null;
   id_number: string | null;
   id_front_url: string | null;

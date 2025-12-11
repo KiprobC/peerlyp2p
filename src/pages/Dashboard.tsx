@@ -105,14 +105,14 @@ const Dashboard = () => {
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="w-5 h-5" />
               </Button>
-              <div className="flex items-center gap-2 pl-3 border-l border-border">
+              <Link to="/profile" className="flex items-center gap-2 pl-3 border-l border-border hover:opacity-80 transition-opacity">
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
                   {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
                 </div>
                 <span className="hidden sm:block text-sm font-medium">
                   {profile?.full_name?.split(" ")[0] || "User"}
                 </span>
-              </div>
+              </Link>
             </div>
           </div>
         </div>

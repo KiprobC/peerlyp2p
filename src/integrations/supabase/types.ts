@@ -137,6 +137,7 @@ export type Database = {
           total_trades: number | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           address?: string | null
@@ -170,6 +171,7 @@ export type Database = {
           total_trades?: number | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           address?: string | null
@@ -203,6 +205,7 @@ export type Database = {
           total_trades?: number | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -347,6 +350,48 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          email_notifications: boolean | null
+          id: string
+          preferred_currency: string | null
+          push_notifications: boolean | null
+          sms_notifications: boolean | null
+          theme: string | null
+          transaction_alerts: boolean | null
+          two_factor_enabled: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          preferred_currency?: string | null
+          push_notifications?: boolean | null
+          sms_notifications?: boolean | null
+          theme?: string | null
+          transaction_alerts?: boolean | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_notifications?: boolean | null
+          id?: string
+          preferred_currency?: string | null
+          push_notifications?: boolean | null
+          sms_notifications?: boolean | null
+          theme?: string | null
+          transaction_alerts?: boolean | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
