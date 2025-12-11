@@ -24,7 +24,8 @@ import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
 import { AdminTrades } from "./pages/admin/AdminTrades";
 import { AdminOffers } from "./pages/admin/AdminOffers";
 import { AdminWallets, AdminTransactions } from "./pages/admin/AdminWallets";
-import { AdminNotifications, AdminSettings, AdminLogs } from "./pages/admin/AdminPlaceholders";
+import { AdminSettings, AdminLogs } from "./pages/admin/AdminPlaceholders";
+import AdminNotifications from "./pages/admin/AdminNotifications";
 
 const queryClient = new QueryClient();
 

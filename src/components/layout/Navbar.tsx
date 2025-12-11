@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Wallet, TrendingUp, User, Shield } from "lucide-react";
+import { Menu, X, Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminRole } from "@/hooks/useAdmin";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
+  const { isAdmin } = useAdminRole();
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -44,20 +48,43 @@ const Navbar = () => {
                 {link.name}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 ${
+                  location.pathname.startsWith("/admin")
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </div>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button variant="hero" size="sm">
-                Get Started
-              </Button>
-            </Link>
+            {user ? (
+              <Link to="/dashboard">
+                <Button variant="hero" size="sm">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button variant="hero" size="sm">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -87,17 +114,41 @@ const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    location.pathname.startsWith("/admin")
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-secondary"
+                  }`}
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin Panel
+                </Link>
+              )}
               <div className="flex gap-2 mt-4 px-4">
-                <Link to="/login" className="flex-1">
-                  <Button variant="outline" className="w-full">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/signup" className="flex-1">
-                  <Button variant="hero" className="w-full">
-                    Get Started
-                  </Button>
-                </Link>
+                {user ? (
+                  <Link to="/dashboard" className="flex-1">
+                    <Button variant="hero" className="w-full">
+                      Dashboard
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login" className="flex-1">
+                      <Button variant="outline" className="w-full">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/signup" className="flex-1">
+                      <Button variant="hero" className="w-full">
+                        Get Started
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
