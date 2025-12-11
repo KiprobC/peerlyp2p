@@ -29,7 +29,7 @@ interface DataTableProps<T> {
   loading?: boolean;
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   data,
   columns,
   searchPlaceholder = "Search...",
@@ -52,7 +52,7 @@ export function DataTable<T extends Record<string, unknown>>({
       const searchLower = search.toLowerCase();
       result = result.filter((item) =>
         searchableKeys.some((key) => {
-          const value = item[key];
+          const value = (item as Record<string, unknown>)[key];
           if (value == null) return false;
           return String(value).toLowerCase().includes(searchLower);
         })
@@ -62,8 +62,8 @@ export function DataTable<T extends Record<string, unknown>>({
     // Sort
     if (sortKey) {
       result.sort((a, b) => {
-        const aVal = a[sortKey];
-        const bVal = b[sortKey];
+        const aVal = (a as Record<string, unknown>)[sortKey];
+        const bVal = (b as Record<string, unknown>)[sortKey];
         if (aVal == null) return 1;
         if (bVal == null) return -1;
         if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
@@ -148,7 +148,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     <TableCell key={column.key}>
                       {column.render
                         ? column.render(item)
-                        : String(item[column.key] ?? "-")}
+                        : String((item as Record<string, unknown>)[column.key] ?? "-")}
                     </TableCell>
                   ))}
                 </TableRow>
