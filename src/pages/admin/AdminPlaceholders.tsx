@@ -1,13 +1,3 @@
-export const AdminNotifications = () => (
-  <div className="space-y-6 animate-fade-in">
-    <h1 className="text-3xl font-bold">Notifications</h1>
-    <p className="text-muted-foreground">Send system notifications to users</p>
-    <div className="glass-card text-center py-12">
-      <p className="text-muted-foreground">Notification management coming soon</p>
-    </div>
-  </div>
-);
-
 export const AdminSettings = () => (
   <div className="space-y-6 animate-fade-in">
     <h1 className="text-3xl font-bold">System Settings</h1>

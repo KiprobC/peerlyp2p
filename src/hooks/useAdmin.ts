@@ -625,13 +625,18 @@ export const useAdminTradeMessages = (tradeId: string) => {
 
 // Admin Notifications Hook
 export const useAdminNotifications = () => {
-  const sendSystemNotification = async (userId: string, title: string, message: string) => {
+  const sendSystemNotification = async (
+    userId: string, 
+    title: string, 
+    message: string,
+    type: "system" | "trade" | "payment" | "kyc" | "message" = "system"
+  ) => {
     try {
       const { error } = await supabase.from("notifications").insert({
         user_id: userId,
         title,
         message,
-        type: "system",
+        type,
       });
       if (error) throw error;
       return { error: null };
@@ -640,13 +645,18 @@ export const useAdminNotifications = () => {
     }
   };
 
-  const sendBulkNotification = async (userIds: string[], title: string, message: string) => {
+  const sendBulkNotification = async (
+    userIds: string[], 
+    title: string, 
+    message: string,
+    type: "system" | "trade" | "payment" | "kyc" | "message" = "system"
+  ) => {
     try {
       const notifications = userIds.map((userId) => ({
         user_id: userId,
         title,
         message,
-        type: "system" as const,
+        type,
       }));
 
       const { error } = await supabase.from("notifications").insert(notifications);
