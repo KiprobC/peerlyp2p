@@ -104,6 +104,42 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_fees: {
+        Row: {
+          created_at: string
+          description: string | null
+          fee_type: string
+          id: string
+          is_active: boolean
+          max_amount: number | null
+          min_amount: number | null
+          percentage: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          fee_type: string
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          percentage?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          fee_type?: string
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          percentage?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null

@@ -30,6 +30,7 @@ import { AdminOffers } from "./pages/admin/AdminOffers";
 import { AdminWallets, AdminTransactions } from "./pages/admin/AdminWallets";
 import { AdminSettings, AdminLogs } from "./pages/admin/AdminPlaceholders";
 import AdminNotifications from "./pages/admin/AdminNotifications";
+import { AdminFees } from "./pages/admin/AdminFees";
 
 const queryClient = new QueryClient();
 
@@ -147,6 +148,7 @@ const AppRoutes = () => {
         <Route path="trades" element={<AdminTrades />} />
         <Route path="wallets" element={<AdminWallets />} />
         <Route path="transactions" element={<AdminTransactions />} />
+        <Route path="fees" element={<AdminFees />} />
         <Route path="disputes" element={<AdminDisputes />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="notifications" element={<AdminNotifications />} />
