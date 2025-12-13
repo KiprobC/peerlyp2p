@@ -12,7 +12,8 @@ import {
   Bell,
   Settings,
   Shield,
-  LogOut
+  LogOut,
+  Percent
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +40,7 @@ const navSections = [
     items: [
       { href: "/admin/wallets", icon: Wallet, label: "Wallets" },
       { href: "/admin/transactions", icon: Receipt, label: "Transactions" },
+      { href: "/admin/fees", icon: Percent, label: "Fee Management" },
     ],
   },
   {
