@@ -31,6 +31,7 @@ import { AdminWallets, AdminTransactions } from "./pages/admin/AdminWallets";
 import { AdminSettings, AdminLogs } from "./pages/admin/AdminPlaceholders";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import { AdminFees } from "./pages/admin/AdminFees";
+import { AdminEscrow } from "./pages/admin/AdminEscrow";
 
 const queryClient = new QueryClient();
 
@@ -149,6 +150,7 @@ const AppRoutes = () => {
         <Route path="wallets" element={<AdminWallets />} />
         <Route path="transactions" element={<AdminTransactions />} />
         <Route path="fees" element={<AdminFees />} />
+        <Route path="escrow" element={<AdminEscrow />} />
         <Route path="disputes" element={<AdminDisputes />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="notifications" element={<AdminNotifications />} />
