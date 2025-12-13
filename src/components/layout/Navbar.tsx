@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminRole } from "@/hooks/useAdmin";
+import { NotificationPopover } from "./NotificationPopover";
+import { ProfilePopover } from "./ProfilePopover";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -66,11 +68,10 @@ const Navbar = () => {
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <Link to="/dashboard">
-                <Button variant="hero" size="sm">
-                  Dashboard
-                </Button>
-              </Link>
+              <>
+                <NotificationPopover />
+                <ProfilePopover />
+              </>
             ) : (
               <>
                 <Link to="/login">
@@ -130,11 +131,10 @@ const Navbar = () => {
               )}
               <div className="flex gap-2 mt-4 px-4">
                 {user ? (
-                  <Link to="/dashboard" className="flex-1">
-                    <Button variant="hero" className="w-full">
-                      Dashboard
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-2 w-full">
+                    <NotificationPopover />
+                    <ProfilePopover />
+                  </div>
                 ) : (
                   <>
                     <Link to="/login" className="flex-1">
