@@ -13,7 +13,8 @@ import {
   Settings,
   Shield,
   LogOut,
-  Percent
+  Percent,
+  Lock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +42,7 @@ const navSections = [
       { href: "/admin/wallets", icon: Wallet, label: "Wallets" },
       { href: "/admin/transactions", icon: Receipt, label: "Transactions" },
       { href: "/admin/fees", icon: Percent, label: "Fee Management" },
+      { href: "/admin/escrow", icon: Lock, label: "Escrow Management" },
     ],
   },
   {
