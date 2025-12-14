@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import KYCUpload from "./pages/KYCUpload";
+import MyOffers from "./pages/MyOffers";
 import { AdminLayout } from "./pages/admin/AdminLayout";
 import { AdminOverview } from "./pages/admin/AdminOverview";
 import { AdminUsers } from "./pages/admin/AdminUsers";
@@ -32,6 +33,7 @@ import { AdminSettings, AdminLogs } from "./pages/admin/AdminPlaceholders";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import { AdminFees } from "./pages/admin/AdminFees";
 import { AdminEscrow } from "./pages/admin/AdminEscrow";
+import AdminKYC from "./pages/admin/AdminKYC";
 
 const queryClient = new QueryClient();
 
@@ -142,6 +144,14 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/my-offers"
+        element={
+          <ProtectedRoute>
+            <MyOffers />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminOverview />} />
         <Route path="users" element={<AdminUsers />} />
@@ -151,6 +161,7 @@ const AppRoutes = () => {
         <Route path="transactions" element={<AdminTransactions />} />
         <Route path="fees" element={<AdminFees />} />
         <Route path="escrow" element={<AdminEscrow />} />
+        <Route path="kyc" element={<AdminKYC />} />
         <Route path="disputes" element={<AdminDisputes />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="notifications" element={<AdminNotifications />} />
