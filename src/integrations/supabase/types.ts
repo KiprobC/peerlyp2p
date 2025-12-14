@@ -49,6 +49,7 @@ export type Database = {
       }
       offers: {
         Row: {
+          active_trade_count: number | null
           created_at: string
           crypto_amount: number
           crypto_type: string
@@ -67,6 +68,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_trade_count?: number | null
           created_at?: string
           crypto_amount: number
           crypto_type: string
@@ -85,6 +87,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_trade_count?: number | null
           created_at?: string
           crypto_amount?: number
           crypto_type?: string
@@ -276,6 +279,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "trade_messages_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rated_id: string
+          rater_id: string
+          rating: number
+          trade_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rated_id: string
+          rater_id: string
+          rating: number
+          trade_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rated_id?: string
+          rater_id?: string
+          rating?: number
+          trade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_ratings_trade_id_fkey"
             columns: ["trade_id"]
             isOneToOne: false
             referencedRelation: "trades"
@@ -526,6 +567,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_notification: {
+        Args: {
+          p_data?: Json
+          p_message: string
+          p_title: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+          p_user_id: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

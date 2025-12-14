@@ -139,6 +139,12 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex gap-3">
+              <Link to="/my-offers">
+                <Button variant="outline">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  My Offers
+                </Button>
+              </Link>
               <Link to="/marketplace">
                 <Button variant="outline">
                   <ArrowDownLeft className="w-4 h-4 mr-2" />
