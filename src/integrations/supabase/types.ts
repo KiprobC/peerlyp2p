@@ -588,6 +588,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      lock_escrow: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_seller_id: string
+          p_trade_id?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
