@@ -15,7 +15,7 @@ const normalizeCryptoType = (cryptoType: string): string => {
 const getOrCreateWallet = async (
   userId: string,
   cryptoType: string
-): Promise<{ wallet: any; error?: string }> => {
+): Promise<{ walletId: string; error?: string }> => {
   const normalizedCrypto = normalizeCryptoType(cryptoType);
 
   // Call the SECURITY DEFINER function to get or create wallet
@@ -27,26 +27,14 @@ const getOrCreateWallet = async (
 
   if (rpcError) {
     console.error("Error in get_or_create_wallet RPC:", rpcError);
-    return { wallet: null, error: rpcError.message };
+    return { walletId: "", error: rpcError.message };
   }
 
   if (!walletId) {
-    return { wallet: null, error: "Failed to get or create wallet" };
+    return { walletId: "", error: "Failed to get or create wallet" };
   }
 
-  // Fetch the full wallet data
-  const { data: wallet, error: fetchError } = await supabase
-    .from("wallets")
-    .select("*")
-    .eq("id", walletId)
-    .single();
-
-  if (fetchError) {
-    console.error("Error fetching wallet after creation:", fetchError);
-    return { wallet: null, error: fetchError.message };
-  }
-
-  return { wallet };
+  return { walletId };
 };
 
 // Hook for managing escrow operations
@@ -117,9 +105,9 @@ export const useEscrow = () => {
       }
 
       // Get or create buyer's wallet (auto-create if doesn't exist)
-      const { wallet: buyerWallet, error: buyerError } = await getOrCreateWallet(buyerId, normalizedCrypto);
+      const { walletId: buyerWalletId, error: buyerError } = await getOrCreateWallet(buyerId, normalizedCrypto);
 
-      if (buyerError || !buyerWallet) {
+      if (buyerError || !buyerWalletId) {
         return { success: false, error: buyerError || "Failed to get buyer wallet" };
       }
 
@@ -139,39 +127,35 @@ export const useEscrow = () => {
 
       if (sellerUpdateError) throw sellerUpdateError;
 
-      // Credit to buyer
+      // Credit to buyer using RPC to bypass RLS
       const { error: buyerUpdateError } = await supabase
-        .from("wallets")
-        .update({
-          balance: Number(buyerWallet.balance) + amount,
-        })
-        .eq("id", buyerWallet.id);
+        .rpc("credit_buyer_wallet", {
+          p_wallet_id: buyerWalletId,
+          p_amount: amount,
+        });
 
       if (buyerUpdateError) throw buyerUpdateError;
 
-      // Log transactions
-      await supabase.from("wallet_transactions").insert([
-        {
-          wallet_id: sellerWallet.id,
-          user_id: sellerId,
-          type: "escrow_release",
-          amount: -amount,
-          crypto_type: normalizedCrypto,
-          status: "completed",
-          trade_id: tradeId,
-          description: `Escrow released for trade ${tradeId.slice(0, 8)}`,
-        },
-        {
-          wallet_id: buyerWallet.id,
-          user_id: buyerId,
-          type: "trade",
-          amount: amount,
-          crypto_type: normalizedCrypto,
-          status: "completed",
-          trade_id: tradeId,
-          description: `Received from trade ${tradeId.slice(0, 8)}`,
-        },
-      ]);
+      // Log seller transaction
+      await supabase.from("wallet_transactions").insert({
+        wallet_id: sellerWallet.id,
+        user_id: sellerId,
+        type: "escrow_release",
+        amount: -amount,
+        crypto_type: normalizedCrypto,
+        status: "completed",
+        trade_id: tradeId,
+        description: `Escrow released for trade ${tradeId.slice(0, 8)}`,
+      });
+
+      // Log buyer transaction using RPC to bypass RLS
+      await supabase.rpc("log_buyer_transaction", {
+        p_wallet_id: buyerWalletId,
+        p_user_id: buyerId,
+        p_amount: amount,
+        p_crypto_type: normalizedCrypto,
+        p_trade_id: tradeId,
+      });
 
       return { success: true };
     } catch (error: any) {

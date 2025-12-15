@@ -577,6 +577,10 @@ export type Database = {
         }
         Returns: string
       }
+      credit_buyer_wallet: {
+        Args: { p_amount: number; p_wallet_id: string }
+        Returns: undefined
+      }
       get_or_create_wallet: {
         Args: { p_crypto_type: string; p_user_id: string }
         Returns: string
@@ -596,6 +600,16 @@ export type Database = {
           p_trade_id?: string
         }
         Returns: Json
+      }
+      log_buyer_transaction: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_trade_id: string
+          p_user_id: string
+          p_wallet_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
