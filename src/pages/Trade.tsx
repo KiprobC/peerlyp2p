@@ -418,8 +418,8 @@ const TradePage = () => {
                   </Button>
                 )}
 
-                {/* Cancel (only before payment) */}
-                {["pending", "confirmed"].includes(trade.status) && (
+                {/* Cancel (only buyer can cancel, and only before payment) */}
+                {isBuyer && ["pending", "confirmed"].includes(trade.status) && (
                   <Button
                     variant="outline"
                     className="w-full"
