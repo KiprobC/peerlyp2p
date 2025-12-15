@@ -123,15 +123,15 @@ const Dashboard = () => {
       <main className="pt-20 sm:pt-24 pb-24 md:pb-16">
         <div className="container mx-auto px-3 sm:px-4">
           {/* Welcome Section */}
-          <div className="flex flex-col gap-4 mb-6 sm:mb-8">
+          <div className="flex flex-col gap-3 mb-6 sm:mb-8">
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1">
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold mb-1">
                 Welcome, <span className="gradient-text">{profile?.full_name?.split(" ")[0] || "Trader"}</span>
               </h1>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                 {profile?.is_verified && (
                   <div className="flex items-center gap-1 text-primary">
-                    <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <Shield className="w-3 h-3" />
                     <span>Verified</span>
                   </div>
                 )}
@@ -140,24 +140,24 @@ const Dashboard = () => {
               </div>
             </div>
             
-            {/* Quick Actions - Scrollable on mobile */}
-            <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:flex-wrap">
-              <Link to="/my-offers" className="shrink-0">
-                <Button variant="outline" size="sm" className="h-9 text-xs sm:text-sm">
-                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" />
-                  My Offers
+            {/* Quick Actions - Grid layout to prevent scroll */}
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+              <Link to="/my-offers">
+                <Button variant="outline" size="sm" className="w-full h-8 text-[10px] sm:text-xs sm:h-9 px-2 sm:px-3">
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  <span className="truncate">Offers</span>
                 </Button>
               </Link>
-              <Link to="/marketplace" className="shrink-0">
-                <Button variant="outline" size="sm" className="h-9 text-xs sm:text-sm">
-                  <ArrowDownLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" />
-                  Buy Crypto
+              <Link to="/marketplace">
+                <Button variant="outline" size="sm" className="w-full h-8 text-[10px] sm:text-xs sm:h-9 px-2 sm:px-3">
+                  <ArrowDownLeft className="w-3 h-3 mr-1" />
+                  <span className="truncate">Buy</span>
                 </Button>
               </Link>
-              <Link to="/create-offer" className="shrink-0">
-                <Button variant="default" size="sm" className="h-9 text-xs sm:text-sm">
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5" />
-                  Create Offer
+              <Link to="/create-offer">
+                <Button variant="default" size="sm" className="w-full h-8 text-[10px] sm:text-xs sm:h-9 px-2 sm:px-3">
+                  <Plus className="w-3 h-3 mr-1" />
+                  <span className="truncate">Create</span>
                 </Button>
               </Link>
             </div>
