@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -42,9 +42,24 @@ const Settings = () => {
 
   const handleThemeChange = async (value: string) => {
     await updateSettings({ theme: value });
-    // Apply theme to document
-    document.documentElement.classList.toggle("dark", value === "dark");
+    applyTheme(value);
   };
+
+  const applyTheme = (theme: string) => {
+    if (theme === "system") {
+      const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", systemPrefersDark);
+    } else {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+    }
+  };
+
+  // Apply theme on initial load
+  useEffect(() => {
+    if (settings?.theme) {
+      applyTheme(settings.theme);
+    }
+  }, [settings?.theme]);
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
