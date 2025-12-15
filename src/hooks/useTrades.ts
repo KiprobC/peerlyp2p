@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -38,10 +38,50 @@ export interface TradeMessage {
   created_at: string;
 }
 
+// Simple notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.error("Error playing notification sound:", error);
+  }
+};
+
 export const useTrades = () => {
   const { user } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastSoundPlayedRef = useRef<number>(0);
+  const userOffersRef = useRef<Set<string>>(new Set());
+
+  // Fetch user's offer IDs
+  const fetchUserOffers = useCallback(async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from("offers")
+      .select("id")
+      .eq("user_id", user.id);
+    
+    if (data) {
+      userOffersRef.current = new Set(data.map(o => o.id));
+    }
+  }, [user]);
 
   const fetchTrades = async () => {
     if (!user) {
@@ -110,9 +150,10 @@ export const useTrades = () => {
 
   useEffect(() => {
     fetchTrades();
-  }, [user]);
+    fetchUserOffers();
+  }, [user, fetchUserOffers]);
 
-  // Real-time subscription
+  // Real-time subscription with notification sound
   useEffect(() => {
     if (!user) return;
 
@@ -121,11 +162,34 @@ export const useTrades = () => {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "trades",
         },
         (payload) => {
+          const newTrade = payload.new as Trade;
+          
+          // Check if this trade is on one of user's offers and user is the seller
+          if (userOffersRef.current.has(newTrade.offer_id) && newTrade.seller_id === user.id) {
+            // Play sound only once per second max
+            const now = Date.now();
+            if (now - lastSoundPlayedRef.current > 1000) {
+              lastSoundPlayedRef.current = now;
+              playNotificationSound();
+            }
+          }
+          
+          fetchTrades();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "trades",
+        },
+        () => {
           fetchTrades();
         }
       )
