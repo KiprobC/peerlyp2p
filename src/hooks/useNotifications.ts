@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Json } from "@/integrations/supabase/types";
-import { useNotificationSound } from "./useNotificationSound";
+import { useNotificationSound, NotificationSoundType } from "./useNotificationSound";
 
 export interface Notification {
   id: string;
@@ -16,7 +16,7 @@ export interface Notification {
 }
 
 // Notification types that should trigger a sound
-const SOUND_ENABLED_TYPES = ["trade", "payment", "message"];
+const SOUND_ENABLED_TYPES: NotificationSoundType[] = ["trade", "payment", "message", "kyc"];
 
 export const useNotifications = () => {
   const { user } = useAuth();
@@ -108,10 +108,9 @@ export const useNotifications = () => {
           const newNotification = payload.new as Notification;
           setNotifications(prev => [newNotification, ...prev]);
           
-          // Play sound for trade-related notifications (not during initial load)
-          if (!isInitialLoadRef.current && SOUND_ENABLED_TYPES.includes(newNotification.type)) {
-            console.log(`Playing notification sound for ${newNotification.type}:`, newNotification.title);
-            playNotificationSound();
+          // Play distinct sound based on notification type (not during initial load)
+          if (!isInitialLoadRef.current && SOUND_ENABLED_TYPES.includes(newNotification.type as NotificationSoundType)) {
+            playNotificationSound(newNotification.type as NotificationSoundType);
           }
         }
       )
