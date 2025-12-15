@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { useThemeInit } from "@/hooks/useThemeInit";
 import Index from "./pages/Index";
 import Marketplace from "./pages/Marketplace";
 import Login from "./pages/Login";
@@ -58,6 +59,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
+  useThemeInit();
+  
   return (
     <Routes>
       <Route path="/" element={<Index />} />
