@@ -379,104 +379,6 @@ const TradePage = () => {
                 </TraderProfilePopover>
               </div>
 
-              {/* Action Buttons */}
-              <div className="glass-card space-y-3">
-                <h3 className="font-semibold mb-4">Actions</h3>
-
-                {/* Seller actions */}
-                {isSeller && trade.status === "pending" && (
-                  <Button
-                    className="w-full"
-                    onClick={handleConfirmTrade}
-                    disabled={actionLoading}
-                  >
-                    <Lock className="w-4 h-4 mr-2" />
-                    Confirm & Lock Escrow
-                  </Button>
-                )}
-
-                {isSeller && trade.status === "payment_sent" && (
-                  <Button
-                    className="w-full"
-                    onClick={handleReleaseEscrow}
-                    disabled={actionLoading}
-                  >
-                    <Unlock className="w-4 h-4 mr-2" />
-                    Release Escrow
-                  </Button>
-                )}
-
-                {/* Buyer actions */}
-                {isBuyer && trade.status === "confirmed" && (
-                  <Button
-                    className="w-full"
-                    onClick={handlePaymentSent}
-                    disabled={actionLoading}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    I've Sent Payment
-                  </Button>
-                )}
-
-                {/* Cancel (only buyer can cancel, and only before payment) */}
-                {isBuyer && ["pending", "confirmed"].includes(trade.status) && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleCancelTrade}
-                    disabled={actionLoading}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Cancel Trade
-                  </Button>
-                )}
-
-                {/* Dispute (after payment sent) */}
-                {["payment_sent", "confirmed"].includes(trade.status) && (
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => setDisputeDialogOpen(true)}
-                    disabled={actionLoading}
-                  >
-                    <AlertTriangle className="w-4 h-4 mr-2" />
-                    Raise Dispute
-                  </Button>
-                )}
-
-                {trade.status === "completed" && (
-                  <div className="text-center py-4">
-                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                    <p className="text-green-500 font-semibold">Trade Completed!</p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {format(new Date(trade.completed_at!), "MMM d, yyyy 'at' HH:mm")}
-                    </p>
-                    {!hasRated && (
-                      <Button 
-                        onClick={() => setRatingDialogOpen(true)}
-                        variant="outline"
-                        className="w-full"
-                      >
-                        <Star className="w-4 h-4 mr-2" />
-                        Rate This Trade
-                      </Button>
-                    )}
-                    {hasRated && (
-                      <p className="text-xs text-muted-foreground">You've already rated this trade</p>
-                    )}
-                  </div>
-                )}
-
-                {trade.status === "disputed" && (
-                  <div className="text-center py-4">
-                    <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-2" />
-                    <p className="text-destructive font-semibold">Under Review</p>
-                    <p className="text-sm text-muted-foreground">
-                      An admin is reviewing this dispute
-                    </p>
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Chat Section */}
@@ -551,6 +453,109 @@ const TradePage = () => {
                         <Send className="w-4 h-4" />
                       </Button>
                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons - Full Width at Bottom */}
+            <div className="lg:col-span-3">
+              <div className="glass-card space-y-3">
+                <h3 className="font-semibold mb-4">Actions</h3>
+
+                <div className="flex flex-wrap gap-3">
+                  {/* Seller actions */}
+                  {isSeller && trade.status === "pending" && (
+                    <Button
+                      className="flex-1 min-w-[200px]"
+                      onClick={handleConfirmTrade}
+                      disabled={actionLoading}
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Confirm & Lock Escrow
+                    </Button>
+                  )}
+
+                  {isSeller && trade.status === "payment_sent" && (
+                    <Button
+                      className="flex-1 min-w-[200px]"
+                      onClick={handleReleaseEscrow}
+                      disabled={actionLoading}
+                    >
+                      <Unlock className="w-4 h-4 mr-2" />
+                      Release Escrow
+                    </Button>
+                  )}
+
+                  {/* Buyer actions */}
+                  {isBuyer && trade.status === "confirmed" && (
+                    <Button
+                      className="flex-1 min-w-[200px]"
+                      onClick={handlePaymentSent}
+                      disabled={actionLoading}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      I've Sent Payment
+                    </Button>
+                  )}
+
+                  {/* Cancel (only buyer can cancel, and only before payment) */}
+                  {isBuyer && ["pending", "confirmed"].includes(trade.status) && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 min-w-[200px]"
+                      onClick={handleCancelTrade}
+                      disabled={actionLoading}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Cancel Trade
+                    </Button>
+                  )}
+
+                  {/* Dispute (after payment sent) */}
+                  {["payment_sent", "confirmed"].includes(trade.status) && (
+                    <Button
+                      variant="destructive"
+                      className="flex-1 min-w-[200px]"
+                      onClick={() => setDisputeDialogOpen(true)}
+                      disabled={actionLoading}
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Raise Dispute
+                    </Button>
+                  )}
+                </div>
+
+                {trade.status === "completed" && (
+                  <div className="text-center py-4">
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                    <p className="text-green-500 font-semibold">Trade Completed!</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {format(new Date(trade.completed_at!), "MMM d, yyyy 'at' HH:mm")}
+                    </p>
+                    {!hasRated && (
+                      <Button 
+                        onClick={() => setRatingDialogOpen(true)}
+                        variant="outline"
+                        className="w-full max-w-xs mx-auto"
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Rate This Trade
+                      </Button>
+                    )}
+                    {hasRated && (
+                      <p className="text-xs text-muted-foreground">You've already rated this trade</p>
+                    )}
+                  </div>
+                )}
+
+                {trade.status === "disputed" && (
+                  <div className="text-center py-4">
+                    <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-2" />
+                    <p className="text-destructive font-semibold">Under Review</p>
+                    <p className="text-sm text-muted-foreground">
+                      An admin is reviewing this dispute
+                    </p>
                   </div>
                 )}
               </div>
