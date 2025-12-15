@@ -8,9 +8,11 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export const NotificationPopover = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
+  const navigate = useNavigate();
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -20,6 +22,40 @@ export const NotificationPopover = () => {
       case "system": return "bg-yellow-500/20 text-yellow-500";
       case "message": return "bg-purple-500/20 text-purple-500";
       default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    if (!notification.read) {
+      markAsRead(notification.id);
+    }
+    
+    // Navigate based on notification type and data
+    const data = notification.data as Record<string, any> | null;
+    
+    switch (notification.type) {
+      case "trade":
+      case "message":
+        if (data?.trade_id) {
+          navigate(`/trade/${data.trade_id}`);
+        } else {
+          navigate("/trades");
+        }
+        break;
+      case "payment":
+        navigate("/dashboard");
+        break;
+      case "kyc":
+        if (data?.status === "rejected" || data?.status === "pending") {
+          navigate("/kyc-upload");
+        } else {
+          navigate("/profile");
+        }
+        break;
+      case "system":
+      default:
+        navigate("/dashboard");
+        break;
     }
   };
 
@@ -66,7 +102,7 @@ export const NotificationPopover = () => {
                   className={`p-3 hover:bg-secondary/50 cursor-pointer transition-colors ${
                     !notification.read ? "bg-primary/5" : ""
                   }`}
-                  onClick={() => !notification.read && markAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-3">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeColor(notification.type)}`}>
