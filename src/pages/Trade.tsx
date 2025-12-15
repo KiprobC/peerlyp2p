@@ -31,6 +31,7 @@ import { useTrades, useTradeMessages, Trade } from "@/hooks/useTrades";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useTradeRatings } from "@/hooks/useTradeRatings";
 import { RatingDialog } from "@/components/trade/RatingDialog";
+import { TraderProfilePopover } from "@/components/trade/TraderProfilePopover";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
@@ -349,27 +350,33 @@ const TradePage = () => {
                 <h3 className="font-semibold mb-4">
                   {isBuyer ? "Seller" : "Buyer"}
                 </h3>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                    {counterparty?.full_name?.charAt(0) || "?"}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">
-                        {counterparty?.full_name || "Anonymous"}
-                      </span>
-                      {counterparty?.is_verified && (
-                        <Shield className="w-4 h-4 text-primary" />
+                <TraderProfilePopover userId={isBuyer ? trade.seller_id : trade.buyer_id}>
+                  <div className="flex items-center gap-3 cursor-pointer hover:bg-secondary/50 rounded-lg p-2 -m-2 transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden">
+                      {counterparty?.avatar_url ? (
+                        <img src={counterparty.avatar_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        counterparty?.full_name?.charAt(0) || "?"
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Star className="w-3 h-3 text-accent fill-accent" />
-                      <span>{counterparty?.rating?.toFixed(1) || "0.0"}</span>
-                      <span>•</span>
-                      <span>{counterparty?.total_trades || 0} trades</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">
+                          {counterparty?.full_name || "Anonymous"}
+                        </span>
+                        {counterparty?.is_verified && (
+                          <Shield className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Star className="w-3 h-3 text-accent fill-accent" />
+                        <span>{counterparty?.rating?.toFixed(1) || "0.0"}</span>
+                        <span>•</span>
+                        <span>{counterparty?.total_trades || 0} trades</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </TraderProfilePopover>
               </div>
 
               {/* Action Buttons */}
