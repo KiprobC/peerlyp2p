@@ -29,6 +29,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrades, useTradeMessages, Trade } from "@/hooks/useTrades";
 import { useEscrow } from "@/hooks/useEscrow";
+import { useTradeRatings } from "@/hooks/useTradeRatings";
+import { RatingDialog } from "@/components/trade/RatingDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
@@ -57,6 +59,7 @@ const TradePage = () => {
   const { trades, updateTrade, refetch: refetchTrades } = useTrades();
   const { messages, sendMessage, loading: messagesLoading } = useTradeMessages(id || "");
   const { releaseEscrow } = useEscrow();
+  const { hasRated, refetch: refetchRatings } = useTradeRatings(id);
   
   const [trade, setTrade] = useState<Trade | null>(null);
   const [counterparty, setCounterparty] = useState<TraderProfile | null>(null);
@@ -65,6 +68,7 @@ const TradePage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
+  const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isBuyer = trade?.buyer_id === user?.id;
@@ -75,8 +79,13 @@ const TradePage = () => {
     const foundTrade = trades.find((t) => t.id === id);
     if (foundTrade) {
       setTrade(foundTrade);
+      
+      // Auto-open rating dialog when trade is completed and user hasn't rated
+      if (foundTrade.status === "completed" && !hasRated) {
+        setRatingDialogOpen(true);
+      }
     }
-  }, [trades, id]);
+  }, [trades, id, hasRated]);
 
   // Fetch counterparty profile
   useEffect(() => {
@@ -432,9 +441,22 @@ const TradePage = () => {
                   <div className="text-center py-4">
                     <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
                     <p className="text-green-500 font-semibold">Trade Completed!</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mb-4">
                       {format(new Date(trade.completed_at!), "MMM d, yyyy 'at' HH:mm")}
                     </p>
+                    {!hasRated && (
+                      <Button 
+                        onClick={() => setRatingDialogOpen(true)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Rate This Trade
+                      </Button>
+                    )}
+                    {hasRated && (
+                      <p className="text-xs text-muted-foreground">You've already rated this trade</p>
+                    )}
                   </div>
                 )}
 
@@ -559,6 +581,21 @@ const TradePage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rating Dialog */}
+      {trade && counterpartyId && user && (
+        <RatingDialog
+          open={ratingDialogOpen}
+          onClose={() => {
+            setRatingDialogOpen(false);
+            refetchRatings();
+          }}
+          tradeId={trade.id}
+          raterId={user.id}
+          ratedId={counterpartyId}
+          ratedName={counterparty?.full_name || "Trader"}
+        />
+      )}
     </div>
   );
 };
