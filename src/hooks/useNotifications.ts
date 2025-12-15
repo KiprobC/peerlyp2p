@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Json } from "@/integrations/supabase/types";
+import { useNotificationSound } from "./useNotificationSound";
 
 export interface Notification {
   id: string;
@@ -14,10 +15,15 @@ export interface Notification {
   created_at: string;
 }
 
+// Notification types that should trigger a sound
+const SOUND_ENABLED_TYPES = ["trade", "payment", "message"];
+
 export const useNotifications = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const { playNotificationSound } = useNotificationSound();
+  const isInitialLoadRef = useRef(true);
 
   const fetchNotifications = async () => {
     if (!user) {
@@ -40,6 +46,10 @@ export const useNotifications = () => {
       console.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
+      // Mark initial load as complete after a short delay
+      setTimeout(() => {
+        isInitialLoadRef.current = false;
+      }, 1000);
     }
   };
 
@@ -80,7 +90,7 @@ export const useNotifications = () => {
     fetchNotifications();
   }, [user]);
 
-  // Real-time subscription
+  // Real-time subscription with sound
   useEffect(() => {
     if (!user) return;
 
@@ -95,7 +105,14 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          setNotifications(prev => [payload.new as Notification, ...prev]);
+          const newNotification = payload.new as Notification;
+          setNotifications(prev => [newNotification, ...prev]);
+          
+          // Play sound for trade-related notifications (not during initial load)
+          if (!isInitialLoadRef.current && SOUND_ENABLED_TYPES.includes(newNotification.type)) {
+            console.log(`Playing notification sound for ${newNotification.type}:`, newNotification.title);
+            playNotificationSound();
+          }
         }
       )
       .subscribe();
@@ -103,7 +120,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, playNotificationSound]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
