@@ -36,6 +36,8 @@ import AdminNotifications from "./pages/admin/AdminNotifications";
 import { AdminFees } from "./pages/admin/AdminFees";
 import { AdminEscrow } from "./pages/admin/AdminEscrow";
 import AdminKYC from "./pages/admin/AdminKYC";
+import { AdminTreasury } from "./pages/admin/AdminTreasury";
+import { AdminModeration } from "./pages/admin/AdminModeration";
 
 const queryClient = new QueryClient();
 
@@ -171,6 +173,8 @@ const AppRoutes = () => {
         <Route path="notifications" element={<AdminNotifications />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="logs" element={<AdminLogs />} />
+        <Route path="treasury" element={<AdminTreasury />} />
+        <Route path="moderation" element={<AdminModeration />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

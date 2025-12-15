@@ -23,7 +23,7 @@ export interface TreasuryLedgerEntry {
   trade_id: string | null;
   user_id: string | null;
   description: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -66,7 +66,10 @@ export const useTreasury = () => {
         .limit(limit);
 
       if (error) throw error;
-      setLedgerEntries(data || []);
+      setLedgerEntries((data || []).map(d => ({
+        ...d,
+        metadata: (d.metadata as Record<string, unknown>) || null
+      })));
     } catch (error) {
       console.error("Error fetching ledger entries:", error);
     }
