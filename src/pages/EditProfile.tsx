@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Camera, Save, Loader2, Lock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Camera, Save, Loader2, Lock, AtSign, AlertTriangle } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,17 +21,17 @@ const EditProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || "",
-    username: profile?.username || "",
-    phone: profile?.phone || "",
-    bio: profile?.bio || "",
-    city: profile?.city || "",
-    country: profile?.country || "Kenya",
-    mpesa_phone: profile?.mpesa_phone || "",
+    username: "",
+    phone: "",
+    bio: "",
+    city: "",
+    country: "Kenya",
+    mpesa_phone: "",
   });
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [usernameChanged, setUsernameChanged] = useState(false);
 
   // Password change state
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -38,6 +39,22 @@ const EditProfile = () => {
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Initialize form data when profile loads
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        username: profile.username || "",
+        phone: profile.phone || "",
+        bio: profile.bio || "",
+        city: profile.city || "",
+        country: profile.country || "Kenya",
+        mpesa_phone: profile.mpesa_phone || "",
+      });
+      setAvatarUrl(profile.avatar_url || "");
+      setUsernameChanged(profile.username_changed || false);
+    }
+  }, [profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -83,14 +100,52 @@ const EditProfile = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await updateProfile(formData);
+      // Check if username is being changed for the first time
+      const isChangingUsername = !usernameChanged && formData.username !== profile?.username;
+      
+      // Validate username format
+      if (isChangingUsername) {
+        const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+        if (!usernameRegex.test(formData.username)) {
+          toast.error("Username must be 3-20 characters, letters, numbers, and underscores only");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Check if username is already taken
+        const { data: existingUser, error: checkError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("username", formData.username)
+          .neq("user_id", user?.id)
+          .maybeSingle();
+
+        if (checkError) throw checkError;
+        if (existingUser) {
+          toast.error("Username is already taken");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const updateData = {
+        ...formData,
+        // Mark username as changed if it's being updated for the first time
+        ...(isChangingUsername && { username_changed: true }),
+      };
+
+      const { error } = await updateProfile(updateData);
       if (error) throw error;
       
-      toast.success("Profile updated successfully");
+      if (isChangingUsername) {
+        toast.success("Username updated! This was your one-time change.");
+      } else {
+        toast.success("Profile updated successfully");
+      }
       navigate("/profile");
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast.error("Failed to update profile");
+      toast.error(error.message || "Failed to update profile");
     } finally {
       setIsSubmitting(false);
     }
@@ -166,9 +221,9 @@ const EditProfile = () => {
               <CardContent className="flex items-center gap-6">
                 <div className="relative group">
                   <Avatar className="w-24 h-24 border-4 border-primary/20">
-                    <AvatarImage src={avatarUrl} alt={formData.full_name} />
+                    <AvatarImage src={avatarUrl} alt={profile?.full_name || "User"} />
                     <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-                      {formData.full_name?.charAt(0) || "U"}
+                      {profile?.full_name?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <button
@@ -200,35 +255,102 @@ const EditProfile = () => {
               </CardContent>
             </Card>
 
-            {/* Personal Information */}
-            <Card>
+            {/* Username Section - Special Card */}
+            <Card className="border-primary/30">
               <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <AtSign className="w-5 h-5 text-primary" />
+                  Username (Wallet ID)
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">Full Name</Label>
-                    <Input
-                      id="full_name"
-                      name="full_name"
-                      value={formData.full_name}
-                      onChange={handleChange}
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="space-y-2">
+                <div className="p-3 rounded-lg bg-muted/50 border border-border">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Your username serves as your wallet address. Others can send crypto to you using this username.
+                  </p>
+                  {usernameChanged && (
+                    <div className="flex items-center gap-2 text-amber-500 text-sm">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>Username has already been changed and cannot be edited again.</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <Label htmlFor="username">Username</Label>
+                    {usernameChanged ? (
+                      <Badge variant="secondary">Locked</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-amber-500 border-amber-500">
+                        One-time edit
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="username"
                       name="username"
                       value={formData.username}
                       onChange={handleChange}
-                      placeholder="johndoe"
+                      placeholder="username"
+                      disabled={usernameChanged}
+                      className="pl-9"
+                    />
+                  </div>
+                  {!usernameChanged && (
+                    <p className="text-xs text-muted-foreground">
+                      3-20 characters. Letters, numbers, and underscores only.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Personal Information (Read-only for name/email) */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Read-only fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="full_name">Full Name</Label>
+                      <Badge variant="secondary" className="text-xs">
+                        <Lock className="w-3 h-3 mr-1" />
+                        Read-only
+                      </Badge>
+                    </div>
+                    <Input
+                      id="full_name"
+                      value={profile?.full_name || ""}
+                      disabled
+                      className="bg-muted/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="email">Email</Label>
+                      <Badge variant="secondary" className="text-xs">
+                        <Lock className="w-3 h-3 mr-1" />
+                        Read-only
+                      </Badge>
+                    </div>
+                    <Input
+                      id="email"
+                      value={profile?.email || user?.email || ""}
+                      disabled
+                      className="bg-muted/50"
                     />
                   </div>
                 </div>
 
+                <Separator />
+
+                {/* Editable fields */}
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
