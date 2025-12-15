@@ -90,7 +90,7 @@ const Trades = () => {
         </div>
       </nav>
 
-      <main className="pt-20 sm:pt-24 pb-16">
+      <main className="pt-20 sm:pt-24 pb-24 md:pb-16">
         <div className="container mx-auto px-3 sm:px-4 max-w-2xl">
           <Tabs defaultValue="active" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6 h-auto p-1">

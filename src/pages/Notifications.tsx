@@ -83,7 +83,7 @@ const Notifications = () => {
         </div>
       </nav>
 
-      <main className="pt-24 pb-16">
+      <main className="pt-24 pb-24 md:pb-16">
         <div className="container mx-auto px-4 max-w-2xl">
           {loading ? (
             <div className="space-y-4">

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import Index from "./pages/Index";
 import Marketplace from "./pages/Marketplace";
 import Login from "./pages/Login";
@@ -181,6 +182,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <AppRoutes />
+          <MobileBottomNav />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

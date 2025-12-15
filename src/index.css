@@ -79,6 +79,11 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'DM Sans', sans-serif;
   }
+
+  /* Safe area for mobile devices with notches */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
 }
 
 @layer components {
