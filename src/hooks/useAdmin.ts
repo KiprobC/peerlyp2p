@@ -265,25 +265,61 @@ export const useAdminTrades = () => {
       const trade = trades.find(t => t.id === tradeId);
       if (!trade) throw new Error("Trade not found");
 
+      const normalizedCrypto = trade.crypto_type.toUpperCase().trim();
+
       // Get seller's wallet
       const { data: sellerWallet, error: sellerError } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", trade.seller_id)
-        .eq("crypto_type", trade.crypto_type)
+        .eq("crypto_type", normalizedCrypto)
         .maybeSingle();
 
       if (sellerError || !sellerWallet) throw new Error("Seller wallet not found");
 
-      // Get buyer's wallet
-      const { data: buyerWallet, error: buyerError } = await supabase
+      // Get or create buyer's wallet
+      let buyerWallet;
+      const { data: existingBuyerWallet, error: buyerError } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", trade.buyer_id)
-        .eq("crypto_type", trade.crypto_type)
+        .eq("crypto_type", normalizedCrypto)
         .maybeSingle();
 
-      if (buyerError || !buyerWallet) throw new Error("Buyer wallet not found");
+      if (buyerError) throw buyerError;
+
+      if (!existingBuyerWallet) {
+        // Create buyer's wallet
+        const { data: newWallet, error: createError } = await supabase
+          .from("wallets")
+          .insert({
+            user_id: trade.buyer_id,
+            crypto_type: normalizedCrypto,
+            balance: 0,
+            locked_balance: 0,
+          })
+          .select()
+          .maybeSingle();
+
+        if (createError && createError.code !== "23505") throw createError;
+        
+        // If creation failed due to conflict, fetch again
+        if (createError?.code === "23505") {
+          const { data: retryWallet } = await supabase
+            .from("wallets")
+            .select("*")
+            .eq("user_id", trade.buyer_id)
+            .eq("crypto_type", normalizedCrypto)
+            .maybeSingle();
+          buyerWallet = retryWallet;
+        } else {
+          buyerWallet = newWallet;
+        }
+      } else {
+        buyerWallet = existingBuyerWallet;
+      }
+
+      if (!buyerWallet) throw new Error("Failed to get buyer wallet");
 
       const amount = Number(trade.crypto_amount);
 
@@ -315,7 +351,7 @@ export const useAdminTrades = () => {
           user_id: trade.seller_id,
           type: "escrow_release",
           amount: -amount,
-          crypto_type: trade.crypto_type,
+          crypto_type: normalizedCrypto,
           status: "completed",
           trade_id: tradeId,
           description: `Admin escrow release for trade ${tradeId.slice(0, 8)}`,
@@ -325,7 +361,7 @@ export const useAdminTrades = () => {
           user_id: trade.buyer_id,
           type: "trade",
           amount: amount,
-          crypto_type: trade.crypto_type,
+          crypto_type: normalizedCrypto,
           status: "completed",
           trade_id: tradeId,
           description: `Received from trade ${tradeId.slice(0, 8)} (admin release)`,
@@ -356,13 +392,15 @@ export const useAdminTrades = () => {
       const trade = trades.find(t => t.id === tradeId);
       if (!trade) throw new Error("Trade not found");
 
+      const normalizedCrypto = trade.crypto_type.toUpperCase().trim();
+
       // If escrow was locked, return funds to seller
       if (trade.escrow_locked) {
         const { data: sellerWallet, error: walletError } = await supabase
           .from("wallets")
           .select("*")
           .eq("user_id", trade.seller_id)
-          .eq("crypto_type", trade.crypto_type)
+          .eq("crypto_type", normalizedCrypto)
           .maybeSingle();
 
         if (!walletError && sellerWallet) {
@@ -380,7 +418,7 @@ export const useAdminTrades = () => {
             user_id: trade.seller_id,
             type: "escrow_release",
             amount: 0,
-            crypto_type: trade.crypto_type,
+            crypto_type: normalizedCrypto,
             status: "completed",
             trade_id: tradeId,
             description: `Escrow returned - trade cancelled by admin: ${reason}`,

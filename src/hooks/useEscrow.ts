@@ -5,6 +5,71 @@ export interface EscrowResult {
   error?: string;
 }
 
+// Helper to normalize crypto type to uppercase
+const normalizeCryptoType = (cryptoType: string): string => {
+  return cryptoType.toUpperCase().trim();
+};
+
+// Helper to get or create a wallet for a user
+const getOrCreateWallet = async (
+  userId: string,
+  cryptoType: string
+): Promise<{ wallet: any; error?: string }> => {
+  const normalizedCrypto = normalizeCryptoType(cryptoType);
+
+  // Try to get existing wallet
+  const { data: existingWallet, error: fetchError } = await supabase
+    .from("wallets")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("crypto_type", normalizedCrypto)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("Error fetching wallet:", fetchError);
+    return { wallet: null, error: fetchError.message };
+  }
+
+  if (existingWallet) {
+    return { wallet: existingWallet };
+  }
+
+  // Wallet doesn't exist, create it
+  const { data: newWallet, error: createError } = await supabase
+    .from("wallets")
+    .insert({
+      user_id: userId,
+      crypto_type: normalizedCrypto,
+      balance: 0,
+      locked_balance: 0,
+    })
+    .select()
+    .maybeSingle();
+
+  if (createError) {
+    // Handle unique constraint violation (wallet was created by another request)
+    if (createError.code === "23505") {
+      // Retry fetching the wallet
+      const { data: retryWallet, error: retryError } = await supabase
+        .from("wallets")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("crypto_type", normalizedCrypto)
+        .maybeSingle();
+
+      if (retryError || !retryWallet) {
+        return { wallet: null, error: "Failed to get wallet after creation conflict" };
+      }
+      return { wallet: retryWallet };
+    }
+
+    console.error("Error creating wallet:", createError);
+    return { wallet: null, error: createError.message };
+  }
+
+  return { wallet: newWallet };
+};
+
 // Hook for managing escrow operations
 export const useEscrow = () => {
   // Lock funds in escrow when trade is confirmed
@@ -15,23 +80,28 @@ export const useEscrow = () => {
     tradeId: string
   ): Promise<EscrowResult> => {
     try {
-      // Get seller's wallet - use maybeSingle to handle 0 or 1 result
+      const normalizedCrypto = normalizeCryptoType(cryptoType);
+
+      // Get seller's wallet (don't auto-create - seller must have balance)
       const { data: wallet, error: walletError } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", sellerId)
-        .eq("crypto_type", cryptoType)
+        .eq("crypto_type", normalizedCrypto)
         .maybeSingle();
 
       if (walletError) throw walletError;
       if (!wallet) {
-        return { success: false, error: `Wallet not found for ${cryptoType}` };
+        return { success: false, error: `Wallet not found for ${normalizedCrypto}. Please deposit funds first.` };
       }
 
-      // Check if seller has enough balance
+      // Check if seller has enough available balance (balance - locked_balance)
       const availableBalance = Number(wallet.balance) - Number(wallet.locked_balance);
       if (availableBalance < amount) {
-        return { success: false, error: "Insufficient balance for escrow" };
+        return { 
+          success: false, 
+          error: `Insufficient balance. Available: ${availableBalance.toFixed(8)} ${normalizedCrypto}, Required: ${amount.toFixed(8)} ${normalizedCrypto}` 
+        };
       }
 
       // Lock the amount in escrow (increase locked_balance)
@@ -50,7 +120,7 @@ export const useEscrow = () => {
         user_id: sellerId,
         type: "escrow_lock",
         amount: amount,
-        crypto_type: cryptoType,
+        crypto_type: normalizedCrypto,
         status: "completed",
         trade_id: tradeId,
         description: `Escrow locked for trade ${tradeId.slice(0, 8)}`,
@@ -74,12 +144,14 @@ export const useEscrow = () => {
     tradeId: string
   ): Promise<EscrowResult> => {
     try {
+      const normalizedCrypto = normalizeCryptoType(cryptoType);
+
       // Get seller's wallet
       const { data: sellerWallet, error: sellerError } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", sellerId)
-        .eq("crypto_type", cryptoType)
+        .eq("crypto_type", normalizedCrypto)
         .maybeSingle();
 
       if (sellerError) throw sellerError;
@@ -87,17 +159,11 @@ export const useEscrow = () => {
         return { success: false, error: "Seller wallet not found" };
       }
 
-      // Get buyer's wallet
-      const { data: buyerWallet, error: buyerError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", buyerId)
-        .eq("crypto_type", cryptoType)
-        .maybeSingle();
+      // Get or create buyer's wallet (auto-create if doesn't exist)
+      const { wallet: buyerWallet, error: buyerError } = await getOrCreateWallet(buyerId, normalizedCrypto);
 
-      if (buyerError) throw buyerError;
-      if (!buyerWallet) {
-        return { success: false, error: "Buyer wallet not found" };
+      if (buyerError || !buyerWallet) {
+        return { success: false, error: buyerError || "Failed to get buyer wallet" };
       }
 
       // Verify locked balance
@@ -133,7 +199,7 @@ export const useEscrow = () => {
           user_id: sellerId,
           type: "escrow_release",
           amount: -amount,
-          crypto_type: cryptoType,
+          crypto_type: normalizedCrypto,
           status: "completed",
           trade_id: tradeId,
           description: `Escrow released for trade ${tradeId.slice(0, 8)}`,
@@ -143,7 +209,7 @@ export const useEscrow = () => {
           user_id: buyerId,
           type: "trade",
           amount: amount,
-          crypto_type: cryptoType,
+          crypto_type: normalizedCrypto,
           status: "completed",
           trade_id: tradeId,
           description: `Received from trade ${tradeId.slice(0, 8)}`,
@@ -165,12 +231,14 @@ export const useEscrow = () => {
     tradeId: string
   ): Promise<EscrowResult> => {
     try {
+      const normalizedCrypto = normalizeCryptoType(cryptoType);
+
       // Get seller's wallet
       const { data: wallet, error: walletError } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", sellerId)
-        .eq("crypto_type", cryptoType)
+        .eq("crypto_type", normalizedCrypto)
         .maybeSingle();
 
       if (walletError) throw walletError;
@@ -194,7 +262,7 @@ export const useEscrow = () => {
         user_id: sellerId,
         type: "escrow_release",
         amount: 0,
-        crypto_type: cryptoType,
+        crypto_type: normalizedCrypto,
         status: "completed",
         trade_id: tradeId,
         description: `Escrow returned - trade cancelled ${tradeId.slice(0, 8)}`,
