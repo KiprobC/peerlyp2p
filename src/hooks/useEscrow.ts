@@ -51,7 +51,7 @@ const getOrCreateWallet = async (
 
 // Hook for managing escrow operations
 export const useEscrow = () => {
-  // Lock funds in escrow when trade is confirmed
+  // Lock funds in escrow when trade is confirmed using SECURITY DEFINER function
   const lockEscrow = async (
     sellerId: string,
     cryptoType: string,
@@ -61,46 +61,29 @@ export const useEscrow = () => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-      // Get or create seller's wallet (lazy creation).
-      // Balance checks below will still prevent escrow locking unless sufficient available balance exists.
-      const { wallet, error: walletFetchError } = await getOrCreateWallet(sellerId, normalizedCrypto);
-
-      if (walletFetchError || !wallet) {
-        return { success: false, error: walletFetchError || "Failed to get seller wallet" };
-      }
-
-      // Check if seller has enough available balance (balance - locked_balance)
-      const availableBalance = Number(wallet.balance) - Number(wallet.locked_balance);
-      if (availableBalance < amount) {
-        return { 
-          success: false, 
-          error: `Insufficient balance. Available: ${availableBalance.toFixed(8)} ${normalizedCrypto}, Required: ${amount.toFixed(8)} ${normalizedCrypto}` 
-        };
-      }
-
-      // Lock the amount in escrow (increase locked_balance)
-      const { error: updateError } = await supabase
-        .from("wallets")
-        .update({
-          locked_balance: Number(wallet.locked_balance) + amount,
-        })
-        .eq("id", wallet.id);
-
-      if (updateError) throw updateError;
-
-      // Log the escrow transaction
-      const { error: txError } = await supabase.from("wallet_transactions").insert({
-        wallet_id: wallet.id,
-        user_id: sellerId,
-        type: "escrow_lock",
-        amount: amount,
-        crypto_type: normalizedCrypto,
-        status: "completed",
-        trade_id: tradeId,
-        description: `Escrow locked for trade ${tradeId.slice(0, 8)}`,
+      // Use the SECURITY DEFINER lock_escrow function which handles:
+      // - Wallet auto-creation (bypasses RLS)
+      // - Balance checking
+      // - Locking funds
+      // - Transaction logging
+      const { data, error } = await supabase.rpc("lock_escrow", {
+        p_seller_id: sellerId,
+        p_crypto_type: normalizedCrypto,
+        p_amount: amount,
+        p_trade_id: tradeId,
       });
 
-      if (txError) console.error("Failed to log escrow transaction:", txError);
+      if (error) {
+        console.error("Error calling lock_escrow RPC:", error);
+        return { success: false, error: error.message };
+      }
+
+      // Parse the JSONB response
+      const result = data as { success: boolean; error?: string; wallet_id?: string };
+      
+      if (!result.success) {
+        return { success: false, error: result.error || "Failed to lock escrow" };
+      }
 
       return { success: true };
     } catch (error: any) {
