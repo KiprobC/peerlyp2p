@@ -10,64 +10,43 @@ const normalizeCryptoType = (cryptoType: string): string => {
   return cryptoType.toUpperCase().trim();
 };
 
-// Helper to get or create a wallet for a user
+// Helper to get or create a wallet using SECURITY DEFINER database function
+// This bypasses RLS and ensures wallet creation always succeeds
 const getOrCreateWallet = async (
   userId: string,
   cryptoType: string
 ): Promise<{ wallet: any; error?: string }> => {
   const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-  // Try to get existing wallet
-  const { data: existingWallet, error: fetchError } = await supabase
+  // Call the SECURITY DEFINER function to get or create wallet
+  const { data: walletId, error: rpcError } = await supabase
+    .rpc("get_or_create_wallet", {
+      p_user_id: userId,
+      p_crypto_type: normalizedCrypto,
+    });
+
+  if (rpcError) {
+    console.error("Error in get_or_create_wallet RPC:", rpcError);
+    return { wallet: null, error: rpcError.message };
+  }
+
+  if (!walletId) {
+    return { wallet: null, error: "Failed to get or create wallet" };
+  }
+
+  // Fetch the full wallet data
+  const { data: wallet, error: fetchError } = await supabase
     .from("wallets")
     .select("*")
-    .eq("user_id", userId)
-    .eq("crypto_type", normalizedCrypto)
-    .maybeSingle();
+    .eq("id", walletId)
+    .single();
 
   if (fetchError) {
-    console.error("Error fetching wallet:", fetchError);
+    console.error("Error fetching wallet after creation:", fetchError);
     return { wallet: null, error: fetchError.message };
   }
 
-  if (existingWallet) {
-    return { wallet: existingWallet };
-  }
-
-  // Wallet doesn't exist, create it
-  const { data: newWallet, error: createError } = await supabase
-    .from("wallets")
-    .insert({
-      user_id: userId,
-      crypto_type: normalizedCrypto,
-      balance: 0,
-      locked_balance: 0,
-    })
-    .select()
-    .maybeSingle();
-
-  if (createError) {
-    // Handle unique constraint violation (wallet was created by another request)
-    if (createError.code === "23505") {
-      // Retry fetching the wallet
-      const { data: retryWallet, error: retryError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("crypto_type", normalizedCrypto)
-        .maybeSingle();
-
-      if (retryError || !retryWallet) {
-        return { wallet: null, error: "Failed to get wallet after creation conflict" };
-      }
-      return { wallet: retryWallet };
-    }
-
-    console.error("Error creating wallet:", createError);
-    return { wallet: null, error: createError.message };
-  }
-
-  return { wallet: newWallet };
+  return { wallet };
 };
 
 // Hook for managing escrow operations
