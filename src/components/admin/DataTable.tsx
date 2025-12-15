@@ -18,6 +18,7 @@ interface Column<T> {
   render?: (item: T) => React.ReactNode;
   sortable?: boolean;
   searchable?: boolean;
+  hideOnMobile?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -111,63 +112,73 @@ export function DataTable<T extends object>({
       </div>
 
       <div className="glass-card p-0 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border hover:bg-transparent">
-              {columns.map((column) => (
-                <TableHead
-                  key={column.key}
-                  className={cn(
-                    column.sortable !== false && "cursor-pointer hover:text-foreground transition-colors"
-                  )}
-                  onClick={() => column.sortable !== false && handleSort(column.key)}
-                >
-                  <div className="flex items-center gap-1">
-                    {column.header}
-                    {sortKey === column.key && (
-                      <span className="text-primary">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
+        <div className="overflow-x-auto -mx-0.5">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                {columns.map((column) => (
+                  <TableHead
+                    key={column.key}
+                    className={cn(
+                      column.sortable !== false && "cursor-pointer hover:text-foreground transition-colors",
+                      column.hideOnMobile && "hidden md:table-cell",
+                      "whitespace-nowrap"
                     )}
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
-                  {emptyMessage}
-                </TableCell>
+                    onClick={() => column.sortable !== false && handleSort(column.key)}
+                  >
+                    <div className="flex items-center gap-1">
+                      {column.header}
+                      {sortKey === column.key && (
+                        <span className="text-primary">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
+                  </TableHead>
+                ))}
               </TableRow>
-            ) : (
-              paginatedData.map((item, idx) => (
-                <TableRow key={idx} className="border-border">
-                  {columns.map((column) => (
-                    <TableCell key={column.key}>
-                      {column.render
-                        ? column.render(item)
-                        : String((item as Record<string, unknown>)[column.key] ?? "-")}
-                    </TableCell>
-                  ))}
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                    {emptyMessage}
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                paginatedData.map((item, idx) => (
+                  <TableRow key={idx} className="border-border">
+                    {columns.map((column) => (
+                      <TableCell 
+                        key={column.key}
+                        className={cn(
+                          column.hideOnMobile && "hidden md:table-cell"
+                        )}
+                      >
+                        {column.render
+                          ? column.render(item)
+                          : String((item as Record<string, unknown>)[column.key] ?? "-")}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground text-center sm:text-left">
             Showing {(currentPage - 1) * pageSize + 1} to{" "}
-            {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length} results
+            {Math.min(currentPage * pageSize, filteredData.length)} of {filteredData.length}
           </p>
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon"
+              className="h-8 w-8"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
             >
@@ -176,17 +187,19 @@ export function DataTable<T extends object>({
             <Button
               variant="outline"
               size="icon"
+              className="h-8 w-8"
               onClick={() => setCurrentPage((p) => p - 1)}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-3 text-sm">
-              Page {currentPage} of {totalPages}
+            <span className="px-2 sm:px-3 text-sm whitespace-nowrap">
+              {currentPage} / {totalPages}
             </span>
             <Button
               variant="outline"
               size="icon"
+              className="h-8 w-8"
               onClick={() => setCurrentPage((p) => p + 1)}
               disabled={currentPage === totalPages}
             >
@@ -195,6 +208,7 @@ export function DataTable<T extends object>({
             <Button
               variant="outline"
               size="icon"
+              className="h-8 w-8"
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
             >
