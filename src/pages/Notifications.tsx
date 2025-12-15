@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -23,10 +23,39 @@ const iconMap: Record<string, typeof Bell> = {
 
 const Notifications = () => {
   const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotifications();
+  const navigate = useNavigate();
 
   const handleNotificationClick = async (notification: typeof notifications[0]) => {
     if (!notification.read) {
       await markAsRead(notification.id);
+    }
+    
+    // Navigate based on notification type and data
+    const data = notification.data as Record<string, any> | null;
+    
+    switch (notification.type) {
+      case "trade":
+      case "message":
+        if (data?.trade_id) {
+          navigate(`/trade/${data.trade_id}`);
+        } else {
+          navigate("/trades");
+        }
+        break;
+      case "payment":
+        navigate("/dashboard");
+        break;
+      case "kyc":
+        if (data?.status === "rejected" || data?.status === "pending") {
+          navigate("/kyc-upload");
+        } else {
+          navigate("/profile");
+        }
+        break;
+      case "system":
+      default:
+        navigate("/dashboard");
+        break;
     }
   };
 
