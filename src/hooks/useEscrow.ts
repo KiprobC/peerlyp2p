@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 export interface EscrowResult {
   success: boolean;
@@ -16,16 +15,18 @@ export const useEscrow = () => {
     tradeId: string
   ): Promise<EscrowResult> => {
     try {
-      // Get seller's wallet
+      // Get seller's wallet - use maybeSingle to handle 0 or 1 result
       const { data: wallet, error: walletError } = await supabase
         .from("wallets")
         .select("*")
         .eq("user_id", sellerId)
         .eq("crypto_type", cryptoType)
-        .single();
+        .maybeSingle();
 
       if (walletError) throw walletError;
-      if (!wallet) throw new Error("Wallet not found");
+      if (!wallet) {
+        return { success: false, error: `Wallet not found for ${cryptoType}` };
+      }
 
       // Check if seller has enough balance
       const availableBalance = Number(wallet.balance) - Number(wallet.locked_balance);
@@ -79,10 +80,12 @@ export const useEscrow = () => {
         .select("*")
         .eq("user_id", sellerId)
         .eq("crypto_type", cryptoType)
-        .single();
+        .maybeSingle();
 
       if (sellerError) throw sellerError;
-      if (!sellerWallet) throw new Error("Seller wallet not found");
+      if (!sellerWallet) {
+        return { success: false, error: "Seller wallet not found" };
+      }
 
       // Get buyer's wallet
       const { data: buyerWallet, error: buyerError } = await supabase
@@ -90,10 +93,12 @@ export const useEscrow = () => {
         .select("*")
         .eq("user_id", buyerId)
         .eq("crypto_type", cryptoType)
-        .single();
+        .maybeSingle();
 
       if (buyerError) throw buyerError;
-      if (!buyerWallet) throw new Error("Buyer wallet not found");
+      if (!buyerWallet) {
+        return { success: false, error: "Buyer wallet not found" };
+      }
 
       // Verify locked balance
       if (Number(sellerWallet.locked_balance) < amount) {
@@ -166,10 +171,12 @@ export const useEscrow = () => {
         .select("*")
         .eq("user_id", sellerId)
         .eq("crypto_type", cryptoType)
-        .single();
+        .maybeSingle();
 
       if (walletError) throw walletError;
-      if (!wallet) throw new Error("Wallet not found");
+      if (!wallet) {
+        return { success: false, error: "Wallet not found" };
+      }
 
       // Return funds from escrow (reduce locked_balance)
       const { error: updateError } = await supabase
@@ -186,7 +193,7 @@ export const useEscrow = () => {
         wallet_id: wallet.id,
         user_id: sellerId,
         type: "escrow_release",
-        amount: 0, // No actual transfer, just unlocking
+        amount: 0,
         crypto_type: cryptoType,
         status: "completed",
         trade_id: tradeId,
