@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrades, useTradeMessages, Trade } from "@/hooks/useTrades";
+import { useEscrow } from "@/hooks/useEscrow";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
@@ -55,6 +56,7 @@ const TradePage = () => {
   const { user } = useAuth();
   const { trades, updateTrade, refetch: refetchTrades } = useTrades();
   const { messages, sendMessage, loading: messagesLoading } = useTradeMessages(id || "");
+  const { releaseEscrow } = useEscrow();
   
   const [trade, setTrade] = useState<Trade | null>(null);
   const [counterparty, setCounterparty] = useState<TraderProfile | null>(null);
@@ -153,6 +155,22 @@ const TradePage = () => {
     if (!trade) return;
     setActionLoading(true);
 
+    // Actually transfer the crypto from seller to buyer
+    const escrowResult = await releaseEscrow(
+      trade.seller_id,
+      trade.buyer_id,
+      trade.crypto_type,
+      trade.crypto_amount,
+      trade.id
+    );
+
+    if (!escrowResult.success) {
+      toast.error(escrowResult.error || "Failed to release escrow");
+      setActionLoading(false);
+      return;
+    }
+
+    // Update trade status
     const { error } = await updateTrade(trade.id, {
       status: "completed",
       escrow_released: true,
@@ -160,7 +178,7 @@ const TradePage = () => {
     });
 
     if (error) {
-      toast.error("Failed to release escrow");
+      toast.error("Failed to update trade status");
     } else {
       toast.success("Escrow released! Trade completed successfully.");
       refetchTrades();

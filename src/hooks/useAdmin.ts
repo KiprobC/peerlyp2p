@@ -260,10 +260,86 @@ export const useAdminTrades = () => {
   };
 
   const releaseEscrow = async (tradeId: string) => {
-    return updateTradeStatus(tradeId, "completed", {
-      escrow_released: true,
-      completed_at: new Date().toISOString(),
-    });
+    try {
+      // Get the trade details
+      const trade = trades.find(t => t.id === tradeId);
+      if (!trade) throw new Error("Trade not found");
+
+      // Get seller's wallet
+      const { data: sellerWallet, error: sellerError } = await supabase
+        .from("wallets")
+        .select("*")
+        .eq("user_id", trade.seller_id)
+        .eq("crypto_type", trade.crypto_type)
+        .single();
+
+      if (sellerError || !sellerWallet) throw new Error("Seller wallet not found");
+
+      // Get buyer's wallet
+      const { data: buyerWallet, error: buyerError } = await supabase
+        .from("wallets")
+        .select("*")
+        .eq("user_id", trade.buyer_id)
+        .eq("crypto_type", trade.crypto_type)
+        .single();
+
+      if (buyerError || !buyerWallet) throw new Error("Buyer wallet not found");
+
+      const amount = Number(trade.crypto_amount);
+
+      // Deduct from seller (both balance and locked_balance)
+      const { error: sellerUpdateError } = await supabase
+        .from("wallets")
+        .update({
+          balance: Math.max(0, Number(sellerWallet.balance) - amount),
+          locked_balance: Math.max(0, Number(sellerWallet.locked_balance) - amount),
+        })
+        .eq("id", sellerWallet.id);
+
+      if (sellerUpdateError) throw sellerUpdateError;
+
+      // Credit to buyer
+      const { error: buyerUpdateError } = await supabase
+        .from("wallets")
+        .update({
+          balance: Number(buyerWallet.balance) + amount,
+        })
+        .eq("id", buyerWallet.id);
+
+      if (buyerUpdateError) throw buyerUpdateError;
+
+      // Log transactions
+      await supabase.from("wallet_transactions").insert([
+        {
+          wallet_id: sellerWallet.id,
+          user_id: trade.seller_id,
+          type: "escrow_release",
+          amount: -amount,
+          crypto_type: trade.crypto_type,
+          status: "completed",
+          trade_id: tradeId,
+          description: `Admin escrow release for trade ${tradeId.slice(0, 8)}`,
+        },
+        {
+          wallet_id: buyerWallet.id,
+          user_id: trade.buyer_id,
+          type: "trade",
+          amount: amount,
+          crypto_type: trade.crypto_type,
+          status: "completed",
+          trade_id: tradeId,
+          description: `Received from trade ${tradeId.slice(0, 8)} (admin release)`,
+        },
+      ]);
+
+      // Update trade status
+      return updateTradeStatus(tradeId, "completed", {
+        escrow_released: true,
+        completed_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      return { error };
+    }
   };
 
   const lockEscrow = async (tradeId: string) => {
@@ -275,10 +351,50 @@ export const useAdminTrades = () => {
   };
 
   const cancelTrade = async (tradeId: string, reason: string) => {
-    return updateTradeStatus(tradeId, "cancelled", {
-      cancelled_at: new Date().toISOString(),
-      dispute_reason: reason,
-    });
+    try {
+      // Get the trade details
+      const trade = trades.find(t => t.id === tradeId);
+      if (!trade) throw new Error("Trade not found");
+
+      // If escrow was locked, return funds to seller
+      if (trade.escrow_locked) {
+        const { data: sellerWallet, error: walletError } = await supabase
+          .from("wallets")
+          .select("*")
+          .eq("user_id", trade.seller_id)
+          .eq("crypto_type", trade.crypto_type)
+          .single();
+
+        if (!walletError && sellerWallet) {
+          // Return funds from escrow (reduce locked_balance only, balance stays same)
+          await supabase
+            .from("wallets")
+            .update({
+              locked_balance: Math.max(0, Number(sellerWallet.locked_balance) - Number(trade.crypto_amount)),
+            })
+            .eq("id", sellerWallet.id);
+
+          // Log the return transaction
+          await supabase.from("wallet_transactions").insert({
+            wallet_id: sellerWallet.id,
+            user_id: trade.seller_id,
+            type: "escrow_release",
+            amount: 0,
+            crypto_type: trade.crypto_type,
+            status: "completed",
+            trade_id: tradeId,
+            description: `Escrow returned - trade cancelled by admin: ${reason}`,
+          });
+        }
+      }
+
+      return updateTradeStatus(tradeId, "cancelled", {
+        cancelled_at: new Date().toISOString(),
+        dispute_reason: reason,
+      });
+    } catch (error) {
+      return { error };
+    }
   };
 
   useEffect(() => {

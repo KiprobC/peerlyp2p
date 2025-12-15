@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Shield, Star, AlertTriangle } from "lucide-react";
 import { useTrades } from "@/hooks/useTrades";
+import { useEscrow } from "@/hooks/useEscrow";
 import { useAuth } from "@/contexts/AuthContext";
 import { OfferWithProfile } from "@/hooks/useOffers";
 import { toast } from "sonner";
@@ -33,7 +34,8 @@ interface InitiateTradeDialogProps {
 const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { createTrade } = useTrades();
+  const { createTrade, updateTrade } = useTrades();
+  const { lockEscrow } = useEscrow();
   const [loading, setLoading] = useState(false);
   const [fiatAmount, setFiatAmount] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
@@ -66,13 +68,29 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogP
       // The person responding to the offer is selling, so they're the seller
       const buyer_id = isBuyOffer ? offer.user_id : user.id;
       const seller_id = isBuyOffer ? user.id : offer.user_id;
+      const calculatedCryptoAmount = parseFloat(fiatAmount) / offer.price_per_unit;
 
+      // First, lock the seller's crypto in escrow
+      const escrowResult = await lockEscrow(
+        seller_id,
+        offer.crypto_type,
+        calculatedCryptoAmount,
+        "temp-trade" // Will be updated with actual trade ID
+      );
+
+      if (!escrowResult.success) {
+        toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
+        setLoading(false);
+        return;
+      }
+
+      // Create the trade with escrow already locked
       const { error, data } = await createTrade({
         offer_id: offer.id,
         buyer_id,
         seller_id,
         crypto_type: offer.crypto_type,
-        crypto_amount: cryptoAmount,
+        crypto_amount: calculatedCryptoAmount,
         fiat_amount: parseFloat(fiatAmount),
         fiat_currency: offer.fiat_currency,
         payment_method: selectedPayment,
@@ -80,7 +98,15 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogP
 
       if (error) throw error;
 
-      toast.success("Trade initiated successfully!");
+      // Update trade to mark escrow as locked
+      if (data) {
+        await updateTrade(data.id, {
+          escrow_locked: true,
+          status: "confirmed",
+        });
+      }
+
+      toast.success("Trade initiated! Crypto is now locked in escrow.");
       onOpenChange(false);
       
       if (data) {
