@@ -299,6 +299,7 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string | null
+          username_changed: boolean | null
         }
         Insert: {
           address?: string | null
@@ -333,6 +334,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           username?: string | null
+          username_changed?: boolean | null
         }
         Update: {
           address?: string | null
@@ -367,6 +369,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+          username_changed?: boolean | null
         }
         Relationships: []
       }
@@ -831,6 +834,7 @@ export type Database = {
         Args: { p_amount: number; p_wallet_id: string }
         Returns: undefined
       }
+      generate_random_username: { Args: never; Returns: string }
       get_or_create_wallet: {
         Args: { p_crypto_type: string; p_user_id: string }
         Returns: string
