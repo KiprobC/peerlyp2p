@@ -42,7 +42,8 @@ export interface AdminAction {
   target_type: string;
   target_id: string | null;
   reason: string | null;
-  details: Record<string, unknown>;
+  details: Record<string, unknown> | null;
+  ip_address: string | null;
   created_at: string;
 }
 
@@ -59,7 +60,7 @@ export interface TradeAuditTrail {
   buyer_balance_after: number | null;
   escrow_amount: number | null;
   platform_fee: number | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -129,7 +130,10 @@ export const useModeration = () => {
         .limit(limit);
 
       if (error) throw error;
-      setAdminActions(data || []);
+      setAdminActions((data || []).map(d => ({
+        ...d,
+        details: (d.details as Record<string, unknown>) || null
+      })));
     } catch (error) {
       console.error("Error fetching admin actions:", error);
     }
@@ -149,7 +153,10 @@ export const useModeration = () => {
       const { data, error } = await query.limit(100);
 
       if (error) throw error;
-      setAuditTrails(data || []);
+      setAuditTrails((data || []).map(d => ({
+        ...d,
+        metadata: (d.metadata as Record<string, unknown>) || null
+      })));
     } catch (error) {
       console.error("Error fetching audit trails:", error);
     }

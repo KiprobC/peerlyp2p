@@ -16,7 +16,10 @@ import {
   Percent,
   Lock,
   Menu,
-  X
+  X,
+  Landmark,
+  UserCheck,
+  FileCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,12 +50,15 @@ const navSections = [
       { href: "/admin/transactions", icon: Receipt, label: "Transactions" },
       { href: "/admin/fees", icon: Percent, label: "Fee Management" },
       { href: "/admin/escrow", icon: Lock, label: "Escrow Management" },
+      { href: "/admin/treasury", icon: Landmark, label: "Treasury" },
     ],
   },
   {
     title: "Support",
     items: [
       { href: "/admin/disputes", icon: AlertTriangle, label: "Disputes" },
+      { href: "/admin/moderation", icon: UserCheck, label: "Moderation" },
+      { href: "/admin/kyc", icon: FileCheck, label: "KYC Verification" },
       { href: "/admin/notifications", icon: Bell, label: "Notifications" },
     ],
   },
