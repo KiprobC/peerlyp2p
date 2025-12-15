@@ -82,17 +82,12 @@ export const useEscrow = () => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-      // Get seller's wallet (don't auto-create - seller must have balance)
-      const { data: wallet, error: walletError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", sellerId)
-        .eq("crypto_type", normalizedCrypto)
-        .maybeSingle();
+      // Get or create seller's wallet (lazy creation).
+      // Balance checks below will still prevent escrow locking unless sufficient available balance exists.
+      const { wallet, error: walletFetchError } = await getOrCreateWallet(sellerId, normalizedCrypto);
 
-      if (walletError) throw walletError;
-      if (!wallet) {
-        return { success: false, error: `Wallet not found for ${normalizedCrypto}. Please deposit funds first.` };
+      if (walletFetchError || !wallet) {
+        return { success: false, error: walletFetchError || "Failed to get seller wallet" };
       }
 
       // Check if seller has enough available balance (balance - locked_balance)
