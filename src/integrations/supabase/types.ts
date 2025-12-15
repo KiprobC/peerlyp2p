@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action_type: string
+          actor_id: string
+          actor_role: Database["public"]["Enums"]["app_role"]
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          reason: string | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action_type: string
+          actor_id: string
+          actor_role: Database["public"]["Enums"]["app_role"]
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          reason?: string | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string
+          actor_role?: Database["public"]["Enums"]["app_role"]
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          reason?: string | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      dispute_assignments: {
+        Row: {
+          assigned_by: string
+          assigned_to: string
+          created_at: string
+          id: string
+          notes: string | null
+          priority: string
+          resolution_notes: string | null
+          resolution_type: string | null
+          resolved_at: string | null
+          status: string
+          trade_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          assigned_to: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          priority?: string
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          status?: string
+          trade_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          assigned_to?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          priority?: string
+          resolution_notes?: string | null
+          resolution_type?: string | null
+          resolved_at?: string | null
+          status?: string
+          trade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispute_assignments_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: true
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -143,6 +235,36 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          crypto_type: string
+          description: string | null
+          id: string
+          updated_at: string
+          wallet_type: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          crypto_type: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          wallet_type: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          crypto_type?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          wallet_type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -247,6 +369,65 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      trade_audit_trail: {
+        Row: {
+          action_type: string
+          actor_id: string
+          buyer_balance_after: number | null
+          buyer_balance_before: number | null
+          created_at: string
+          escrow_amount: number | null
+          id: string
+          metadata: Json | null
+          platform_fee: number | null
+          seller_balance_after: number | null
+          seller_balance_before: number | null
+          seller_locked_after: number | null
+          seller_locked_before: number | null
+          trade_id: string
+        }
+        Insert: {
+          action_type: string
+          actor_id: string
+          buyer_balance_after?: number | null
+          buyer_balance_before?: number | null
+          created_at?: string
+          escrow_amount?: number | null
+          id?: string
+          metadata?: Json | null
+          platform_fee?: number | null
+          seller_balance_after?: number | null
+          seller_balance_before?: number | null
+          seller_locked_after?: number | null
+          seller_locked_before?: number | null
+          trade_id: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string
+          buyer_balance_after?: number | null
+          buyer_balance_before?: number | null
+          created_at?: string
+          escrow_amount?: number | null
+          id?: string
+          metadata?: Json | null
+          platform_fee?: number | null
+          seller_balance_after?: number | null
+          seller_balance_before?: number | null
+          seller_locked_after?: number | null
+          seller_locked_before?: number | null
+          trade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_audit_trail_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trade_messages: {
         Row: {
@@ -410,6 +591,66 @@ export type Database = {
           },
         ]
       }
+      treasury_ledger: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          crypto_type: string
+          description: string | null
+          id: string
+          ledger_type: string
+          metadata: Json | null
+          platform_wallet_id: string | null
+          trade_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          crypto_type: string
+          description?: string | null
+          id?: string
+          ledger_type: string
+          metadata?: Json | null
+          platform_wallet_id?: string | null
+          trade_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          crypto_type?: string
+          description?: string | null
+          id?: string
+          ledger_type?: string
+          metadata?: Json | null
+          platform_wallet_id?: string | null
+          trade_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treasury_ledger_platform_wallet_id_fkey"
+            columns: ["platform_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "platform_wallets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treasury_ledger_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -567,6 +808,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_dispute_moderator: {
+        Args: {
+          p_moderator_id: string
+          p_notes?: string
+          p_priority?: string
+          p_trade_id: string
+        }
+        Returns: string
+      }
       create_notification: {
         Args: {
           p_data?: Json
@@ -601,6 +851,16 @@ export type Database = {
         }
         Returns: Json
       }
+      log_admin_action: {
+        Args: {
+          p_action_type: string
+          p_details?: Json
+          p_reason?: string
+          p_target_id?: string
+          p_target_type: string
+        }
+        Returns: string
+      }
       log_buyer_transaction: {
         Args: {
           p_amount: number
@@ -610,6 +870,14 @@ export type Database = {
           p_wallet_id: string
         }
         Returns: undefined
+      }
+      resolve_dispute: {
+        Args: {
+          p_resolution_notes: string
+          p_resolution_type: string
+          p_trade_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
