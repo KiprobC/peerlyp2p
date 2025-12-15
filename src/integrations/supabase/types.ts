@@ -577,6 +577,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_or_create_wallet: {
+        Args: { p_crypto_type: string; p_user_id: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
