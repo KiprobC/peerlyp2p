@@ -271,7 +271,7 @@ export const useAdminTrades = () => {
         .select("*")
         .eq("user_id", trade.seller_id)
         .eq("crypto_type", trade.crypto_type)
-        .single();
+        .maybeSingle();
 
       if (sellerError || !sellerWallet) throw new Error("Seller wallet not found");
 
@@ -281,7 +281,7 @@ export const useAdminTrades = () => {
         .select("*")
         .eq("user_id", trade.buyer_id)
         .eq("crypto_type", trade.crypto_type)
-        .single();
+        .maybeSingle();
 
       if (buyerError || !buyerWallet) throw new Error("Buyer wallet not found");
 
@@ -363,7 +363,7 @@ export const useAdminTrades = () => {
           .select("*")
           .eq("user_id", trade.seller_id)
           .eq("crypto_type", trade.crypto_type)
-          .single();
+          .maybeSingle();
 
         if (!walletError && sellerWallet) {
           // Return funds from escrow (reduce locked_balance only, balance stays same)
