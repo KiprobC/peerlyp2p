@@ -71,22 +71,8 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogP
       const seller_id = isBuyOffer ? user.id : offer.user_id;
       const calculatedCryptoAmount = parseFloat(fiatAmount) / offer.price_per_unit;
 
-      // First, lock the seller's crypto in escrow
-      const escrowResult = await lockEscrow(
-        seller_id,
-        offer.crypto_type,
-        calculatedCryptoAmount,
-        "temp-trade" // Will be updated with actual trade ID
-      );
-
-      if (!escrowResult.success) {
-        toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
-        setLoading(false);
-        return;
-      }
-
-      // Create the trade with escrow already locked
-      const { error, data } = await createTrade({
+      // Step 1: Create the trade FIRST to get a real UUID
+      const { error, data: tradeData } = await createTrade({
         offer_id: offer.id,
         buyer_id,
         seller_id,
@@ -97,22 +83,39 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogP
         payment_method: selectedPayment,
       });
 
-      if (error) throw error;
-
-      // Update trade to mark escrow as locked
-      if (data) {
-        await updateTrade(data.id, {
-          escrow_locked: true,
-          status: "confirmed",
-        });
+      if (error || !tradeData) {
+        throw error || new Error("Failed to create trade");
       }
+
+      // Step 2: Lock escrow using the real trade UUID
+      const escrowResult = await lockEscrow(
+        seller_id,
+        offer.crypto_type,
+        calculatedCryptoAmount,
+        tradeData.id // Use real trade UUID
+      );
+
+      if (!escrowResult.success) {
+        // Escrow failed - cancel the trade
+        await updateTrade(tradeData.id, {
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: user.id,
+        });
+        toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: Update trade to mark escrow as locked and confirmed
+      await updateTrade(tradeData.id, {
+        escrow_locked: true,
+        status: "confirmed",
+      });
 
       toast.success("Trade initiated! Crypto is now locked in escrow.");
       onOpenChange(false);
-      
-      if (data) {
-        navigate(`/trade/${data.id}`);
-      }
+      navigate(`/trade/${tradeData.id}`);
     } catch (error: any) {
       toast.error(error.message || "Failed to initiate trade");
     } finally {
