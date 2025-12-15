@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminSidebar, MobileAdminSidebar } from "@/components/admin/AdminSidebar";
 import { useAdminRole } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { Shield, AlertTriangle } from "lucide-react";
@@ -21,6 +21,7 @@ export const AdminLayout = () => {
     window.addEventListener("mousemove", handleActivity);
     window.addEventListener("keydown", handleActivity);
     window.addEventListener("click", handleActivity);
+    window.addEventListener("touchstart", handleActivity);
 
     const checkTimeout = setInterval(() => {
       if (Date.now() - lastActivity > SESSION_TIMEOUT) {
@@ -33,13 +34,14 @@ export const AdminLayout = () => {
       window.removeEventListener("mousemove", handleActivity);
       window.removeEventListener("keydown", handleActivity);
       window.removeEventListener("click", handleActivity);
+      window.removeEventListener("touchstart", handleActivity);
       clearInterval(checkTimeout);
     };
   }, [lastActivity, signOut, navigate]);
 
   if (authLoading || roleLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
             <Shield className="h-8 w-8 text-primary animate-pulse" />
@@ -57,12 +59,12 @@ export const AdminLayout = () => {
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="glass-card text-center max-w-md">
+        <div className="glass-card text-center max-w-md w-full">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
             <AlertTriangle className="h-8 w-8 text-destructive" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold mb-2">Access Denied</h1>
+          <p className="text-muted-foreground mb-6 text-sm sm:text-base">
             You don't have administrator privileges to access this panel. Please contact system support if you believe this is an error.
           </p>
           <Button onClick={() => navigate("/dashboard")} className="w-full">
@@ -76,8 +78,18 @@ export const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-background flex">
       <AdminSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">
+      <main className="flex-1 overflow-auto w-full">
+        {/* Mobile Header */}
+        <header className="sticky top-0 z-40 lg:hidden bg-card/95 backdrop-blur-sm border-b border-border px-4 py-3">
+          <div className="flex items-center gap-3">
+            <MobileAdminSidebar />
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <span className="font-semibold">Admin Panel</span>
+            </div>
+          </div>
+        </header>
+        <div className="p-4 sm:p-6 lg:p-8">
           <Outlet />
         </div>
       </main>
