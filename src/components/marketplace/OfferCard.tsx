@@ -55,7 +55,7 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">{offer.trader.name}</span>
+              <span className="font-semibold text-foreground">@{offer.trader.name}</span>
               {offer.trader.verified && (
                 <Shield className="w-4 h-4 text-primary" />
               )}

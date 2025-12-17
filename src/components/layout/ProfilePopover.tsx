@@ -17,9 +17,9 @@ export const ProfilePopover = () => {
   const { profile } = useProfile();
   const { isAdmin } = useAdminRole();
 
-  const getInitials = (name: string | null) => {
-    if (!name) return "U";
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  const getInitials = (username: string | null) => {
+    if (!username) return "U";
+    return username.slice(0, 2).toUpperCase();
   };
 
   const getVerificationBadge = () => {
@@ -39,7 +39,7 @@ export const ProfilePopover = () => {
           <Avatar className="h-8 w-8">
             <AvatarImage src={profile?.avatar_url || ""} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              {getInitials(profile?.full_name)}
+              {getInitials(profile?.username)}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -50,11 +50,11 @@ export const ProfilePopover = () => {
             <Avatar className="h-10 w-10">
               <AvatarImage src={profile?.avatar_url || ""} />
               <AvatarFallback className="bg-primary text-primary-foreground">
-                {getInitials(profile?.full_name)}
+                {getInitials(profile?.username)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{profile?.full_name || "User"}</p>
+              <p className="font-medium text-sm truncate">@{profile?.username || "User"}</p>
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>

@@ -16,6 +16,7 @@ import {
   ChevronRight,
   LogOut,
   Menu,
+  Send,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -24,17 +25,19 @@ import { useTrades } from "@/hooks/useTrades";
 import { useMyOffers } from "@/hooks/useOffers";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
+import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { formatDistanceToNow } from "date-fns";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
-  const { wallets, loading: walletsLoading } = useWallets();
+  const { wallets, loading: walletsLoading, refetch: refetchWallets } = useWallets();
   const { trades, activeTrades, completedTrades, loading: tradesLoading } = useTrades();
   const { offers: myOffers, loading: offersLoading } = useMyOffers();
   const { unreadCount } = useNotifications();
   const { prices: cryptoPricesUSD, loading: pricesLoading } = useCryptoPrices();
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -103,10 +106,10 @@ const Dashboard = () => {
               </Button>
               <Link to="/profile" className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-border hover:opacity-80 transition-opacity">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-                  {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  {profile?.username?.charAt(0) || user?.email?.charAt(0) || "U"}
                 </div>
                 <span className="hidden sm:block text-sm font-medium">
-                  {profile?.full_name?.split(" ")[0] || "User"}
+                  @{profile?.username || "User"}
                 </span>
               </Link>
             </div>
@@ -121,7 +124,7 @@ const Dashboard = () => {
           <div className="flex flex-col gap-3 mb-6 sm:mb-8">
             <div>
               <h1 className="text-lg sm:text-2xl md:text-3xl font-bold mb-1">
-                Welcome, <span className="gradient-text">{profile?.full_name?.split(" ")[0] || "Trader"}</span>
+                Welcome, <span className="gradient-text">@{profile?.username || "Trader"}</span>
               </h1>
               <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
                 {profile?.is_verified && (
@@ -167,9 +170,13 @@ const Dashboard = () => {
                   KES {totalValueKES.toLocaleString()}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="default" size="sm" onClick={() => setSendDialogOpen(true)}>
+                  <Send className="w-4 h-4 mr-1" />
+                  Send
+                </Button>
                 <Link to="/wallet/deposit" className="flex-1 sm:flex-none">
-                  <Button variant="default" size="sm" className="w-full sm:w-auto">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
                     <ArrowDownLeft className="w-4 h-4 mr-1" />
                     Deposit
                   </Button>
@@ -323,6 +330,14 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+
+      {/* Send Crypto Dialog */}
+      <SendCryptoDialog
+        open={sendDialogOpen}
+        onOpenChange={setSendDialogOpen}
+        wallets={wallets}
+        onSuccess={refetchWallets}
+      />
     </div>
   );
 };
