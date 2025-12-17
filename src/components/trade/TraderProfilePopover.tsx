@@ -67,17 +67,17 @@ export const TraderProfilePopover = ({ userId, children }: TraderProfilePopoverP
         const raterIds = ratingsData.map(r => r.rater_id);
         const { data: ratersData } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, username")
           .in("user_id", raterIds);
 
-        const raterMap = new Map(ratersData?.map(r => [r.user_id, r.full_name]) || []);
+        const raterMap = new Map(ratersData?.map(r => [r.user_id, r.username]) || []);
 
         setRatings(ratingsData.map(r => ({
           id: r.id,
           rating: r.rating,
           comment: r.comment,
           created_at: r.created_at,
-          rater_name: raterMap.get(r.rater_id) || "Anonymous"
+          rater_name: raterMap.get(r.rater_id) ? `@${raterMap.get(r.rater_id)}` : "Anonymous"
         })));
       }
     } catch (error) {
@@ -105,21 +105,21 @@ export const TraderProfilePopover = ({ userId, children }: TraderProfilePopoverP
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-primary font-bold text-xl">
-                      {profile.full_name?.charAt(0) || "?"}
+                      {profile.username?.charAt(0) || "?"}
                     </span>
                   )}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-lg">
-                      {profile.full_name || profile.username || "Anonymous"}
+                      @{profile.username || "Anonymous"}
                     </span>
                     {profile.is_verified && (
                       <Shield className="w-4 h-4 text-primary" />
                     )}
                   </div>
-                  {profile.username && profile.full_name && (
-                    <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                  {profile.full_name && (
+                    <p className="text-sm text-muted-foreground">{profile.full_name}</p>
                   )}
                 </div>
               </div>

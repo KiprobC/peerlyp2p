@@ -38,6 +38,7 @@ import { toast } from "sonner";
 
 interface TraderProfile {
   full_name: string | null;
+  username: string | null;
   avatar_url: string | null;
   rating: number | null;
   total_trades: number | null;
@@ -95,7 +96,7 @@ const TradePage = () => {
 
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, avatar_url, rating, total_trades, is_verified")
+        .select("full_name, username, avatar_url, rating, total_trades, is_verified")
         .eq("user_id", counterpartyId)
         .maybeSingle();
 
@@ -356,13 +357,13 @@ const TradePage = () => {
                       {counterparty?.avatar_url ? (
                         <img src={counterparty.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        counterparty?.full_name?.charAt(0) || "?"
+                        counterparty?.username?.charAt(0) || "?"
                       )}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-sm sm:text-base truncate">
-                          {counterparty?.full_name || "Anonymous"}
+                          @{counterparty?.username || "Anonymous"}
                         </span>
                         {counterparty?.is_verified && (
                           <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />

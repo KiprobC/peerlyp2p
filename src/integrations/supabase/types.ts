@@ -106,6 +106,51 @@ export type Database = {
           },
         ]
       }
+      internal_transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          crypto_type: string
+          id: string
+          recipient_id: string
+          recipient_username: string
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          sender_id: string
+          sender_username: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          crypto_type: string
+          id?: string
+          recipient_id: string
+          recipient_username: string
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          sender_id: string
+          sender_username: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          crypto_type?: string
+          id?: string
+          recipient_id?: string
+          recipient_username?: string
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          sender_id?: string
+          sender_username?: string
+          status?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -723,6 +768,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_transfer_freeze: {
+        Row: {
+          frozen_at: string
+          frozen_by: string
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          frozen_at?: string
+          frozen_by: string
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          frozen_at?: string
+          frozen_by?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -840,11 +909,20 @@ export type Database = {
         Args: { p_amount: number; p_wallet_id: string }
         Returns: undefined
       }
+      execute_internal_transfer: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_recipient_username: string
+        }
+        Returns: Json
+      }
       generate_random_username: { Args: never; Returns: string }
       get_or_create_wallet: {
         Args: { p_crypto_type: string; p_user_id: string }
         Returns: string
       }
+      get_user_by_username: { Args: { p_username: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -887,6 +965,10 @@ export type Database = {
           p_resolution_type: string
           p_trade_id: string
         }
+        Returns: Json
+      }
+      reverse_internal_transfer: {
+        Args: { p_reason: string; p_transfer_id: string }
         Returns: Json
       }
       update_last_seen: { Args: never; Returns: undefined }

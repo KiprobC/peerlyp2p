@@ -28,9 +28,9 @@ export const ProfileHeader = ({ profile, onEditPhoto }: ProfileHeaderProps) => {
         {/* Avatar */}
         <div className="relative group">
           <Avatar className="w-24 h-24 border-4 border-primary/20">
-            <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
+            <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.username || "User"} />
             <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-              {profile?.full_name?.charAt(0) || "U"}
+              {profile?.username?.charAt(0) || "U"}
             </AvatarFallback>
           </Avatar>
           {onEditPhoto && (
@@ -46,15 +46,15 @@ export const ProfileHeader = ({ profile, onEditPhoto }: ProfileHeaderProps) => {
         {/* User Info */}
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold">{profile?.full_name || "User"}</h1>
+            <h1 className="text-2xl font-bold">@{profile?.username || "User"}</h1>
             <Badge variant={statusConfig.variant} className="flex items-center gap-1">
               <StatusIcon className="w-3 h-3" />
               {statusConfig.label}
             </Badge>
           </div>
           
-          {profile?.username && (
-            <p className="text-muted-foreground mb-1">@{profile.username}</p>
+          {profile?.full_name && (
+            <p className="text-lg text-muted-foreground mb-1">{profile.full_name}</p>
           )}
           
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
