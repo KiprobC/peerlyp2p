@@ -53,6 +53,7 @@ const CreateOfferDialog = ({ open, onOpenChange }: CreateOfferDialogProps) => {
         crypto_type: formData.crypto_type,
         crypto_amount: parseFloat(formData.crypto_amount),
         price_per_unit: parseFloat(formData.price_per_unit),
+        price_margin: 0,
         min_amount: parseFloat(formData.min_amount),
         max_amount: parseFloat(formData.max_amount),
         payment_methods: formData.payment_methods,

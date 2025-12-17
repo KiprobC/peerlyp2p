@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -11,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, Loader2 } from "lucide-react";
 import { useMyOffers } from "@/hooks/useOffers";
+import { useCryptoPrices, convertToKES } from "@/hooks/useCryptoPrices";
 import { toast } from "sonner";
 
 const cryptoOptions = ["BTC", "USDT", "ETH"];
@@ -21,18 +24,28 @@ const paymentMethodOptions = ["MPESA", "Bank Transfer", "Airtel Money"];
 const CreateOffer = () => {
   const navigate = useNavigate();
   const { createOffer } = useMyOffers();
+  const { prices, loading: pricesLoading, lastUpdated, refetch: refetchPrices } = useCryptoPrices("USD");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: "sell" as "buy" | "sell",
     crypto_type: "BTC",
     crypto_amount: "",
-    price_per_unit: "",
+    price_margin: 0, // Percentage above/below market
     min_amount: "",
     max_amount: "",
     payment_methods: ["MPESA"],
     time_limit: "30",
     terms: "",
   });
+
+  // Calculate price based on market price and margin
+  const marketPriceUSD = prices[formData.crypto_type] || 0;
+  const marketPriceKES = convertToKES(marketPriceUSD);
+  const finalPriceKES = Math.round(marketPriceKES * (1 + formData.price_margin / 100));
+
+  const totalValue = formData.crypto_amount
+    ? (parseFloat(formData.crypto_amount) * finalPriceKES).toLocaleString()
+    : "0";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +56,8 @@ const CreateOffer = () => {
         type: formData.type,
         crypto_type: formData.crypto_type,
         crypto_amount: parseFloat(formData.crypto_amount),
-        price_per_unit: parseFloat(formData.price_per_unit),
+        price_per_unit: finalPriceKES,
+        price_margin: formData.price_margin,
         min_amount: parseFloat(formData.min_amount),
         max_amount: parseFloat(formData.max_amount),
         payment_methods: formData.payment_methods,
@@ -72,10 +86,6 @@ const CreateOffer = () => {
         : [...prev.payment_methods, method],
     }));
   };
-
-  const totalValue = formData.crypto_amount && formData.price_per_unit
-    ? (parseFloat(formData.crypto_amount) * parseFloat(formData.price_per_unit)).toLocaleString()
-    : "0";
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,7 +135,7 @@ const CreateOffer = () => {
               </div>
             </div>
 
-            {/* Crypto Details */}
+            {/* Crypto Selection */}
             <div className="glass-card space-y-4">
               <Label className="text-base font-semibold">Cryptocurrency</Label>
               <Select
@@ -146,38 +156,100 @@ const CreateOffer = () => {
                 </SelectContent>
               </Select>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="0.00"
-                    value={formData.crypto_amount}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, crypto_amount: e.target.value }))
-                    }
-                    required
-                  />
+              {/* Live Market Price */}
+              <div className="p-3 bg-secondary/50 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm text-muted-foreground">Market Price</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={refetchPrices}
+                    disabled={pricesLoading}
+                    className="h-6 px-2"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${pricesLoading ? "animate-spin" : ""}`} />
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label>Price per unit (KES)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={formData.price_per_unit}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, price_per_unit: e.target.value }))
-                    }
-                    required
-                  />
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-foreground">
+                    KES {marketPriceKES.toLocaleString()}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    (${marketPriceUSD.toLocaleString()})
+                  </span>
                 </div>
+                {lastUpdated && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Updated {new Date(lastUpdated).toLocaleTimeString()}
+                  </p>
+                )}
               </div>
 
-              {formData.crypto_amount && formData.price_per_unit && (
-                <div className="p-3 bg-primary/10 rounded-lg text-center">
+              {/* Amount */}
+              <div className="space-y-2">
+                <Label>Amount ({formData.crypto_type})</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="0.00"
+                  value={formData.crypto_amount}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, crypto_amount: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Price Margin */}
+            <div className="glass-card space-y-4">
+              <Label className="text-base font-semibold">Your Price Margin</Label>
+              <p className="text-sm text-muted-foreground">
+                Set your price as a percentage above or below market price
+              </p>
+              
+              <div className="flex items-center justify-center gap-4 py-4">
+                <Badge 
+                  variant={formData.price_margin < 0 ? "destructive" : "secondary"}
+                  className="flex items-center gap-1"
+                >
+                  {formData.price_margin < 0 ? (
+                    <TrendingDown className="w-3 h-3" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3" />
+                  )}
+                  {formData.price_margin >= 0 ? "+" : ""}{formData.price_margin}%
+                </Badge>
+              </div>
+
+              <Slider
+                value={[formData.price_margin]}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, price_margin: value[0] }))}
+                min={-10}
+                max={10}
+                step={0.5}
+                className="py-4"
+              />
+
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>-10% below market</span>
+                <span>Market price</span>
+                <span>+10% above market</span>
+              </div>
+
+              {/* Final Price */}
+              <div className="p-4 bg-primary/10 rounded-lg text-center">
+                <p className="text-sm text-muted-foreground mb-1">Your Offer Price</p>
+                <p className="text-2xl font-bold text-primary">
+                  KES {finalPriceKES.toLocaleString()} / {formData.crypto_type}
+                </p>
+              </div>
+
+              {formData.crypto_amount && (
+                <div className="p-3 bg-secondary/50 rounded-lg text-center">
                   <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-xl font-bold text-primary">KES {totalValue}</p>
+                  <p className="text-xl font-bold text-foreground">KES {totalValue}</p>
                 </div>
               )}
             </div>
@@ -264,8 +336,15 @@ const CreateOffer = () => {
             </div>
 
             {/* Submit */}
-            <Button type="submit" className="w-full h-12" disabled={loading}>
-              {loading ? "Creating Offer..." : "Create Offer"}
+            <Button type="submit" className="w-full h-12" disabled={loading || pricesLoading}>
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating Offer...
+                </>
+              ) : (
+                "Create Offer"
+              )}
             </Button>
           </form>
         </div>

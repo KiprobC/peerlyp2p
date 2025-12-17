@@ -151,6 +151,7 @@ export type Database = {
           max_amount: number
           min_amount: number
           payment_methods: string[]
+          price_margin: number | null
           price_per_unit: number
           terms: string | null
           time_limit: number | null
@@ -170,6 +171,7 @@ export type Database = {
           max_amount: number
           min_amount: number
           payment_methods: string[]
+          price_margin?: number | null
           price_per_unit: number
           terms?: string | null
           time_limit?: number | null
@@ -189,6 +191,7 @@ export type Database = {
           max_amount?: number
           min_amount?: number
           payment_methods?: string[]
+          price_margin?: number | null
           price_per_unit?: number
           terms?: string | null
           time_limit?: number | null
@@ -288,6 +291,7 @@ export type Database = {
           kyc_status: Database["public"]["Enums"]["kyc_status"] | null
           kyc_submitted_at: string | null
           kyc_verified_at: string | null
+          last_seen: string | null
           mpesa_phone: string | null
           phone: string | null
           rating: number | null
@@ -323,6 +327,7 @@ export type Database = {
           kyc_status?: Database["public"]["Enums"]["kyc_status"] | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
+          last_seen?: string | null
           mpesa_phone?: string | null
           phone?: string | null
           rating?: number | null
@@ -358,6 +363,7 @@ export type Database = {
           kyc_status?: Database["public"]["Enums"]["kyc_status"] | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
+          last_seen?: string | null
           mpesa_phone?: string | null
           phone?: string | null
           rating?: number | null
@@ -883,6 +889,7 @@ export type Database = {
         }
         Returns: Json
       }
+      update_last_seen: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

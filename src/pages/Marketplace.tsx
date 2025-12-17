@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MarketplaceFilters from "@/components/marketplace/MarketplaceFilters";
@@ -11,6 +10,7 @@ import CreateOfferDialog from "@/components/marketplace/CreateOfferDialog";
 import InitiateTradeDialog from "@/components/marketplace/InitiateTradeDialog";
 import { useOffers, OfferWithProfile } from "@/hooks/useOffers";
 import { useAuth } from "@/contexts/AuthContext";
+import { isUserOnline } from "@/hooks/useOnlineStatus";
 
 const Marketplace = () => {
   const { user } = useAuth();
@@ -19,6 +19,10 @@ const Marketplace = () => {
     crypto: "All",
     paymentMethod: "All",
     amount: "",
+    minRating: 0,
+    onlineOnly: false,
+    minPrice: "",
+    maxPrice: "",
   });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
@@ -44,6 +48,26 @@ const Marketplace = () => {
       if (filters.amount) {
         const amount = parseFloat(filters.amount);
         if (amount < offer.min_amount || amount > offer.max_amount) return false;
+      }
+
+      // Minimum rating filter
+      if (filters.minRating > 0) {
+        if ((offer.trader_rating || 0) < filters.minRating) return false;
+      }
+
+      // Online only filter
+      if (filters.onlineOnly) {
+        if (!isUserOnline(offer.trader_last_seen || null)) return false;
+      }
+
+      // Price range filter
+      if (filters.minPrice) {
+        const minPrice = parseFloat(filters.minPrice);
+        if (offer.price_per_unit < minPrice) return false;
+      }
+      if (filters.maxPrice) {
+        const maxPrice = parseFloat(filters.maxPrice);
+        if (offer.price_per_unit > maxPrice) return false;
       }
 
       return true;
@@ -121,6 +145,8 @@ const Marketplace = () => {
                       rating: offer.trader_rating || 0,
                       trades: offer.trader_trades || 0,
                       verified: offer.trader_verified || false,
+                      positiveCount: offer.trader_positive_count || 0,
+                      lastSeen: offer.trader_last_seen,
                     },
                     timeLimit: offer.time_limit,
                   }}
@@ -136,6 +162,10 @@ const Marketplace = () => {
                 crypto: "All",
                 paymentMethod: "All",
                 amount: "",
+                minRating: 0,
+                onlineOnly: false,
+                minPrice: "",
+                maxPrice: "",
               })}>
                 Clear Filters
               </Button>

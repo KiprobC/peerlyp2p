@@ -1,21 +1,26 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 export interface Profile {
   id: string;
   user_id: string;
-  email: string | null;
   full_name: string | null;
   username: string | null;
   username_changed: boolean;
+  email: string | null;
   phone: string | null;
   date_of_birth: string | null;
+  avatar_url: string | null;
+  bio: string | null;
   country: string | null;
   city: string | null;
   address: string | null;
-  kyc_status: "pending" | "submitted" | "verified" | "rejected";
+  rating: number | null;
+  total_trades: number | null;
+  successful_trades: number | null;
+  is_verified: boolean | null;
+  kyc_status: "pending" | "submitted" | "verified" | "rejected" | null;
   kyc_submitted_at: string | null;
   kyc_verified_at: string | null;
   id_type: string | null;
@@ -23,20 +28,15 @@ export interface Profile {
   id_front_url: string | null;
   id_back_url: string | null;
   selfie_url: string | null;
+  setup_completed: boolean | null;
+  setup_step: number | null;
   mpesa_phone: string | null;
   bank_name: string | null;
-  bank_account_name: string | null;
   bank_account_number: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  total_trades: number;
-  successful_trades: number;
-  rating: number;
-  is_verified: boolean;
-  setup_step: number;
-  setup_completed: boolean;
+  bank_account_name: string | null;
   created_at: string;
   updated_at: string;
+  last_seen: string | null;
 }
 
 export const useProfile = () => {

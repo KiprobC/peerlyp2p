@@ -10,6 +10,7 @@ export interface Offer {
   crypto_amount: number;
   fiat_currency: string;
   price_per_unit: number;
+  price_margin: number;
   min_amount: number;
   max_amount: number;
   payment_methods: string[];
@@ -27,6 +28,8 @@ export interface OfferWithProfile extends Offer {
   trader_rating?: number;
   trader_trades?: number;
   trader_verified?: boolean;
+  trader_positive_count?: number;
+  trader_last_seen?: string | null;
 }
 
 export interface OfferFilters {
@@ -35,6 +38,10 @@ export interface OfferFilters {
   payment_method?: string;
   min_amount?: number;
   max_amount?: number;
+  minRating?: number;
+  onlineOnly?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export const useOffers = (filters?: OfferFilters) => {
@@ -65,8 +72,20 @@ export const useOffers = (filters?: OfferFilters) => {
         const userIds = [...new Set(data.map(o => o.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, avatar_url, rating, total_trades, is_verified")
+          .select("user_id, full_name, username, avatar_url, rating, total_trades, is_verified, last_seen")
           .in("user_id", userIds);
+        
+        // Fetch positive feedback counts for all users
+        const { data: ratings } = await supabase
+          .from("trade_ratings")
+          .select("rated_id, rating")
+          .in("rated_id", userIds)
+          .gte("rating", 4);
+
+        const positiveCounts: Record<string, number> = {};
+        ratings?.forEach(r => {
+          positiveCounts[r.rated_id] = (positiveCounts[r.rated_id] || 0) + 1;
+        });
         
         const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
         
@@ -74,11 +93,14 @@ export const useOffers = (filters?: OfferFilters) => {
           const profile = profileMap.get(offer.user_id);
           return {
             ...offer,
-            trader_name: profile?.full_name || "Anonymous",
+            price_margin: offer.price_margin || 0,
+            trader_name: profile?.username || profile?.full_name || "Anonymous",
             trader_avatar: profile?.avatar_url || undefined,
             trader_rating: profile?.rating || 0,
             trader_trades: profile?.total_trades || 0,
             trader_verified: profile?.is_verified || false,
+            trader_positive_count: positiveCounts[offer.user_id] || 0,
+            trader_last_seen: profile?.last_seen || null,
           };
         });
         
