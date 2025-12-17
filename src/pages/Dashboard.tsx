@@ -23,14 +23,8 @@ import { useWallets, cryptoInfo } from "@/hooks/useWallets";
 import { useTrades } from "@/hooks/useTrades";
 import { useMyOffers } from "@/hooks/useOffers";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
 import { formatDistanceToNow } from "date-fns";
-
-// Mock price data (would come from API in production)
-const cryptoPrices: Record<string, number> = {
-  BTC: 8250000, // KES
-  USDT: 152,
-  ETH: 425000,
-};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -40,6 +34,7 @@ const Dashboard = () => {
   const { trades, activeTrades, completedTrades, loading: tradesLoading } = useTrades();
   const { offers: myOffers, loading: offersLoading } = useMyOffers();
   const { unreadCount } = useNotifications();
+  const { prices: cryptoPricesUSD, loading: pricesLoading } = useCryptoPrices();
 
   const handleSignOut = async () => {
     await signOut();
@@ -47,8 +42,8 @@ const Dashboard = () => {
   };
 
   const totalValueKES = wallets.reduce((total, wallet) => {
-    const price = cryptoPrices[wallet.crypto_type] || 0;
-    return total + wallet.balance * price;
+    const priceUSD = cryptoPricesUSD[wallet.crypto_type] || 0;
+    return total + wallet.balance * priceUSD * USD_TO_KES;
   }, 0);
 
   const recentTrades = trades.slice(0, 5);
@@ -193,7 +188,8 @@ const Dashboard = () => {
               {wallets.length > 0 ? (
                 wallets.map((wallet) => {
                   const info = cryptoInfo[wallet.crypto_type] || { name: wallet.crypto_type, icon: "?", color: "#888" };
-                  const valueKES = wallet.balance * (cryptoPrices[wallet.crypto_type] || 0);
+                  const priceUSD = cryptoPricesUSD[wallet.crypto_type] || 0;
+                  const valueKES = wallet.balance * priceUSD * USD_TO_KES;
                   
                   return (
                     <div
