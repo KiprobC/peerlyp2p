@@ -25,6 +25,7 @@ import { useTrades } from "@/hooks/useTrades";
 import { useMyOffers } from "@/hooks/useOffers";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
+import { useSettings } from "@/hooks/useSettings";
 import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { formatDistanceToNow } from "date-fns";
 
@@ -36,8 +37,20 @@ const Dashboard = () => {
   const { trades, activeTrades, completedTrades, loading: tradesLoading } = useTrades();
   const { offers: myOffers, loading: offersLoading } = useMyOffers();
   const { unreadCount } = useNotifications();
+  const { settings } = useSettings();
+  const preferredCurrency = settings?.preferred_currency || "KES";
   const { prices: cryptoPricesUSD, changes: priceChanges, loading: pricesLoading } = useCryptoPrices();
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+
+  // Currency symbols and conversion
+  const currencySymbols: Record<string, string> = {
+    USD: "$",
+    KES: "KES ",
+    EUR: "€",
+    GBP: "£",
+  };
+  const currencySymbol = currencySymbols[preferredCurrency] || preferredCurrency + " ";
+  const conversionRate = preferredCurrency === "USD" ? 1 : preferredCurrency === "KES" ? USD_TO_KES : 1;
 
   const handleSignOut = async () => {
     await signOut();
@@ -194,6 +207,7 @@ const Dashboard = () => {
             <div className="flex flex-wrap gap-3 sm:gap-4 mb-3 sm:mb-4 p-2 sm:p-3 bg-secondary/30 rounded-lg">
               {Object.entries(cryptoInfo).map(([crypto, info]) => {
                 const priceUSD = cryptoPricesUSD[crypto] || 0;
+                const priceInCurrency = priceUSD * conversionRate;
                 const change = priceChanges[crypto] || 0;
                 const isPositive = change >= 0;
                 
@@ -206,7 +220,9 @@ const Dashboard = () => {
                       {info.icon}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs sm:text-sm font-medium">${priceUSD.toLocaleString()}</span>
+                      <span className="text-xs sm:text-sm font-medium">
+                        {currencySymbol}{priceInCurrency.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      </span>
                       <span className={`text-xs font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
                         {isPositive ? '+' : ''}{change.toFixed(2)}%
                       </span>
