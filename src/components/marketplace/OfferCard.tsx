@@ -99,15 +99,13 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           <span className="text-xs text-muted-foreground">
             Limit: {offer.fiatCurrency} {offer.minAmount.toLocaleString()} - {offer.maxAmount.toLocaleString()}
           </span>
-          {margin !== 0 && (
-            <Badge 
-              variant={margin > 0 ? "default" : "destructive"} 
-              className="flex items-center gap-0.5 text-[9px] px-1 py-0 h-4"
-            >
-              {margin > 0 ? <TrendingUp className="w-2 h-2" /> : <TrendingDown className="w-2 h-2" />}
-              {margin > 0 ? "+" : ""}{margin}%
-            </Badge>
-          )}
+          <Badge 
+            variant={margin > 0 ? "default" : margin < 0 ? "destructive" : "secondary"} 
+            className="flex items-center gap-0.5 text-[9px] px-1 py-0 h-4"
+          >
+            {margin > 0 ? <TrendingUp className="w-2 h-2" /> : margin < 0 ? <TrendingDown className="w-2 h-2" /> : null}
+            {margin > 0 ? "+" : ""}{margin}% {margin === 0 ? "market" : margin > 0 ? "above" : "below"}
+          </Badge>
         </div>
       </div>
 
