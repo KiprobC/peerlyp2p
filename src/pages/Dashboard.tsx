@@ -309,7 +309,12 @@ const Dashboard = () => {
                 ) : recentTrades.length > 0 ? (
                   recentTrades.map((trade) => {
                     const isBuyer = trade.buyer_id === user?.id;
-                    const tradeType = isBuyer ? "buy" : "sell";
+                    const counterpartyUsername = isBuyer 
+                      ? trade.seller_profile?.username 
+                      : trade.buyer_profile?.username;
+                    const actionText = isBuyer 
+                      ? `Buying from @${counterpartyUsername || 'user'}`
+                      : `Selling to @${counterpartyUsername || 'user'}`;
                     
                     return (
                       <Link
@@ -328,17 +333,17 @@ const Dashboard = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium capitalize text-sm">{tradeType} {trade.crypto_type}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="font-medium text-xs sm:text-sm">{actionText}</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(trade.created_at), { addSuffix: true })}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-sm">{trade.crypto_amount} {trade.crypto_type}</p>
+                          <p className="font-semibold text-xs sm:text-sm">{trade.crypto_amount} {trade.crypto_type}</p>
                           <Badge 
                             variant={trade.status === "completed" ? "default" : "secondary"} 
-                            className="text-xs"
+                            className="text-[10px] sm:text-xs"
                           >
                             {trade.status}
                           </Badge>

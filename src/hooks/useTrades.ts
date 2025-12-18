@@ -2,6 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+export interface TradeProfile {
+  username: string | null;
+}
+
 export interface Trade {
   id: string;
   offer_id: string;
@@ -26,6 +30,8 @@ export interface Trade {
   seller_rating: number | null;
   created_at: string;
   updated_at: string;
+  buyer_profile?: TradeProfile;
+  seller_profile?: TradeProfile;
 }
 
 export interface TradeMessage {
@@ -98,7 +104,35 @@ export const useTrades = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTrades((data as Trade[]) || []);
+      
+      // Fetch profiles for all trades
+      if (data && data.length > 0) {
+        const userIds = new Set<string>();
+        data.forEach((trade: any) => {
+          userIds.add(trade.buyer_id);
+          userIds.add(trade.seller_id);
+        });
+        
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, username")
+          .in("user_id", Array.from(userIds));
+        
+        const profileMap = new Map<string, TradeProfile>();
+        profiles?.forEach((p: any) => {
+          profileMap.set(p.user_id, { username: p.username });
+        });
+        
+        const tradesWithProfiles = data.map((trade: any) => ({
+          ...trade,
+          buyer_profile: profileMap.get(trade.buyer_id) || { username: null },
+          seller_profile: profileMap.get(trade.seller_id) || { username: null },
+        }));
+        
+        setTrades(tradesWithProfiles as Trade[]);
+      } else {
+        setTrades([]);
+      }
     } catch (error) {
       console.error("Error fetching trades:", error);
     } finally {
