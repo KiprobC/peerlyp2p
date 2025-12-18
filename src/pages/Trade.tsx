@@ -292,10 +292,10 @@ const TradePage = () => {
         </div>
       </nav>
 
-      <main className="pt-16 sm:pt-18 pb-4">
-        <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
+      <main className="pt-16 sm:pt-18 pb-0">
+        <div className="container mx-auto px-0 sm:px-4 max-w-4xl">
           {/* Chat Section - Premium Paxful-style */}
-          <div className="bg-card border border-border rounded-xl shadow-lg h-[calc(100vh-180px)] sm:h-[calc(100vh-200px)] md:h-[calc(100vh-200px)] flex flex-col overflow-hidden mb-20 md:mb-0">
+          <div className="bg-card border-x-0 sm:border-x border-t border-b-0 sm:border-b border-border sm:rounded-xl shadow-lg h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] flex flex-col overflow-hidden pb-20 md:pb-0">
             {/* Counterparty Profile - Static header */}
             <div className="p-3 sm:p-4 border-b border-border bg-card/80 backdrop-blur-sm shrink-0">
               <TraderProfilePopover userId={isBuyer ? trade.seller_id : trade.buyer_id}>
