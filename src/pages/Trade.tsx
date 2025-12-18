@@ -294,44 +294,43 @@ const TradePage = () => {
 
       <main className="pt-16 sm:pt-18 pb-4">
         <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
-          {/* Counterparty Profile - Static at top */}
-          <div className="glass-card p-3 sm:p-4 mb-4">
-            <TraderProfilePopover userId={isBuyer ? trade.seller_id : trade.buyer_id}>
-              <div className="flex items-center gap-3 cursor-pointer">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0">
-                  {counterparty?.avatar_url ? (
-                    <img src={counterparty.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    counterparty?.username?.charAt(0) || "?"
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{isBuyer ? "Seller" : "Buyer"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm sm:text-base truncate">
-                      @{counterparty?.username || "Anonymous"}
-                    </span>
-                    {counterparty?.is_verified && (
-                      <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
+          {/* Chat Section - Premium Paxful-style */}
+          <div className="bg-card border border-border rounded-xl shadow-lg h-[calc(100vh-180px)] sm:h-[calc(100vh-200px)] md:h-[calc(100vh-200px)] flex flex-col overflow-hidden mb-20 md:mb-0">
+            {/* Counterparty Profile - Static header */}
+            <div className="p-3 sm:p-4 border-b border-border bg-card/80 backdrop-blur-sm shrink-0">
+              <TraderProfilePopover userId={isBuyer ? trade.seller_id : trade.buyer_id}>
+                <div className="flex items-center gap-3 cursor-pointer">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0">
+                    {counterparty?.avatar_url ? (
+                      <img src={counterparty.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      counterparty?.username?.charAt(0) || "?"
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Star className="w-3 h-3 text-accent fill-accent" />
-                    <span>{counterparty?.rating?.toFixed(1) || "0.0"}</span>
-                    <span>•</span>
-                    <span>{counterparty?.total_trades || 0} trades</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{isBuyer ? "Seller" : "Buyer"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm sm:text-base truncate">
+                        @{counterparty?.username || "Anonymous"}
+                      </span>
+                      {counterparty?.is_verified && (
+                        <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Star className="w-3 h-3 text-accent fill-accent" />
+                      <span>{counterparty?.rating?.toFixed(1) || "0.0"}</span>
+                      <span>•</span>
+                      <span>{counterparty?.total_trades || 0} trades</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </TraderProfilePopover>
-          </div>
-
-          {/* Chat Section - Premium Paxful-style */}
-          <div className="bg-card border border-border rounded-xl shadow-lg h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] md:h-[calc(100vh-240px)] flex flex-col overflow-hidden mb-20 md:mb-0">
+              </TraderProfilePopover>
+            </div>
             {/* Messages Area with Trade Info */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-4 bg-gradient-to-b from-secondary/20 to-transparent">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3 space-y-3 bg-gradient-to-b from-secondary/20 to-transparent">
               {/* Compact Trade Info Banner */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-border/50">
                 <div className="flex items-center gap-3">
