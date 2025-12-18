@@ -292,7 +292,7 @@ const TradePage = () => {
         </div>
       </nav>
 
-      <main className="pt-20 sm:pt-24 pb-4">
+      <main className="pt-16 sm:pt-18 pb-4">
         <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
           {/* Counterparty Profile - Static at top */}
           <div className="glass-card p-3 sm:p-4 mb-4">
