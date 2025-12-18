@@ -14,6 +14,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   ArrowLeft,
   Shield,
   Star,
@@ -25,6 +30,7 @@ import {
   Lock,
   Unlock,
   MessageSquare,
+  MoreVertical,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrades, useTradeMessages, Trade } from "@/hooks/useTrades";
@@ -288,107 +294,86 @@ const TradePage = () => {
 
       <main className="pt-20 sm:pt-24 pb-4">
         <div className="container mx-auto px-3 sm:px-4 max-w-4xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Trade Details & Counterparty - Collapsible on mobile */}
-            <div className="lg:col-span-1 space-y-4 sm:space-y-6">
-              {/* Trade Summary */}
-              <div className="glass-card p-4 sm:p-6">
-                <h3 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">Trade Details</h3>
-                <div className="space-y-2.5 sm:space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type</span>
-                    <Badge variant={isBuyer ? "default" : "secondary"} className="text-xs">
-                      {isBuyer ? "Buying" : "Selling"}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Amount</span>
-                    <span className="font-semibold">
-                      {trade.crypto_amount} {trade.crypto_type}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total</span>
-                    <span className="font-semibold">
-                      {trade.fiat_currency} {trade.fiat_amount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Payment</span>
-                    <span className="truncate ml-2">{trade.payment_method}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Created</span>
-                    <span>{format(new Date(trade.created_at), "MMM d, HH:mm")}</span>
-                  </div>
+          {/* Counterparty Profile - Static at top */}
+          <div className="glass-card p-3 sm:p-4 mb-4">
+            <TraderProfilePopover userId={isBuyer ? trade.seller_id : trade.buyer_id}>
+              <div className="flex items-center gap-3 cursor-pointer">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0">
+                  {counterparty?.avatar_url ? (
+                    <img src={counterparty.avatar_url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    counterparty?.username?.charAt(0) || "?"
+                  )}
                 </div>
-
-                {/* Escrow Status */}
-                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    {trade.escrow_locked ? (
-                      <>
-                        <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                        <span className="text-primary">Crypto locked in escrow</span>
-                      </>
-                    ) : trade.escrow_released ? (
-                      <>
-                        <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
-                        <span className="text-green-500">Escrow released</span>
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Awaiting escrow</span>
-                      </>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{isBuyer ? "Seller" : "Buyer"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm sm:text-base truncate">
+                      @{counterparty?.username || "Anonymous"}
+                    </span>
+                    {counterparty?.is_verified && (
+                      <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
                     )}
                   </div>
-                </div>
-              </div>
-
-              {/* Counterparty */}
-              <div className="glass-card p-4 sm:p-6">
-                <h3 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">
-                  {isBuyer ? "Seller" : "Buyer"}
-                </h3>
-                <TraderProfilePopover userId={isBuyer ? trade.seller_id : trade.buyer_id}>
-                  <div className="flex items-center gap-3 cursor-pointer hover:bg-secondary/50 rounded-lg p-2 -m-2 transition-colors">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold overflow-hidden shrink-0">
-                      {counterparty?.avatar_url ? (
-                        <img src={counterparty.avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        counterparty?.username?.charAt(0) || "?"
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm sm:text-base truncate">
-                          @{counterparty?.username || "Anonymous"}
-                        </span>
-                        {counterparty?.is_verified && (
-                          <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0" />
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                        <Star className="w-3 h-3 text-accent fill-accent" />
-                        <span>{counterparty?.rating?.toFixed(1) || "0.0"}</span>
-                        <span>•</span>
-                        <span>{counterparty?.total_trades || 0} trades</span>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Star className="w-3 h-3 text-accent fill-accent" />
+                    <span>{counterparty?.rating?.toFixed(1) || "0.0"}</span>
+                    <span>•</span>
+                    <span>{counterparty?.total_trades || 0} trades</span>
                   </div>
-                </TraderProfilePopover>
-              </div>
-
-            </div>
-
-            {/* Chat Section */}
-            <div className="lg:col-span-2">
-              <div className="glass-card h-[400px] sm:h-[500px] lg:h-[600px] flex flex-col p-4 sm:p-6">
-                <div className="flex items-center gap-2 pb-3 sm:pb-4 border-b border-border">
-                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                  <h3 className="font-semibold text-sm sm:text-base">Trade Chat</h3>
                 </div>
+              </div>
+            </TraderProfilePopover>
+          </div>
+
+          {/* Chat Section with embedded trade details */}
+          <div className="glass-card h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] flex flex-col">
+            {/* Trade Details Header inside chat */}
+            <div className="p-3 sm:p-4 border-b border-border bg-secondary/30">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-sm">Trade Chat</span>
+                </div>
+                <Badge variant={isBuyer ? "default" : "secondary"} className="text-xs">
+                  {isBuyer ? "Buying" : "Selling"}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="font-semibold">{trade.crypto_amount} {trade.crypto_type}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Total:</span>
+                  <span className="font-semibold">{trade.fiat_currency} {trade.fiat_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground">Via:</span>
+                  <span>{trade.payment_method}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {trade.escrow_locked ? (
+                    <>
+                      <Lock className="w-3 h-3 text-primary" />
+                      <span className="text-primary">In Escrow</span>
+                    </>
+                  ) : trade.escrow_released ? (
+                    <>
+                      <Unlock className="w-3 h-3 text-green-500" />
+                      <span className="text-green-500">Released</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Awaiting</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto py-3 sm:py-4 space-y-3 sm:space-y-4">
@@ -434,126 +419,178 @@ const TradePage = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input */}
-                {!["completed", "cancelled"].includes(trade.status) && (
-                  <div className="pt-3 sm:pt-4 border-t border-border">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Type a message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendMessage();
-                          }
-                        }}
-                        disabled={sending}
-                        className="text-sm"
-                      />
-                      <Button 
-                        onClick={handleSendMessage} 
-                        disabled={sending || !newMessage.trim()}
-                        size="icon"
-                        className="shrink-0"
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+              {messagesLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 sm:h-16 w-3/4" />
+                ))
+              ) : messages.length > 0 ? (
+                messages.map((message) => {
+                  const isOwn = message.sender_id === user?.id;
+                  
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] sm:max-w-[80%] rounded-xl px-3 sm:px-4 py-2 ${
+                          message.is_system
+                            ? "bg-secondary text-muted-foreground text-center w-full"
+                            : isOwn
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary"
+                        }`}
                       >
-                        <Send className="w-4 h-4" />
-                      </Button>
+                        <p className="text-xs sm:text-sm">{message.message}</p>
+                        <p className={`text-[10px] sm:text-xs mt-1 ${
+                          isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+                        }`}>
+                          {formatDistanceToNow(new Date(message.created_at), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  );
+                })
+              ) : (
+                <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
+                  No messages yet. Start the conversation!
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Action Buttons - Full Width at Bottom, Sticky on mobile */}
-            <div className="lg:col-span-3 sticky bottom-0 bg-background/95 backdrop-blur-sm -mx-3 sm:-mx-4 px-3 sm:px-4 py-3 sm:py-0 lg:static lg:mx-0 lg:px-0 lg:bg-transparent lg:backdrop-blur-none">
-              <div className="glass-card space-y-3 p-4 sm:p-6">
-                <h3 className="font-semibold text-sm sm:text-base">Actions</h3>
+            {/* Message Input with Actions Popover */}
+            {!["completed", "cancelled"].includes(trade.status) ? (
+              <div className="p-3 sm:p-4 border-t border-border">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Type a message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    disabled={sending}
+                    className="text-sm"
+                  />
+                  <Button 
+                    onClick={handleSendMessage} 
+                    disabled={sending || !newMessage.trim()}
+                    size="icon"
+                    className="shrink-0"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                  
+                  {/* Actions Popover */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="icon" className="shrink-0">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-48 p-2">
+                      <div className="flex flex-col gap-1">
+                        {/* Seller actions */}
+                        {isSeller && trade.status === "pending" && (
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm"
+                            onClick={handleConfirmTrade}
+                            disabled={actionLoading}
+                            size="sm"
+                          >
+                            <Lock className="w-4 h-4 mr-2" />
+                            Lock Escrow
+                          </Button>
+                        )}
 
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {/* Seller actions */}
-                  {isSeller && trade.status === "pending" && (
-                    <Button
-                      className="flex-1 min-w-[140px] text-xs sm:text-sm"
-                      onClick={handleConfirmTrade}
-                      disabled={actionLoading}
-                      size="sm"
-                    >
-                      <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-                      Lock Escrow
-                    </Button>
-                  )}
+                        {/* Buyer actions */}
+                        {isBuyer && trade.status === "confirmed" && (
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm"
+                            onClick={handlePaymentSent}
+                            disabled={actionLoading}
+                            size="sm"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Payment Sent
+                          </Button>
+                        )}
 
-                  {/* Buyer actions */}
-                  {isBuyer && trade.status === "confirmed" && (
-                    <Button
-                      className="flex-1 min-w-[140px] text-xs sm:text-sm"
-                      onClick={handlePaymentSent}
-                      disabled={actionLoading}
-                      size="sm"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-                      Payment Sent
-                    </Button>
-                  )}
+                        {/* Release Escrow - Seller only */}
+                        {isSeller && trade.status === "payment_sent" && (
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm"
+                            onClick={handleReleaseEscrow}
+                            disabled={actionLoading}
+                            size="sm"
+                          >
+                            <Unlock className="w-4 h-4 mr-2" />
+                            Release Escrow
+                          </Button>
+                        )}
 
-                  {/* Release Escrow - Seller only */}
-                  {isSeller && trade.status === "payment_sent" && (
-                    <Button
-                      className="flex-1 min-w-[140px] text-xs sm:text-sm"
-                      variant="default"
-                      onClick={handleReleaseEscrow}
-                      disabled={actionLoading}
-                      size="sm"
-                    >
-                      <Unlock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-                      Release Escrow
-                    </Button>
-                  )}
+                        {/* Cancel - Buyer only, before payment */}
+                        {isBuyer && ["pending", "confirmed"].includes(trade.status) && (
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm"
+                            onClick={handleCancelTrade}
+                            disabled={actionLoading}
+                            size="sm"
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Cancel Trade
+                          </Button>
+                        )}
 
-                  {/* Cancel - Buyer only, before payment */}
-                  {isBuyer && ["pending", "confirmed"].includes(trade.status) && (
-                    <Button
-                      variant="outline"
-                      className="flex-1 min-w-[140px] text-xs sm:text-sm"
-                      onClick={handleCancelTrade}
-                      disabled={actionLoading}
-                      size="sm"
-                    >
-                      <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-                      Cancel
-                    </Button>
-                  )}
-
-                  {/* Dispute */}
-                  {!["completed", "cancelled", "disputed"].includes(trade.status) && (
-                    <Button
-                      variant="destructive"
-                      className="flex-1 min-w-[140px] text-xs sm:text-sm"
-                      onClick={() => setDisputeDialogOpen(true)}
-                      disabled={actionLoading}
-                      size="sm"
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-                      Dispute
-                    </Button>
-                  )}
-
-                  {/* Rate Trade */}
+                        {/* Dispute */}
+                        {!["completed", "cancelled", "disputed"].includes(trade.status) && (
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm text-destructive hover:text-destructive"
+                            onClick={() => setDisputeDialogOpen(true)}
+                            disabled={actionLoading}
+                            size="sm"
+                          >
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            Raise Dispute
+                          </Button>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3 sm:p-4 border-t border-border">
+                <div className="flex gap-2 items-center justify-center">
                   {trade.status === "completed" && !hasRated && (
                     <Button
                       variant="outline"
-                      className="flex-1 min-w-[140px] text-xs sm:text-sm"
                       onClick={() => setRatingDialogOpen(true)}
                       size="sm"
                     >
-                      <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
+                      <Star className="w-4 h-4 mr-2" />
                       Rate Trade
                     </Button>
                   )}
+                  <span className="text-sm text-muted-foreground">
+                    Trade {trade.status === "completed" ? "completed" : "cancelled"}
+                  </span>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>
