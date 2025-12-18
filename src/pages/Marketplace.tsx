@@ -23,6 +23,7 @@ const Marketplace = () => {
     onlineOnly: false,
     minPrice: "",
     maxPrice: "",
+    sortBy: "margin_asc",
   });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
@@ -33,9 +34,9 @@ const Marketplace = () => {
     crypto_type: filters.crypto,
   });
 
-  // Filter offers based on all criteria
+  // Filter and sort offers based on all criteria
   const filteredOffers = useMemo(() => {
-    return offers.filter((offer) => {
+    let result = offers.filter((offer) => {
       // Don't show user's own offers
       if (offer.user_id === user?.id) return false;
 
@@ -72,6 +73,24 @@ const Marketplace = () => {
 
       return true;
     });
+
+    // Apply sorting
+    switch (filters.sortBy) {
+      case "margin_asc":
+        result.sort((a, b) => (a.price_margin || 0) - (b.price_margin || 0));
+        break;
+      case "margin_desc":
+        result.sort((a, b) => (b.price_margin || 0) - (a.price_margin || 0));
+        break;
+      case "rating_desc":
+        result.sort((a, b) => (b.trader_rating || 0) - (a.trader_rating || 0));
+        break;
+      case "trades_desc":
+        result.sort((a, b) => (b.trader_trades || 0) - (a.trader_trades || 0));
+        break;
+    }
+
+    return result;
   }, [offers, filters, user?.id]);
 
   const handleOfferAction = (offer: OfferWithProfile) => {
@@ -167,6 +186,7 @@ const Marketplace = () => {
                 onlineOnly: false,
                 minPrice: "",
                 maxPrice: "",
+                sortBy: "margin_asc",
               })}>
                 Clear Filters
               </Button>
