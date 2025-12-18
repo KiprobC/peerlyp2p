@@ -398,10 +398,15 @@ const TradePage = () => {
                           }`}
                         >
                           {message.is_system ? (
-                            <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-secondary/50 border border-border/50">
-                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                              <p className="text-xs text-muted-foreground text-center">{message.message}</p>
-                            </div>
+                            // Only show relevant system message: seller sees "selling", buyer sees "buying"
+                            ((isSeller && message.message.toLowerCase().includes('selling')) ||
+                             (isBuyer && message.message.toLowerCase().includes('buying')) ||
+                             (!message.message.toLowerCase().includes('selling') && !message.message.toLowerCase().includes('buying'))) ? (
+                              <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-secondary/50 border border-border/50">
+                                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                                <p className="text-xs text-muted-foreground text-center">{message.message}</p>
+                              </div>
+                            ) : null
                           ) : (
                             <div
                               className={`rounded-2xl px-4 py-2.5 shadow-sm ${
