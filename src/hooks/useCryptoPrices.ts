@@ -7,6 +7,13 @@ interface CryptoPrices {
   [key: string]: number;
 }
 
+interface PriceChanges {
+  BTC: number;
+  ETH: number;
+  USDT: number;
+  [key: string]: number;
+}
+
 const COINGECKO_IDS: Record<string, string> = {
   BTC: "bitcoin",
   ETH: "ethereum",
@@ -20,8 +27,15 @@ const FALLBACK_PRICES: CryptoPrices = {
   USDT: 1,
 };
 
+const FALLBACK_CHANGES: PriceChanges = {
+  BTC: 0,
+  ETH: 0,
+  USDT: 0,
+};
+
 export const useCryptoPrices = (currency: string = "USD") => {
   const [prices, setPrices] = useState<CryptoPrices>(FALLBACK_PRICES);
+  const [changes, setChanges] = useState<PriceChanges>(FALLBACK_CHANGES);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -29,7 +43,7 @@ export const useCryptoPrices = (currency: string = "USD") => {
     try {
       const ids = Object.values(COINGECKO_IDS).join(",");
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${currency.toLowerCase()}`
+        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${currency.toLowerCase()}&include_24hr_change=true`
       );
       
       if (!response.ok) throw new Error("Failed to fetch prices");
@@ -41,8 +55,15 @@ export const useCryptoPrices = (currency: string = "USD") => {
         ETH: data.ethereum?.[currency.toLowerCase()] || FALLBACK_PRICES.ETH,
         USDT: data.tether?.[currency.toLowerCase()] || FALLBACK_PRICES.USDT,
       };
+
+      const newChanges: PriceChanges = {
+        BTC: data.bitcoin?.[`${currency.toLowerCase()}_24h_change`] || 0,
+        ETH: data.ethereum?.[`${currency.toLowerCase()}_24h_change`] || 0,
+        USDT: data.tether?.[`${currency.toLowerCase()}_24h_change`] || 0,
+      };
       
       setPrices(newPrices);
+      setChanges(newChanges);
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching crypto prices:", error);
@@ -65,6 +86,10 @@ export const useCryptoPrices = (currency: string = "USD") => {
     return prices[crypto.toUpperCase()] || 0;
   }, [prices]);
 
+  const getChange = useCallback((crypto: string): number => {
+    return changes[crypto.toUpperCase()] || 0;
+  }, [changes]);
+
   const calculateOfferPrice = useCallback((
     crypto: string,
     marginPercent: number
@@ -75,9 +100,11 @@ export const useCryptoPrices = (currency: string = "USD") => {
 
   return {
     prices,
+    changes,
     loading,
     lastUpdated,
     getPrice,
+    getChange,
     calculateOfferPrice,
     refetch: fetchPrices,
   };

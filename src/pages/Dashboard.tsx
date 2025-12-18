@@ -36,7 +36,7 @@ const Dashboard = () => {
   const { trades, activeTrades, completedTrades, loading: tradesLoading } = useTrades();
   const { offers: myOffers, loading: offersLoading } = useMyOffers();
   const { unreadCount } = useNotifications();
-  const { prices: cryptoPricesUSD, loading: pricesLoading } = useCryptoPrices();
+  const { prices: cryptoPricesUSD, changes: priceChanges, loading: pricesLoading } = useCryptoPrices();
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -162,11 +162,11 @@ const Dashboard = () => {
           </div>
 
           {/* Portfolio Overview */}
-          <div className="glass-card mb-6 sm:mb-8 p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+          <div className="glass-card mb-6 sm:mb-8 p-3 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4">
               <div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Portfolio Value</p>
-                <p className="text-2xl sm:text-3xl md:text-4xl font-bold">
+                <p className="text-xs text-muted-foreground mb-0.5">Total Portfolio Value</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold">
                   KES {totalValueKES.toLocaleString()}
                 </p>
               </div>
@@ -190,8 +190,34 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Live Market Prices */}
+            <div className="flex flex-wrap gap-3 sm:gap-4 mb-3 sm:mb-4 p-2 sm:p-3 bg-secondary/30 rounded-lg">
+              {Object.entries(cryptoInfo).map(([crypto, info]) => {
+                const priceUSD = cryptoPricesUSD[crypto] || 0;
+                const change = priceChanges[crypto] || 0;
+                const isPositive = change >= 0;
+                
+                return (
+                  <div key={crypto} className="flex items-center gap-2">
+                    <div 
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ backgroundColor: `${info.color}20`, color: info.color }}
+                    >
+                      {info.icon}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs sm:text-sm font-medium">${priceUSD.toLocaleString()}</span>
+                      <span className={`text-xs font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                        {isPositive ? '+' : ''}{change.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Crypto Balances */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {wallets.length > 0 ? (
                 wallets.map((wallet) => {
                   const info = cryptoInfo[wallet.crypto_type] || { name: wallet.crypto_type, icon: "?", color: "#888" };
@@ -201,23 +227,23 @@ const Dashboard = () => {
                   return (
                     <div
                       key={wallet.id}
-                      className="bg-secondary/50 rounded-xl p-3 sm:p-4 flex items-center justify-between hover:bg-secondary/70 transition-colors cursor-pointer"
+                      className="bg-secondary/50 rounded-lg p-2.5 sm:p-3 flex items-center justify-between hover:bg-secondary/70 transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="flex items-center gap-2">
                         <div 
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-base sm:text-lg font-bold"
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-sm sm:text-base font-bold"
                           style={{ backgroundColor: `${info.color}20`, color: info.color }}
                         >
                           {info.icon}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm sm:text-base">{wallet.crypto_type}</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">{info.name}</p>
+                          <p className="font-semibold text-xs sm:text-sm">{wallet.crypto_type}</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">{info.name}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-sm sm:text-base">{wallet.balance.toFixed(wallet.crypto_type === "USDT" ? 2 : 6)}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
+                        <p className="font-semibold text-xs sm:text-sm">{wallet.balance.toFixed(wallet.crypto_type === "USDT" ? 2 : 6)}</p>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">
                           KES {valueKES.toLocaleString()}
                         </p>
                       </div>
@@ -225,7 +251,7 @@ const Dashboard = () => {
                   );
                 })
               ) : (
-                <div className="col-span-full text-center py-6 sm:py-8 text-muted-foreground text-sm">
+                <div className="col-span-full text-center py-4 sm:py-6 text-muted-foreground text-sm">
                   No wallets found. Complete your profile setup to get started.
                 </div>
               )}
