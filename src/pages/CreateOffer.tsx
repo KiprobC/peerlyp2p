@@ -209,34 +209,39 @@ const CreateOffer = () => {
                 Set your price as a percentage above or below market price
               </p>
               
-              <div className="flex items-center justify-center gap-4 py-4">
+              <div className="flex items-center justify-center gap-3 py-4">
+                <div className="relative flex items-center">
+                  <Input
+                    type="number"
+                    value={formData.price_margin}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || 0;
+                      const clampedValue = Math.max(-50, Math.min(50, value));
+                      setFormData((prev) => ({ ...prev, price_margin: clampedValue }));
+                    }}
+                    className="w-24 text-center pr-8 text-lg font-semibold"
+                    step={0.1}
+                    min={-50}
+                    max={50}
+                  />
+                  <span className="absolute right-3 text-muted-foreground font-medium">%</span>
+                </div>
                 <Badge 
-                  variant={formData.price_margin < 0 ? "destructive" : "secondary"}
+                  variant={formData.price_margin < 0 ? "destructive" : formData.price_margin > 0 ? "default" : "secondary"}
                   className="flex items-center gap-1"
                 >
                   {formData.price_margin < 0 ? (
                     <TrendingDown className="w-3 h-3" />
-                  ) : (
+                  ) : formData.price_margin > 0 ? (
                     <TrendingUp className="w-3 h-3" />
-                  )}
-                  {formData.price_margin >= 0 ? "+" : ""}{formData.price_margin}%
+                  ) : null}
+                  {formData.price_margin > 0 ? "Above" : formData.price_margin < 0 ? "Below" : "At"} market
                 </Badge>
               </div>
 
-              <Slider
-                value={[formData.price_margin]}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, price_margin: value[0] }))}
-                min={-10}
-                max={10}
-                step={0.5}
-                className="py-4"
-              />
-
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>-10% below market</span>
-                <span>Market price</span>
-                <span>+10% above market</span>
-              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Enter a value between -50% and +50% (negative = below market, positive = above market)
+              </p>
 
               {/* Final Price */}
               <div className="p-4 bg-primary/10 rounded-lg text-center">
