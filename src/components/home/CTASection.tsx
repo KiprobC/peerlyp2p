@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CTASection = () => {
+  const { user } = useAuth();
   return (
     <section className="py-24 bg-card relative overflow-hidden">
       {/* Background Effects */}
@@ -12,23 +14,48 @@ const CTASection = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            Ready to Start <span className="gradient-text">Trading</span>?
+            {user ? (
+              <>Explore the <span className="gradient-text">Marketplace</span></>
+            ) : (
+              <>Ready to Start <span className="gradient-text">Trading</span>?</>
+            )}
           </h2>
           <p className="text-lg text-muted-foreground mb-10">
-            Join thousands of Kenyans already trading crypto safely and securely on our platform.
+            {user 
+              ? "Browse active offers or create your own to start trading with verified users."
+              : "Join thousands of Kenyans already trading crypto safely and securely on our platform."
+            }
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/signup">
-              <Button variant="hero" size="xl">
-                Create Free Account
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link to="/marketplace">
-              <Button variant="glass" size="xl">
-                View Marketplace
-              </Button>
-            </Link>
+            {user ? (
+              <>
+                <Link to="/marketplace">
+                  <Button variant="hero" size="xl">
+                    Browse Offers
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link to="/create-offer">
+                  <Button variant="glass" size="xl">
+                    Create Offer
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/signup">
+                  <Button variant="hero" size="xl">
+                    Create Free Account
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <Link to="/marketplace">
+                  <Button variant="glass" size="xl">
+                    View Marketplace
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Trust Indicators */}
