@@ -328,163 +328,155 @@ const TradePage = () => {
             </TraderProfilePopover>
           </div>
 
-          {/* Chat Section with embedded trade details */}
-          <div className="glass-card h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] flex flex-col">
-            {/* Trade Details Header inside chat */}
-            <div className="p-3 sm:p-4 border-b border-border bg-secondary/30">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-primary" />
-                  <span className="font-semibold text-sm">Trade Chat</span>
+          {/* Chat Section - Premium Paxful-style */}
+          <div className="bg-card border border-border rounded-xl shadow-lg h-[calc(100vh-220px)] sm:h-[calc(100vh-240px)] flex flex-col overflow-hidden">
+            {/* Trade Info Header */}
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-b border-border">
+              <div className="p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      trade.status === 'completed' ? 'bg-green-500' : 
+                      trade.status === 'cancelled' ? 'bg-gray-500' :
+                      trade.status === 'disputed' ? 'bg-red-500' : 'bg-primary animate-pulse'
+                    }`} />
+                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      {isBuyer ? 'You are buying' : 'You are selling'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {trade.escrow_locked && !trade.escrow_released && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary text-xs font-medium">
+                        <Lock className="w-3 h-3" />
+                        Escrow Secured
+                      </div>
+                    )}
+                    {trade.escrow_released && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/15 text-green-500 text-xs font-medium">
+                        <CheckCircle className="w-3 h-3" />
+                        Released
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <Badge variant={isBuyer ? "default" : "secondary"} className="text-xs">
-                  {isBuyer ? "Buying" : "Selling"}
-                </Badge>
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs sm:text-sm">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground">Amount:</span>
-                  <span className="font-semibold">{trade.crypto_amount} {trade.crypto_type}</span>
+                
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-2xl sm:text-3xl font-bold">{trade.crypto_amount}</span>
+                  <span className="text-lg sm:text-xl font-semibold text-primary">{trade.crypto_type}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-semibold">{trade.fiat_currency} {trade.fiat_amount.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground">Via:</span>
+                
+                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-medium">{trade.fiat_currency} {trade.fiat_amount.toLocaleString()}</span>
+                  </div>
+                  <span className="text-border">•</span>
                   <span>{trade.payment_method}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {trade.escrow_locked ? (
-                    <>
-                      <Lock className="w-3 h-3 text-primary" />
-                      <span className="text-primary">In Escrow</span>
-                    </>
-                  ) : trade.escrow_released ? (
-                    <>
-                      <Unlock className="w-3 h-3 text-green-500" />
-                      <span className="text-green-500">Released</span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">Awaiting</span>
-                    </>
-                  )}
+                  <span className="text-border">•</span>
+                  <span className="text-xs">{format(new Date(trade.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
                 </div>
               </div>
             </div>
 
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto py-3 sm:py-4 space-y-3 sm:space-y-4">
-                  {messagesLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-14 sm:h-16 w-3/4" />
-                    ))
-                  ) : messages.length > 0 ? (
-                    messages.map((message) => {
-                      const isOwn = message.sender_id === user?.id;
-                      
-                      return (
-                        <div
-                          key={message.id}
-                          className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
-                        >
-                          <div
-                            className={`max-w-[85%] sm:max-w-[80%] rounded-xl px-3 sm:px-4 py-2 ${
-                              message.is_system
-                                ? "bg-secondary text-muted-foreground text-center w-full"
-                                : isOwn
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary"
-                            }`}
-                          >
-                            <p className="text-xs sm:text-sm">{message.message}</p>
-                            <p className={`text-[10px] sm:text-xs mt-1 ${
-                              isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-                            }`}>
-                              {formatDistanceToNow(new Date(message.created_at), {
-                                addSuffix: true,
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
-                      No messages yet. Start the conversation!
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-4 bg-gradient-to-b from-secondary/20 to-transparent">
               {messagesLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-14 sm:h-16 w-3/4" />
-                ))
+                <div className="flex flex-col gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className={`h-16 ${i % 2 === 0 ? 'w-3/4' : 'w-2/3 ml-auto'}`} />
+                  ))}
+                </div>
               ) : messages.length > 0 ? (
-                messages.map((message) => {
-                  const isOwn = message.sender_id === user?.id;
-                  
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
-                    >
+                <>
+                  {messages.map((message, index) => {
+                    const isOwn = message.sender_id === user?.id;
+                    const showAvatar = index === 0 || messages[index - 1].sender_id !== message.sender_id;
+                    
+                    return (
                       <div
-                        className={`max-w-[85%] sm:max-w-[80%] rounded-xl px-3 sm:px-4 py-2 ${
-                          message.is_system
-                            ? "bg-secondary text-muted-foreground text-center w-full"
-                            : isOwn
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary"
-                        }`}
+                        key={message.id}
+                        className={`flex gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"}`}
                       >
-                        <p className="text-xs sm:text-sm">{message.message}</p>
-                        <p className={`text-[10px] sm:text-xs mt-1 ${
-                          isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-                        }`}>
-                          {formatDistanceToNow(new Date(message.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
+                        {/* Avatar placeholder for alignment */}
+                        <div className={`w-8 shrink-0 ${!showAvatar && !message.is_system ? 'invisible' : ''}`}>
+                          {!message.is_system && showAvatar && (
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
+                              isOwn ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'
+                            }`}>
+                              {isOwn ? 'You' : counterparty?.username?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Message bubble */}
+                        <div
+                          className={`max-w-[75%] ${
+                            message.is_system
+                              ? "w-full max-w-none mx-8"
+                              : ""
+                          }`}
+                        >
+                          {message.is_system ? (
+                            <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-secondary/50 border border-border/50">
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                              <p className="text-xs text-muted-foreground text-center">{message.message}</p>
+                            </div>
+                          ) : (
+                            <div
+                              className={`rounded-2xl px-4 py-2.5 shadow-sm ${
+                                isOwn
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-card border border-border rounded-bl-md"
+                              }`}
+                            >
+                              <p className="text-sm leading-relaxed">{message.message}</p>
+                              <p className={`text-[10px] mt-1.5 ${
+                                isOwn ? "text-primary-foreground/60" : "text-muted-foreground"
+                              }`}>
+                                {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </>
               ) : (
-                <div className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
-                  No messages yet. Start the conversation!
+                <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+                    <MessageSquare className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-1">No messages yet</p>
+                  <p className="text-xs text-muted-foreground/70">Send a message to start the conversation</p>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input with Actions Popover */}
+            {/* Input Area */}
             {!["completed", "cancelled"].includes(trade.status) ? (
-              <div className="p-3 sm:p-4 border-t border-border">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    disabled={sending}
-                    className="text-sm"
-                  />
+              <div className="p-4 sm:p-5 border-t border-border bg-card">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Type your message..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      disabled={sending}
+                      className="pr-4 py-5 text-sm bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-xl"
+                    />
+                  </div>
                   <Button 
                     onClick={handleSendMessage} 
                     disabled={sending || !newMessage.trim()}
                     size="icon"
-                    className="shrink-0"
+                    className="h-10 w-10 rounded-xl shrink-0"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
@@ -492,22 +484,21 @@ const TradePage = () => {
                   {/* Actions Popover */}
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon" className="shrink-0">
+                      <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl shrink-0">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="w-48 p-2">
+                    <PopoverContent align="end" className="w-52 p-2" sideOffset={8}>
                       <div className="flex flex-col gap-1">
                         {/* Seller actions */}
                         {isSeller && trade.status === "pending" && (
                           <Button
                             variant="ghost"
-                            className="w-full justify-start text-sm"
+                            className="w-full justify-start text-sm h-10"
                             onClick={handleConfirmTrade}
                             disabled={actionLoading}
-                            size="sm"
                           >
-                            <Lock className="w-4 h-4 mr-2" />
+                            <Lock className="w-4 h-4 mr-3" />
                             Lock Escrow
                           </Button>
                         )}
@@ -516,13 +507,12 @@ const TradePage = () => {
                         {isBuyer && trade.status === "confirmed" && (
                           <Button
                             variant="ghost"
-                            className="w-full justify-start text-sm"
+                            className="w-full justify-start text-sm h-10"
                             onClick={handlePaymentSent}
                             disabled={actionLoading}
-                            size="sm"
                           >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Payment Sent
+                            <CheckCircle className="w-4 h-4 mr-3" />
+                            I've Paid
                           </Button>
                         )}
 
@@ -530,13 +520,12 @@ const TradePage = () => {
                         {isSeller && trade.status === "payment_sent" && (
                           <Button
                             variant="ghost"
-                            className="w-full justify-start text-sm"
+                            className="w-full justify-start text-sm h-10 text-green-600 hover:text-green-600 hover:bg-green-500/10"
                             onClick={handleReleaseEscrow}
                             disabled={actionLoading}
-                            size="sm"
                           >
-                            <Unlock className="w-4 h-4 mr-2" />
-                            Release Escrow
+                            <Unlock className="w-4 h-4 mr-3" />
+                            Release Crypto
                           </Button>
                         )}
 
@@ -544,28 +533,29 @@ const TradePage = () => {
                         {isBuyer && ["pending", "confirmed"].includes(trade.status) && (
                           <Button
                             variant="ghost"
-                            className="w-full justify-start text-sm"
+                            className="w-full justify-start text-sm h-10"
                             onClick={handleCancelTrade}
                             disabled={actionLoading}
-                            size="sm"
                           >
-                            <XCircle className="w-4 h-4 mr-2" />
+                            <XCircle className="w-4 h-4 mr-3" />
                             Cancel Trade
                           </Button>
                         )}
 
                         {/* Dispute */}
                         {!["completed", "cancelled", "disputed"].includes(trade.status) && (
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start text-sm text-destructive hover:text-destructive"
-                            onClick={() => setDisputeDialogOpen(true)}
-                            disabled={actionLoading}
-                            size="sm"
-                          >
-                            <AlertTriangle className="w-4 h-4 mr-2" />
-                            Raise Dispute
-                          </Button>
+                          <>
+                            <div className="h-px bg-border my-1" />
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-start text-sm h-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDisputeDialogOpen(true)}
+                              disabled={actionLoading}
+                            >
+                              <AlertTriangle className="w-4 h-4 mr-3" />
+                              Report Issue
+                            </Button>
+                          </>
                         )}
                       </div>
                     </PopoverContent>
@@ -573,21 +563,30 @@ const TradePage = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-3 sm:p-4 border-t border-border">
-                <div className="flex gap-2 items-center justify-center">
+              <div className="p-4 sm:p-5 border-t border-border bg-card">
+                <div className="flex items-center justify-center gap-4">
                   {trade.status === "completed" && !hasRated && (
                     <Button
                       variant="outline"
                       onClick={() => setRatingDialogOpen(true)}
-                      size="sm"
+                      className="gap-2"
                     >
-                      <Star className="w-4 h-4 mr-2" />
-                      Rate Trade
+                      <Star className="w-4 h-4" />
+                      Rate This Trade
                     </Button>
                   )}
-                  <span className="text-sm text-muted-foreground">
-                    Trade {trade.status === "completed" ? "completed" : "cancelled"}
-                  </span>
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+                    trade.status === "completed" 
+                      ? "bg-green-500/15 text-green-500" 
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {trade.status === "completed" ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : (
+                      <XCircle className="w-4 h-4" />
+                    )}
+                    Trade {trade.status === "completed" ? "Completed" : "Cancelled"}
+                  </div>
                 </div>
               </div>
             )}
