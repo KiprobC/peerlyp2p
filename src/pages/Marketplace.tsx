@@ -149,6 +149,7 @@ const Marketplace = () => {
                       lastSeen: offer.trader_last_seen,
                     },
                     timeLimit: offer.time_limit,
+                    priceMargin: offer.price_margin,
                   }}
                   onAction={() => handleOfferAction(offer)}
                 />
