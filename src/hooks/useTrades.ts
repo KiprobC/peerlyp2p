@@ -30,6 +30,7 @@ export interface Trade {
   seller_rating: number | null;
   created_at: string;
   updated_at: string;
+  expires_at: string | null;
   buyer_profile?: TradeProfile;
   seller_profile?: TradeProfile;
 }

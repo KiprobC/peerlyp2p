@@ -38,6 +38,8 @@ import { useEscrow } from "@/hooks/useEscrow";
 import { useTradeRatings } from "@/hooks/useTradeRatings";
 import { RatingDialog } from "@/components/trade/RatingDialog";
 import { TraderProfilePopover } from "@/components/trade/TraderProfilePopover";
+import { SystemMessage } from "@/components/trade/SystemMessage";
+import { TradeTimer } from "@/components/trade/TradeTimer";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
@@ -332,34 +334,43 @@ const TradePage = () => {
                 </TraderProfilePopover>
               </div>
               {/* Compact Trade Info Banner */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${
-                    trade.status === 'completed' ? 'bg-green-500' : 
-                    trade.status === 'cancelled' ? 'bg-gray-500' :
-                    trade.status === 'disputed' ? 'bg-red-500' : 'bg-primary animate-pulse'
-                  }`} />
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">{isBuyer ? 'Buying' : 'Selling'}</span>
-                    <span className="font-bold text-sm">{trade.crypto_amount} {trade.crypto_type}</span>
-                    <span className="text-xs text-muted-foreground">for</span>
-                    <span className="font-medium text-sm">{trade.fiat_currency} {trade.fiat_amount.toLocaleString()}</span>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${
+                      trade.status === 'completed' ? 'bg-green-500' : 
+                      trade.status === 'cancelled' ? 'bg-gray-500' :
+                      trade.status === 'disputed' ? 'bg-red-500' : 'bg-primary animate-pulse'
+                    }`} />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-muted-foreground">{isBuyer ? 'Buying' : 'Selling'}</span>
+                      <span className="font-bold text-sm">{trade.crypto_amount} {trade.crypto_type}</span>
+                      <span className="text-xs text-muted-foreground">for</span>
+                      <span className="font-medium text-sm">{trade.fiat_currency} {trade.fiat_amount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {trade.escrow_locked && !trade.escrow_released && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-medium">
+                        <Lock className="w-2.5 h-2.5" />
+                        <span className="hidden sm:inline">Secured</span>
+                      </div>
+                    )}
+                    {trade.escrow_released && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/15 text-green-500 text-[10px] font-medium">
+                        <CheckCircle className="w-2.5 h-2.5" />
+                        <span className="hidden sm:inline">Released</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {trade.escrow_locked && !trade.escrow_released && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-medium">
-                      <Lock className="w-2.5 h-2.5" />
-                      <span className="hidden sm:inline">Secured</span>
-                    </div>
-                  )}
-                  {trade.escrow_released && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/15 text-green-500 text-[10px] font-medium">
-                      <CheckCircle className="w-2.5 h-2.5" />
-                      <span className="hidden sm:inline">Released</span>
-                    </div>
-                  )}
-                </div>
+                
+                {/* Trade Timer */}
+                <TradeTimer 
+                  expiresAt={trade.expires_at} 
+                  tradeStatus={trade.status}
+                  onExpired={refetchTrades}
+                />
               </div>
               {messagesLoading ? (
                 <div className="flex flex-col gap-4">
@@ -402,10 +413,7 @@ const TradePage = () => {
                             ((isSeller && message.message.toLowerCase().includes('selling')) ||
                              (isBuyer && message.message.toLowerCase().includes('buying')) ||
                              (!message.message.toLowerCase().includes('selling') && !message.message.toLowerCase().includes('buying'))) ? (
-                              <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-secondary/50 border border-border/50">
-                                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                                <p className="text-xs text-muted-foreground text-center">{message.message}</p>
-                              </div>
+                              <SystemMessage message={message.message} />
                             ) : null
                           ) : (
                             <div
