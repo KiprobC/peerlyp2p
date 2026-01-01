@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 
-export type NotificationSoundType = "trade" | "payment" | "message" | "system" | "kyc";
+export type NotificationSoundType = "trade" | "payment" | "message" | "system" | "kyc" | "timer";
 
 // Create different notification sounds based on type
 const createNotificationSound = (audioContext: AudioContext, type: NotificationSoundType) => {
@@ -22,6 +22,10 @@ const createNotificationSound = (audioContext: AudioContext, type: NotificationS
     case "kyc":
       // Success chime (ascending)
       playChime(audioContext, currentTime, [523, 659, 784], 0.12);
+      break;
+    case "timer":
+      // Urgent warning beeps for timer expiring
+      playTimerWarning(audioContext, currentTime);
       break;
     default:
       // Default notification
@@ -106,6 +110,26 @@ const playChime = (ctx: AudioContext, time: number, frequencies: number[], noteD
     osc.start(noteTime);
     osc.stop(noteTime + noteDuration * 1.5);
   });
+};
+
+// Urgent warning beeps for timer expiring
+const playTimerWarning = (ctx: AudioContext, time: number) => {
+  // Three rapid high-pitched beeps
+  for (let i = 0; i < 3; i++) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "square";
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    const beepTime = time + i * 0.15;
+    osc.frequency.setValueAtTime(1000, beepTime);
+    gain.gain.setValueAtTime(0.15, beepTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, beepTime + 0.08);
+    
+    osc.start(beepTime);
+    osc.stop(beepTime + 0.1);
+  }
 };
 
 export const useNotificationSound = () => {
