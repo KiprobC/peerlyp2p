@@ -574,6 +574,7 @@ export type Database = {
           disputed_by: string | null
           escrow_locked: boolean | null
           escrow_released: boolean | null
+          expires_at: string | null
           fiat_amount: number
           fiat_currency: string | null
           id: string
@@ -599,6 +600,7 @@ export type Database = {
           disputed_by?: string | null
           escrow_locked?: boolean | null
           escrow_released?: boolean | null
+          expires_at?: string | null
           fiat_amount: number
           fiat_currency?: string | null
           id?: string
@@ -624,6 +626,7 @@ export type Database = {
           disputed_by?: string | null
           escrow_locked?: boolean | null
           escrow_released?: boolean | null
+          expires_at?: string | null
           fiat_amount?: number
           fiat_currency?: string | null
           id?: string
@@ -895,6 +898,7 @@ export type Database = {
         }
         Returns: string
       }
+      cancel_expired_trades: { Args: never; Returns: Json }
       create_notification: {
         Args: {
           p_data?: Json
