@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Timer, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 
 interface TradeTimerProps {
   expiresAt: string | null;
@@ -12,6 +13,8 @@ interface TradeTimerProps {
 export const TradeTimer = ({ expiresAt, tradeStatus, onExpired }: TradeTimerProps) => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isExpired, setIsExpired] = useState(false);
+  const warningSoundPlayedRef = useRef(false);
+  const { playNotificationSound } = useNotificationSound();
 
   useEffect(() => {
     if (!expiresAt) return;
@@ -21,6 +24,9 @@ export const TradeTimer = ({ expiresAt, tradeStatus, onExpired }: TradeTimerProp
       setTimeLeft(null);
       return;
     }
+
+    // Reset warning flag when trade status changes
+    warningSoundPlayedRef.current = false;
 
     const calculateTimeLeft = () => {
       const now = new Date().getTime();
@@ -39,14 +45,21 @@ export const TradeTimer = ({ expiresAt, tradeStatus, onExpired }: TradeTimerProp
         return;
       }
       
-      setTimeLeft(Math.floor(diff / 1000));
+      const secondsLeft = Math.floor(diff / 1000);
+      setTimeLeft(secondsLeft);
+      
+      // Play warning sound when crossing under 60 seconds (only once)
+      if (secondsLeft <= 60 && secondsLeft > 0 && !warningSoundPlayedRef.current) {
+        warningSoundPlayedRef.current = true;
+        playNotificationSound("timer");
+      }
     };
 
     calculateTimeLeft();
     const interval = setInterval(calculateTimeLeft, 1000);
     
     return () => clearInterval(interval);
-  }, [expiresAt, tradeStatus, onExpired]);
+  }, [expiresAt, tradeStatus, onExpired, playNotificationSound]);
 
   // Don't show timer if trade is completed, cancelled, or no expiry
   if (!expiresAt || !["pending", "confirmed"].includes(tradeStatus)) {
