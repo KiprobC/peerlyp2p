@@ -27,6 +27,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
 import { useSettings } from "@/hooks/useSettings";
 import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
+import { ProfilePopover } from "@/components/layout/ProfilePopover";
 import { formatDistanceToNow } from "date-fns";
 
 const Dashboard = () => {
@@ -117,14 +118,9 @@ const Dashboard = () => {
               <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
-              <Link to="/profile" className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-border hover:opacity-80 transition-opacity">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">
-                  {profile?.username?.charAt(0) || user?.email?.charAt(0) || "U"}
-                </div>
-                <span className="hidden sm:block text-sm font-medium">
-                  @{profile?.username || "User"}
-                </span>
-              </Link>
+              <div className="pl-2 sm:pl-3 border-l border-border">
+                <ProfilePopover />
+              </div>
             </div>
           </div>
         </div>
