@@ -115,6 +115,11 @@ const Dashboard = () => {
                   )}
                 </Button>
               </Link>
+              <Link to="/settings">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+              </Link>
               <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={handleSignOut}>
                 <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
