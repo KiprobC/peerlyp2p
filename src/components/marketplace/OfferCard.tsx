@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Shield, Clock, ArrowUpRight, ArrowDownLeft, ThumbsUp, TrendingUp, TrendingDown } from "lucide-react";
+import { Star, Shield, Clock, ArrowUpRight, ArrowDownLeft, ThumbsUp } from "lucide-react";
 import { isUserOnline } from "@/hooks/useOnlineStatus";
 
 interface OfferCardProps {
@@ -101,10 +101,9 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           </span>
           <Badge 
             variant={margin > 0 ? "default" : margin < 0 ? "destructive" : "secondary"} 
-            className="flex items-center gap-0.5 text-[9px] px-1 py-0 h-4"
+            className="text-[9px] px-1 py-0 h-4"
           >
-            {margin > 0 ? <TrendingUp className="w-2 h-2" /> : margin < 0 ? <TrendingDown className="w-2 h-2" /> : null}
-            {margin > 0 ? "+" : ""}{margin}% {margin === 0 ? "market" : margin > 0 ? "above" : "below"}
+            {margin > 0 ? "+" : ""}{margin}%
           </Badge>
         </div>
       </div>
