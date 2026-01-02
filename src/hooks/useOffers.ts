@@ -72,7 +72,7 @@ export const useOffers = (filters?: OfferFilters) => {
         const userIds = [...new Set(data.map(o => o.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, username, avatar_url, rating, total_trades, is_verified, last_seen")
+          .select("user_id, full_name, username, avatar_url, rating, is_verified, last_seen")
           .in("user_id", userIds);
         
         // Fetch positive feedback counts for all users
@@ -81,6 +81,23 @@ export const useOffers = (filters?: OfferFilters) => {
           .select("rated_id, rating")
           .in("rated_id", userIds)
           .gte("rating", 4);
+
+        // Fetch actual completed trade counts for all users
+        const { data: trades } = await supabase
+          .from("trades")
+          .select("buyer_id, seller_id")
+          .eq("status", "completed")
+          .or(userIds.map(id => `buyer_id.eq.${id},seller_id.eq.${id}`).join(","));
+
+        const tradeCounts: Record<string, number> = {};
+        trades?.forEach(t => {
+          if (userIds.includes(t.buyer_id)) {
+            tradeCounts[t.buyer_id] = (tradeCounts[t.buyer_id] || 0) + 1;
+          }
+          if (userIds.includes(t.seller_id)) {
+            tradeCounts[t.seller_id] = (tradeCounts[t.seller_id] || 0) + 1;
+          }
+        });
 
         const positiveCounts: Record<string, number> = {};
         ratings?.forEach(r => {
@@ -97,7 +114,7 @@ export const useOffers = (filters?: OfferFilters) => {
             trader_name: profile?.username || profile?.full_name || "Anonymous",
             trader_avatar: profile?.avatar_url || undefined,
             trader_rating: profile?.rating || 0,
-            trader_trades: profile?.total_trades || 0,
+            trader_trades: tradeCounts[offer.user_id] || 0,
             trader_verified: profile?.is_verified || false,
             trader_positive_count: positiveCounts[offer.user_id] || 0,
             trader_last_seen: profile?.last_seen || null,
