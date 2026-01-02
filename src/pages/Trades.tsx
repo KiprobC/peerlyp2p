@@ -35,6 +35,7 @@ const Trades = () => {
   const TradeCard = ({ trade }: { trade: typeof trades[0] }) => {
     const isBuyer = trade.buyer_id === user?.id;
     const status = statusConfig[trade.status] || statusConfig.pending;
+    const counterparty = isBuyer ? trade.seller_profile : trade.buyer_profile;
 
     return (
       <Link
@@ -59,7 +60,7 @@ const Trades = () => {
                 {isBuyer ? "Buying" : "Selling"} {trade.crypto_amount} {trade.crypto_type}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {trade.fiat_currency} {trade.fiat_amount.toLocaleString()} • {trade.payment_method}
+                {isBuyer ? "from" : "to"} @{counterparty?.username || "Unknown"} • {trade.payment_method}
               </p>
             </div>
           </div>
