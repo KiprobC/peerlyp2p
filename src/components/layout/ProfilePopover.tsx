@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { User, Settings, LogOut, Wallet, FileText, Shield } from "lucide-react";
+import { User, Settings, LogOut, Wallet, FileText, Shield, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -85,6 +85,12 @@ export const ProfilePopover = () => {
             <Button variant="ghost" className="w-full justify-start h-9" size="sm">
               <FileText className="h-4 w-4 mr-2" />
               My Trades
+            </Button>
+          </Link>
+          <Link to="/my-offers">
+            <Button variant="ghost" className="w-full justify-start h-9" size="sm">
+              <Tag className="h-4 w-4 mr-2" />
+              My Offers
             </Button>
           </Link>
           <Link to="/settings">
