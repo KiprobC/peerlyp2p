@@ -119,9 +119,8 @@ const Marketplace = () => {
               </p>
             </div>
             {user && (
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Offer
+              <Button size="icon" onClick={() => setCreateDialogOpen(true)} title="Create Offer">
+                <Plus className="w-5 h-5" />
               </Button>
             )}
           </div>
