@@ -8,9 +8,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, Save, Loader2, Lock, AtSign, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Camera, Save, Loader2, Lock, AtSign, AlertTriangle, Shield } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMFA } from "@/hooks/useMFA";
+import { MFAVerifyDialog } from "@/components/mfa/MFAVerifyDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,6 +20,7 @@ const EditProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, updateProfile, loading } = useProfile();
+  const { isEnabled: mfaEnabled } = useMFA();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -32,6 +35,7 @@ const EditProfile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [usernameChanged, setUsernameChanged] = useState(false);
+  const [showMFAVerify, setShowMFAVerify] = useState(false);
 
   // Password change state
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -164,6 +168,16 @@ const EditProfile = () => {
       return;
     }
 
+    // Require MFA verification if enabled
+    if (mfaEnabled) {
+      setShowMFAVerify(true);
+      return;
+    }
+
+    await executePasswordChange();
+  };
+
+  const executePasswordChange = async () => {
     setIsSubmitting(true);
     try {
       const { error } = await supabase.auth.updateUser({
@@ -181,6 +195,11 @@ const EditProfile = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleMFAVerified = () => {
+    setShowMFAVerify(false);
+    executePasswordChange();
   };
 
   if (loading) {
@@ -418,7 +437,16 @@ const EditProfile = () => {
                   Security
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {mfaEnabled && (
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <p className="text-sm text-primary">
+                      Password changes require MFA verification
+                    </p>
+                  </div>
+                )}
+                
                 {!showPasswordSection ? (
                   <Button
                     type="button"
@@ -507,6 +535,16 @@ const EditProfile = () => {
           </form>
         </div>
       </main>
+
+      {/* MFA Verification Dialog for Password Change */}
+      <MFAVerifyDialog
+        open={showMFAVerify}
+        onOpenChange={setShowMFAVerify}
+        onVerified={handleMFAVerified}
+        title="Verify to Change Password"
+        description="Enter the 6-digit code from your authenticator app to confirm password change"
+        actionLabel="Change Password"
+      />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, 
   Bell, 
@@ -18,19 +19,32 @@ import {
   Mail,
   MessageSquare,
   Smartphone,
-  AlertTriangle
+  AlertTriangle,
+  ShieldCheck,
+  ShieldX,
+  Key,
+  RefreshCw
 } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMFA } from "@/hooks/useMFA";
+import { MFAEnrollDialog } from "@/components/mfa/MFAEnrollDialog";
+import { MFAStatusBadge } from "@/components/mfa/MFAStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { settings, loading, updateSettings } = useSettings();
+  const { settings, loading, updateSettings, refetch } = useSettings();
+  const { factors, isEnabled, loading: mfaLoading, disableMFA, fetchFactors } = useMFA();
+  
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDisableMFADialog, setShowDisableMFADialog] = useState(false);
+  const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDisablingMFA, setIsDisablingMFA] = useState(false);
 
   const handleToggle = async (key: string, value: boolean) => {
     await updateSettings({ [key]: value });
@@ -64,8 +78,6 @@ const Settings = () => {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      // Soft delete - we'll just sign the user out
-      // In production, you'd mark the account as deleted in the database
       await signOut();
       toast.success("Account deletion requested. Your data will be removed within 30 days.");
       navigate("/");
@@ -78,7 +90,28 @@ const Settings = () => {
     }
   };
 
-  if (loading) {
+  const handleDisableMFA = async () => {
+    const verifiedFactor = factors.find(f => f.status === "verified");
+    if (!verifiedFactor) return;
+
+    setIsDisablingMFA(true);
+    const result = await disableMFA(verifiedFactor.id);
+    setIsDisablingMFA(false);
+    
+    if (result.success) {
+      setShowDisableMFADialog(false);
+      refetch();
+    }
+  };
+
+  const handleMFAEnrollSuccess = () => {
+    fetchFactors();
+    refetch();
+  };
+
+  const verifiedFactors = factors.filter(f => f.status === "verified");
+
+  if (loading || mfaLoading) {
     return (
       <div className="min-h-screen bg-background">
         <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
@@ -208,30 +241,116 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-          {/* Security */}
+          {/* Security - Two-Factor Authentication */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Security
-              </CardTitle>
-              <CardDescription>
-                Manage your account security
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="two_factor">Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security to your account
-                  </p>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Security
+                  </CardTitle>
+                  <CardDescription>
+                    Manage your account security settings
+                  </CardDescription>
                 </div>
-                <Switch
-                  id="two_factor"
-                  checked={settings?.two_factor_enabled ?? false}
-                  onCheckedChange={(checked) => handleToggle("two_factor_enabled", checked)}
-                />
+                <MFAStatusBadge enabled={isEnabled} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Two-Factor Authentication Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Key className="w-5 h-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <Label className="text-base">Two-Factor Authentication</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Protect your account with an authenticator app
+                    </p>
+                  </div>
+                </div>
+
+                {isEnabled ? (
+                  <div className="space-y-4">
+                    {/* Active Factors */}
+                    <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-3">
+                        <ShieldCheck className="h-5 w-5" />
+                        <span className="font-medium">2FA is enabled</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Your account is protected with two-factor authentication.
+                      </p>
+                      
+                      {verifiedFactors.map((factor) => (
+                        <div 
+                          key={factor.id} 
+                          className="flex items-center justify-between p-3 bg-background rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Smartphone className="h-5 w-5 text-primary" />
+                            <div>
+                              <p className="font-medium text-sm">
+                                {factor.friendly_name || "Authenticator App"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Added {formatDistanceToNow(new Date(factor.created_at), { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="bg-green-500/10 text-green-500">
+                            Active
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowEnrollDialog(true)}
+                        className="flex-1"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Re-enroll (New Device)
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => setShowDisableMFADialog(true)}
+                        className="flex-1"
+                      >
+                        <ShieldX className="h-4 w-4 mr-2" />
+                        Disable 2FA
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                        <ShieldX className="h-5 w-5" />
+                        <span className="font-medium">2FA is not enabled</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Enable two-factor authentication to add an extra layer of security to your account.
+                        You'll need an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator.
+                      </p>
+                      <Button onClick={() => setShowEnrollDialog(true)}>
+                        <Shield className="h-4 w-4 mr-2" />
+                        Enable Two-Factor Authentication
+                      </Button>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                      <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        ⚠️ We strongly recommend enabling 2FA. Accounts with 2FA are significantly more secure
+                        against unauthorized access.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -327,6 +446,49 @@ const Settings = () => {
           </Card>
         </div>
       </main>
+
+      {/* MFA Enrollment Dialog */}
+      <MFAEnrollDialog 
+        open={showEnrollDialog} 
+        onOpenChange={setShowEnrollDialog}
+        onSuccess={handleMFAEnrollSuccess}
+      />
+
+      {/* Disable MFA Dialog */}
+      <Dialog open={showDisableMFADialog} onOpenChange={setShowDisableMFADialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldX className="h-5 w-5 text-destructive" />
+              Disable Two-Factor Authentication
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to disable two-factor authentication? Your account will be less secure.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-destructive">
+              ⚠️ Disabling 2FA will make your account more vulnerable to unauthorized access.
+              Only proceed if you're sure you want to disable this security feature.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDisableMFADialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDisableMFA}
+              disabled={isDisablingMFA}
+            >
+              {isDisablingMFA ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Disable 2FA
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Account Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

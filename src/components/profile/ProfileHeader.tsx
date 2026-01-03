@@ -4,6 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Shield, ShieldCheck, ShieldX, Clock, Edit, Camera } from "lucide-react";
 import { Profile } from "@/hooks/useProfile";
 import { Link } from "react-router-dom";
+import { MFAStatusBadge } from "@/components/mfa/MFAStatusBadge";
+import { useMFA } from "@/hooks/useMFA";
 
 interface ProfileHeaderProps {
   profile: Profile | null;
@@ -21,6 +23,7 @@ export const ProfileHeader = ({ profile, onEditPhoto }: ProfileHeaderProps) => {
   const kycStatus = profile?.kyc_status || "pending";
   const statusConfig = kycStatusConfig[kycStatus];
   const StatusIcon = statusConfig.icon;
+  const { isEnabled: mfaEnabled, loading: mfaLoading } = useMFA();
 
   return (
     <div className="glass-card">
@@ -51,6 +54,7 @@ export const ProfileHeader = ({ profile, onEditPhoto }: ProfileHeaderProps) => {
               <StatusIcon className="w-3 h-3" />
               {statusConfig.label}
             </Badge>
+            {!mfaLoading && <MFAStatusBadge enabled={mfaEnabled} />}
           </div>
           
           {profile?.full_name && (
