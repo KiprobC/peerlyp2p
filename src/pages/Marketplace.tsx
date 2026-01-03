@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import MarketplaceFilters from "@/components/marketplace/MarketplaceFilters";
 import OfferCard from "@/components/marketplace/OfferCard";
 import CreateOfferDialog from "@/components/marketplace/CreateOfferDialog";
@@ -182,8 +181,6 @@ const Marketplace = () => {
           )}
         </div>
       </main>
-      <Footer />
-
       {/* Dialogs */}
       <CreateOfferDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
       <InitiateTradeDialog 
