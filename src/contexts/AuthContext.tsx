@@ -1,14 +1,21 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
+import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+
+interface MFAChallenge {
+  factorId: string;
+  email: string;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  mfaChallenge: MFAChallenge | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean }>;
+  completeMFAChallenge: (code: string) => Promise<{ error: Error | null }>;
+  cancelMFAChallenge: () => void;
   signOut: () => Promise<void>;
 }
 
@@ -26,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mfaChallenge, setMfaChallenge] = useState<MFAChallenge | null>(null);
 
   useEffect(() => {
     // Set up auth state listener
@@ -62,19 +70,87 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
-    return { error };
+
+    if (error) {
+      return { error };
+    }
+
+    // Check if MFA is required
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    
+    if (aal?.nextLevel === "aal2" && aal?.currentLevel === "aal1") {
+      // MFA is required but not yet completed
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const verifiedFactor = factors?.totp.find(f => f.status === "verified");
+      
+      if (verifiedFactor) {
+        setMfaChallenge({
+          factorId: verifiedFactor.id,
+          email,
+        });
+        return { error: null, mfaRequired: true };
+      }
+    }
+
+    return { error: null, mfaRequired: false };
+  };
+
+  const completeMFAChallenge = async (code: string) => {
+    if (!mfaChallenge) {
+      return { error: new Error("No MFA challenge pending") };
+    }
+
+    try {
+      // Create challenge
+      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaChallenge.factorId,
+      });
+
+      if (challengeError) throw challengeError;
+
+      // Verify
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaChallenge.factorId,
+        challengeId: challengeData.id,
+        code,
+      });
+
+      if (verifyError) throw verifyError;
+
+      setMfaChallenge(null);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
+  };
+
+  const cancelMFAChallenge = () => {
+    setMfaChallenge(null);
+    // Sign out the partial session
+    supabase.auth.signOut();
   };
 
   const signOut = async () => {
+    setMfaChallenge(null);
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading, 
+      mfaChallenge,
+      signUp, 
+      signIn, 
+      completeMFAChallenge,
+      cancelMFAChallenge,
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );
