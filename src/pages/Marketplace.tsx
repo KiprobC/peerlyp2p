@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MarketplaceFilters from "@/components/marketplace/MarketplaceFilters";
@@ -109,20 +108,10 @@ const Marketplace = () => {
       <main className="pt-24 pb-24 md:pb-16">
         <div className="container mx-auto px-4">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                P2P <span className="gradient-text">Marketplace</span>
-              </h1>
-              <p className="text-muted-foreground">
-                Find the best offers from verified traders across Kenya
-              </p>
-            </div>
-            {user && (
-              <Button size="icon" onClick={() => setCreateDialogOpen(true)} title="Create Offer">
-                <Plus className="w-5 h-5" />
-              </Button>
-            )}
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold">
+              <span className="gradient-text">Marketplace</span>
+            </h1>
           </div>
 
           {/* Filters */}
