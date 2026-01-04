@@ -8,11 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Camera, Save, Loader2, Lock, AtSign, AlertTriangle, Shield } from "lucide-react";
+import { ArrowLeft, Camera, Save, Loader2, Lock, AtSign, AlertTriangle, Settings } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMFA } from "@/hooks/useMFA";
-import { MFAVerifyDialog } from "@/components/mfa/MFAVerifyDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -20,7 +18,6 @@ const EditProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, updateProfile, loading } = useProfile();
-  const { isEnabled: mfaEnabled } = useMFA();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
@@ -35,14 +32,6 @@ const EditProfile = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [usernameChanged, setUsernameChanged] = useState(false);
-  const [showMFAVerify, setShowMFAVerify] = useState(false);
-
-  // Password change state
-  const [showPasswordSection, setShowPasswordSection] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    newPassword: "",
-    confirmPassword: "",
-  });
 
   // Initialize form data when profile loads
   useEffect(() => {
@@ -155,53 +144,6 @@ const EditProfile = () => {
     }
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
-    if (passwordData.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-
-    // Require MFA verification if enabled
-    if (mfaEnabled) {
-      setShowMFAVerify(true);
-      return;
-    }
-
-    await executePasswordChange();
-  };
-
-  const executePasswordChange = async () => {
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword,
-      });
-
-      if (error) throw error;
-      
-      toast.success("Password updated successfully");
-      setPasswordData({ newPassword: "", confirmPassword: "" });
-      setShowPasswordSection(false);
-    } catch (error: any) {
-      console.error("Error updating password:", error);
-      toast.error(error.message || "Failed to update password");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleMFAVerified = () => {
-    setShowMFAVerify(false);
-    executePasswordChange();
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -229,7 +171,7 @@ const EditProfile = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="pt-24 pb-16">
+      <main className="pt-24 pb-24">
         <div className="container mx-auto px-4 max-w-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Avatar Section */}
@@ -429,122 +371,45 @@ const EditProfile = () => {
               </CardContent>
             </Card>
 
-            {/* Security Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lock className="w-5 h-5" />
-                  Security
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {mfaEnabled && (
-                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <p className="text-sm text-primary">
-                      Password changes require MFA verification
-                    </p>
-                  </div>
-                )}
-                
-                {!showPasswordSection ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowPasswordSection(true)}
-                  >
-                    Change Password
-                  </Button>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        value={passwordData.newPassword}
-                        onChange={(e) =>
-                          setPasswordData((prev) => ({
-                            ...prev,
-                            newPassword: e.target.value,
-                          }))
-                        }
-                        placeholder="Enter new password"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) =>
-                          setPasswordData((prev) => ({
-                            ...prev,
-                            confirmPassword: e.target.value,
-                          }))
-                        }
-                        placeholder="Confirm new password"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={handlePasswordChange}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : null}
-                        Update Password
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          setShowPasswordSection(false);
-                          setPasswordData({ newPassword: "", confirmPassword: "" });
-                        }}
-                      >
-                        Cancel
-                      </Button>
+            {/* Security Link - Redirect to Settings */}
+            <Card className="border-muted">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Settings className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Password & Security</p>
+                      <p className="text-sm text-muted-foreground">
+                        Manage password, 2FA, and security settings
+                      </p>
                     </div>
                   </div>
-                )}
+                  <Link to="/profile/settings">
+                    <Button variant="outline" size="sm">
+                      Go to Settings
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
 
-            <Separator />
-
             {/* Submit Button */}
-            <div className="flex justify-end gap-3">
-              <Link to="/profile">
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </Link>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : (
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
                   <Save className="w-4 h-4 mr-2" />
-                )}
-                Save Changes
-              </Button>
-            </div>
+                  Save Changes
+                </>
+              )}
+            </Button>
           </form>
         </div>
       </main>
-
-      {/* MFA Verification Dialog for Password Change */}
-      <MFAVerifyDialog
-        open={showMFAVerify}
-        onOpenChange={setShowMFAVerify}
-        onVerified={handleMFAVerified}
-        title="Verify to Change Password"
-        description="Enter the 6-digit code from your authenticator app to confirm password change"
-        actionLabel="Change Password"
-      />
     </div>
   );
 };

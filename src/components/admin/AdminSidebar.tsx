@@ -65,8 +65,9 @@ const navSections = [
   {
     title: "System",
     items: [
+      { href: "/admin/security", icon: Shield, label: "Security & MFA" },
       { href: "/admin/settings", icon: Settings, label: "Settings" },
-      { href: "/admin/logs", icon: Shield, label: "Security Logs" },
+      { href: "/admin/logs", icon: Shield, label: "Audit Logs" },
     ],
   },
 ];
