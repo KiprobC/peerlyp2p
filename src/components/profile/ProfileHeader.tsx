@@ -48,12 +48,13 @@ export const ProfileHeader = ({ profile, onEditPhoto }: ProfileHeaderProps) => {
 
         {/* User Info */}
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <h1 className="text-2xl font-bold">@{profile?.username || "User"}</h1>
             <Badge variant={statusConfig.variant} className="flex items-center gap-1">
               <StatusIcon className="w-3 h-3" />
               {statusConfig.label}
             </Badge>
+            {/* MFA Badge - Read-only display */}
             {!mfaLoading && <MFAStatusBadge enabled={mfaEnabled} />}
           </div>
           

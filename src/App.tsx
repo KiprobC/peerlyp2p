@@ -39,6 +39,7 @@ import { AdminEscrow } from "./pages/admin/AdminEscrow";
 import AdminKYC from "./pages/admin/AdminKYC";
 import { AdminTreasury } from "./pages/admin/AdminTreasury";
 import { AdminModeration } from "./pages/admin/AdminModeration";
+import AdminSecurity from "./pages/admin/AdminSecurity";
 
 const queryClient = new QueryClient();
 
@@ -173,6 +174,7 @@ const AppRoutes = () => {
         <Route path="disputes" element={<AdminDisputes />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="notifications" element={<AdminNotifications />} />
+        <Route path="security" element={<AdminSecurity />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="treasury" element={<AdminTreasury />} />
