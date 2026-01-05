@@ -143,7 +143,7 @@ export const useMFA = () => {
   };
 
   // Verify enrollment with TOTP code
-  const verifyEnrollment = async (factorId: string, code: string) => {
+  const verifyEnrollment = async (factorId: string, code: string): Promise<{ success: boolean; error?: string; isEnabled?: boolean }> => {
     if (!checkRateLimit()) return { success: false, error: "Rate limited" };
     
     setState(prev => ({ ...prev, verifying: true }));
@@ -170,17 +170,23 @@ export const useMFA = () => {
 
       resetAttempts();
 
+      // Refresh factors FIRST to get updated isEnabled state before closing dialog
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const verifiedFactors = factorsData?.totp.filter(f => f.status === "verified") || [];
+      const isNowEnabled = verifiedFactors.length > 0;
+
       setState(prev => ({
         ...prev,
+        factors: (factorsData?.totp as MFAFactor[]) || [],
+        isEnabled: isNowEnabled,
         enrollmentData: null,
         verifying: false,
+        loading: false,
       }));
 
-      // Refresh factors to update isEnabled state from Supabase MFA
-      await fetchFactors();
       toast.success("Two-factor authentication enabled successfully!");
 
-      return { success: true, data };
+      return { success: true, isEnabled: isNowEnabled };
     } catch (error: any) {
       console.error("Error verifying MFA enrollment:", error);
       toast.error(error.message || "Invalid verification code");
