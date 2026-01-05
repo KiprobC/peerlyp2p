@@ -169,12 +169,6 @@ export const useMFA = () => {
       }
 
       resetAttempts();
-      
-      // Update local settings to reflect MFA enabled
-      await supabase
-        .from("user_settings")
-        .update({ two_factor_enabled: true })
-        .eq("user_id", user?.id);
 
       setState(prev => ({
         ...prev,
@@ -182,6 +176,7 @@ export const useMFA = () => {
         verifying: false,
       }));
 
+      // Refresh factors to update isEnabled state from Supabase MFA
       await fetchFactors();
       toast.success("Two-factor authentication enabled successfully!");
 
@@ -220,12 +215,7 @@ export const useMFA = () => {
 
       if (error) throw error;
 
-      // Update local settings
-      await supabase
-        .from("user_settings")
-        .update({ two_factor_enabled: false })
-        .eq("user_id", user?.id);
-
+      // Refresh factors to update isEnabled state from Supabase MFA
       await fetchFactors();
       toast.success("Two-factor authentication disabled");
 
