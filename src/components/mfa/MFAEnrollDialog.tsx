@@ -48,8 +48,14 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
     if (!enrollmentData || verificationCode.length !== 6) return;
     
     const result = await verifyEnrollment(enrollmentData.id, verificationCode);
-    if (result.success) {
-      handleClose(false);
+    
+    // Only close dialog after MFA state has been refreshed and confirmed enabled
+    if (result.success && result.isEnabled) {
+      // Reset dialog state
+      setStep("intro");
+      setVerificationCode("");
+      setCopiedSecret(false);
+      onOpenChange(false);
       onSuccess?.();
     }
   };
