@@ -51,7 +51,7 @@ const Profile = () => {
               </Link>
               <h1 className="text-xl font-bold">My Profile</h1>
             </div>
-            <Link to="/profile/settings">
+            <Link to="/settings">
               <Button variant="ghost" size="icon">
                 <Settings className="w-5 h-5" />
               </Button>

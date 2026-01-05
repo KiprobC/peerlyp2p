@@ -384,7 +384,7 @@ const EditProfile = () => {
                       </p>
                     </div>
                   </div>
-                  <Link to="/profile/settings">
+                  <Link to="/settings">
                     <Button variant="outline" size="sm">
                       Go to Settings
                     </Button>

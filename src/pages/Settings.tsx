@@ -218,7 +218,7 @@ const Settings = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center h-16">
             <div className="flex items-center gap-4">
-              <Link to="/profile">
+              <Link to="/dashboard">
                 <Button variant="ghost" size="icon">
                   <ArrowLeft className="w-5 h-5" />
                 </Button>

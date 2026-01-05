@@ -138,7 +138,7 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/profile/settings"
+        path="/settings"
         element={
           <ProtectedRoute>
             <Settings />
