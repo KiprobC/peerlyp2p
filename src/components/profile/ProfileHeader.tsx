@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Shield, ShieldCheck, ShieldX, Clock, Edit, Camera } from "lucide-react";
 import { Profile } from "@/hooks/useProfile";
+import { useTraderStats } from "@/hooks/useTraderStats";
 import { Link } from "react-router-dom";
 import { MFAStatusBadge } from "@/components/mfa/MFAStatusBadge";
 import { useMFA } from "@/hooks/useMFA";
@@ -24,6 +25,7 @@ export const ProfileHeader = ({ profile, onEditPhoto }: ProfileHeaderProps) => {
   const statusConfig = kycStatusConfig[kycStatus];
   const StatusIcon = statusConfig.icon;
   const { isEnabled: mfaEnabled, loading: mfaLoading } = useMFA();
+  const { stats: traderStats } = useTraderStats(profile?.user_id);
 
   return (
     <div className="glass-card">
@@ -70,11 +72,11 @@ export const ProfileHeader = ({ profile, onEditPhoto }: ProfileHeaderProps) => {
 
           <div className="flex items-center gap-4 mt-3 text-sm">
             <div className="flex items-center gap-1">
-              <span className="text-primary font-semibold">{profile?.total_trades || 0}</span>
+              <span className="text-primary font-semibold">{traderStats.totalTrades}</span>
               <span className="text-muted-foreground">trades</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-primary font-semibold">⭐ {profile?.rating?.toFixed(1) || "0.0"}</span>
+              <span className="text-primary font-semibold">⭐ {traderStats.rating?.toFixed(1) || "0.0"}</span>
               <span className="text-muted-foreground">rating</span>
             </div>
             <div className="flex items-center gap-1">

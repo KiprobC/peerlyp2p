@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchTraderStatsById, TraderStats } from "@/hooks/useTraderStats";
 import { formatDistanceToNow } from "date-fns";
 
 interface TraderProfilePopoverProps {
@@ -19,8 +20,6 @@ interface TraderProfile {
   username: string | null;
   avatar_url: string | null;
   country: string | null;
-  rating: number | null;
-  total_trades: number | null;
   is_verified: boolean | null;
   created_at: string;
 }
@@ -35,6 +34,7 @@ interface TradeRating {
 
 export const TraderProfilePopover = ({ userId, children }: TraderProfilePopoverProps) => {
   const [profile, setProfile] = useState<TraderProfile | null>(null);
+  const [traderStats, setTraderStats] = useState<TraderStats | null>(null);
   const [ratings, setRatings] = useState<TradeRating[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -43,16 +43,20 @@ export const TraderProfilePopover = ({ userId, children }: TraderProfilePopoverP
     setLoading(true);
 
     try {
-      // Fetch profile
+      // Fetch profile (without static trade counts)
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("full_name, username, avatar_url, country, rating, total_trades, is_verified, created_at")
+        .select("full_name, username, avatar_url, country, is_verified, created_at")
         .eq("user_id", userId)
         .single();
 
       if (profileData) {
         setProfile(profileData);
       }
+
+      // Fetch dynamic trade stats
+      const stats = await fetchTraderStatsById(userId);
+      setTraderStats(stats);
 
       // Fetch recent ratings with rater names
       const { data: ratingsData } = await supabase
@@ -130,14 +134,14 @@ export const TraderProfilePopover = ({ userId, children }: TraderProfilePopoverP
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-accent fill-accent" />
                 <span className="text-sm">
-                  <span className="font-semibold">{profile.rating?.toFixed(1) || "0.0"}</span>
+                  <span className="font-semibold">{traderStats?.rating?.toFixed(1) || "0.0"}</span>
                   <span className="text-muted-foreground"> rating</span>
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm">
-                  <span className="font-semibold">{profile.total_trades || 0}</span>
+                  <span className="font-semibold">{traderStats?.totalTrades || 0}</span>
                   <span className="text-muted-foreground"> trades</span>
                 </span>
               </div>

@@ -28,6 +28,7 @@ import { useMyOffers } from "@/hooks/useOffers";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
 import { useSettings } from "@/hooks/useSettings";
+import { useTraderStats } from "@/hooks/useTraderStats";
 import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
 import { formatDistanceToNow } from "date-fns";
@@ -43,6 +44,7 @@ const Dashboard = () => {
   const { offers: myOffers, loading: offersLoading } = useMyOffers();
   const { unreadCount } = useNotifications();
   const { settings } = useSettings();
+  const { stats: traderStats } = useTraderStats();
   const preferredCurrency = settings?.preferred_currency || "KES";
   const { prices: cryptoPricesUSD, changes: priceChanges, loading: pricesLoading } = useCryptoPrices();
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
@@ -168,8 +170,8 @@ const Dashboard = () => {
                     <span>Verified</span>
                   </div>
                 )}
-                <span>⭐ {profile?.rating?.toFixed(1) || "0.0"}</span>
-                <span>{profile?.total_trades || 0} trades</span>
+                <span>⭐ {traderStats.rating?.toFixed(1) || "0.0"}</span>
+                <span>{traderStats.totalTrades} trades</span>
               </div>
             </div>
             
@@ -330,14 +332,12 @@ const Dashboard = () => {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Completed Trades</span>
-                  <span className="font-semibold">{completedTrades.length}</span>
+                  <span className="font-semibold">{traderStats.completedTrades}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Success Rate</span>
                   <span className="font-semibold text-primary">
-                    {profile?.total_trades ? 
-                      `${Math.round((profile.successful_trades / profile.total_trades) * 100)}%` : 
-                      "N/A"}
+                    {traderStats.totalTrades > 0 ? `${traderStats.successRate}%` : "N/A"}
                   </span>
                 </div>
               </div>
