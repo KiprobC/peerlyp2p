@@ -153,13 +153,46 @@ export const useAdminUsers = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Fetch all trades to calculate dynamic trade counts per user
+      const { data: tradesData } = await supabase
+        .from("trades")
+        .select("buyer_id, seller_id, status");
+
+      // Calculate trade counts per user
+      const userTradeStats = new Map<string, { total: number; completed: number }>();
+      tradesData?.forEach((trade) => {
+        // Count for buyer
+        const buyerStats = userTradeStats.get(trade.buyer_id) || { total: 0, completed: 0 };
+        buyerStats.total += 1;
+        if (trade.status === "completed") buyerStats.completed += 1;
+        userTradeStats.set(trade.buyer_id, buyerStats);
+
+        // Count for seller
+        const sellerStats = userTradeStats.get(trade.seller_id) || { total: 0, completed: 0 };
+        sellerStats.total += 1;
+        if (trade.status === "completed") sellerStats.completed += 1;
+        userTradeStats.set(trade.seller_id, sellerStats);
+      });
+
+      // Merge dynamic trade counts with profiles
+      const usersWithDynamicStats = (profilesData || []).map((profile) => {
+        const stats = userTradeStats.get(profile.user_id) || { total: 0, completed: 0 };
+        return {
+          ...profile,
+          total_trades: stats.total,
+          successful_trades: stats.completed,
+        };
+      });
+
+      setUsers(usersWithDynamicStats);
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
