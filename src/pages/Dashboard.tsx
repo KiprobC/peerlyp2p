@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,8 @@ import {
   LogOut,
   Menu,
   Send,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
@@ -30,6 +32,8 @@ import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
 import { formatDistanceToNow } from "date-fns";
 
+const BALANCE_HIDDEN_KEY = "kenyacoin_balance_hidden";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -42,6 +46,23 @@ const Dashboard = () => {
   const preferredCurrency = settings?.preferred_currency || "KES";
   const { prices: cryptoPricesUSD, changes: priceChanges, loading: pricesLoading } = useCryptoPrices();
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [balanceHidden, setBalanceHidden] = useState(() => {
+    return localStorage.getItem(BALANCE_HIDDEN_KEY) === "true";
+  });
+
+  const toggleBalanceVisibility = () => {
+    const newValue = !balanceHidden;
+    setBalanceHidden(newValue);
+    localStorage.setItem(BALANCE_HIDDEN_KEY, String(newValue));
+  };
+
+  const formatBalance = (value: number | string, decimals?: number) => {
+    if (balanceHidden) return "••••••";
+    if (typeof value === "number") {
+      return decimals !== undefined ? value.toFixed(decimals) : value.toLocaleString();
+    }
+    return value;
+  };
 
   // Currency symbols and conversion
   const currencySymbols: Record<string, string> = {
@@ -179,9 +200,22 @@ const Dashboard = () => {
           <div className="glass-card mb-6 sm:mb-8 p-3 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4">
               <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Total Portfolio Value</p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-xs text-muted-foreground">Total Portfolio Value</p>
+                  <button
+                    onClick={toggleBalanceVisibility}
+                    className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
+                    aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+                  >
+                    {balanceHidden ? (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Eye className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
                 <p className="text-xl sm:text-2xl md:text-3xl font-bold">
-                  KES {totalValueKES.toLocaleString()}
+                  KES {formatBalance(totalValueKES)}
                 </p>
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -259,9 +293,11 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-xs sm:text-sm">{wallet.balance.toFixed(wallet.crypto_type === "USDT" ? 2 : 6)}</p>
+                        <p className="font-semibold text-xs sm:text-sm">
+                          {formatBalance(wallet.balance, wallet.crypto_type === "USDT" ? 2 : 6)}
+                        </p>
                         <p className="text-[10px] sm:text-xs text-muted-foreground">
-                          KES {valueKES.toLocaleString()}
+                          KES {formatBalance(valueKES)}
                         </p>
                       </div>
                     </div>
