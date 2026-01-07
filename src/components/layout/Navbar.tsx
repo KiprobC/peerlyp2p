@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Shield } from "lucide-react";
+import peerlyLogo from "@/assets/peerly-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminRole } from "@/hooks/useAdmin";
 import { NotificationPopover } from "./NotificationPopover";
@@ -26,13 +27,8 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <span className="text-primary-foreground font-bold text-lg">P</span>
-            </div>
-            <span className="font-bold text-xl text-foreground tracking-tight">
-              Peer<span className="text-primary">ly</span>
-            </span>
+          <Link to="/" className="flex items-center">
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
