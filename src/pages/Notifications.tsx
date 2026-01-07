@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   Bell,
@@ -9,6 +10,7 @@ import {
   MessageSquare,
   Shield,
   Settings,
+  Star,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
@@ -19,6 +21,7 @@ const iconMap: Record<string, typeof Bell> = {
   kyc: Shield,
   system: Settings,
   message: MessageSquare,
+  rate: Star,
 };
 
 const Notifications = () => {
@@ -94,37 +97,47 @@ const Notifications = () => {
           ) : notifications.length > 0 ? (
             <div className="space-y-3">
               {notifications.map((notification) => {
-                const Icon = iconMap[notification.type] || Bell;
+                const data = notification.data as Record<string, any> | null;
+                const needsRating = data?.needs_rating === true;
+                const Icon = needsRating ? Star : (iconMap[notification.type] || Bell);
                 
                 return (
                   <div
                     key={notification.id}
                     className={`glass-card cursor-pointer transition-all ${
                       !notification.read ? "border-primary/30 bg-primary/5" : ""
-                    }`}
+                    } ${needsRating ? "border-accent/30" : ""}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-4">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          !notification.read ? "bg-primary/20" : "bg-secondary"
+                          needsRating ? "bg-accent/20" : (!notification.read ? "bg-primary/20" : "bg-secondary")
                         }`}
                       >
                         <Icon
                           className={`w-5 h-5 ${
-                            !notification.read ? "text-primary" : "text-muted-foreground"
+                            needsRating ? "text-accent fill-accent" : (!notification.read ? "text-primary" : "text-muted-foreground")
                           }`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <h3
-                            className={`font-medium ${
-                              !notification.read ? "text-foreground" : "text-muted-foreground"
-                            }`}
-                          >
-                            {notification.title}
-                          </h3>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3
+                              className={`font-medium ${
+                                !notification.read ? "text-foreground" : "text-muted-foreground"
+                              }`}
+                            >
+                              {notification.title}
+                            </h3>
+                            {needsRating && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-accent/50 text-accent gap-1">
+                                <Star className="h-2.5 w-2.5 fill-accent" />
+                                Rate now
+                              </Badge>
+                            )}
+                          </div>
                           {!notification.read && (
                             <span className="w-2 h-2 bg-primary rounded-full shrink-0 mt-2" />
                           )}
