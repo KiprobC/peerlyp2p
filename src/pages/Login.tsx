@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import peerlyLogo from "@/assets/peerly-logo.png";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -89,13 +90,8 @@ const Login = () => {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-md">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 mb-8">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                <span className="text-primary-foreground font-bold text-lg">P</span>
-              </div>
-              <span className="font-bold text-xl text-foreground tracking-tight">
-                Peer<span className="text-primary">ly</span>
-              </span>
+            <Link to="/" className="flex items-center mb-8">
+              <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
             </Link>
 
             <div className="mb-8">
@@ -203,13 +199,8 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <span className="text-primary-foreground font-bold text-lg">P</span>
-            </div>
-            <span className="font-bold text-xl text-foreground tracking-tight">
-              Peer<span className="text-primary">ly</span>
-            </span>
+          <Link to="/" className="flex items-center mb-8">
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
           </Link>
 
           <div className="mb-8">
