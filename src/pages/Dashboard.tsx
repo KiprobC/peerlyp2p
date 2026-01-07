@@ -33,7 +33,7 @@ import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
 import { formatDistanceToNow } from "date-fns";
 
-const BALANCE_HIDDEN_KEY = "kenyacoin_balance_hidden";
+const BALANCE_HIDDEN_KEY = "peerly_balance_hidden";
 
 const Dashboard = () => {
   const navigate = useNavigate();
