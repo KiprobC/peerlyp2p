@@ -5,7 +5,7 @@ const steps = [
     icon: UserPlus,
     step: "01",
     title: "Create Account",
-    description: "Sign up in seconds with email or phone. Complete verification to unlock all features.",
+    description: "Sign up in seconds with email. Complete verification to unlock all features.",
   },
   {
     icon: Search,
@@ -22,7 +22,7 @@ const steps = [
   {
     icon: Wallet,
     step: "04",
-    title: "Get Paid",
+    title: "Get Your Crypto",
     description: "Confirm payment received. Crypto is released instantly from escrow.",
   },
 ];
@@ -32,7 +32,7 @@ const HowItWorksSection = () => {
     <section className="py-24 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
             How It <span className="gradient-text">Works</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -49,12 +49,12 @@ const HowItWorksSection = () => {
               )}
               
               <div className="relative z-10 text-center">
-                <div className="w-24 h-24 rounded-2xl glass mx-auto mb-6 flex items-center justify-center group hover:border-primary/50 transition-all">
+                <div className="w-24 h-24 rounded-2xl glass mx-auto mb-6 flex items-center justify-center group hover:border-primary/50 transition-all premium-border">
                   <step.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" />
                 </div>
                 <span className="text-sm font-bold text-primary mb-2 block">{step.step}</span>
                 <h3 className="text-xl font-semibold mb-2 text-foreground">{step.title}</h3>
-                <p className="text-muted-foreground text-sm">{step.description}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
               </div>
             </div>
           ))}

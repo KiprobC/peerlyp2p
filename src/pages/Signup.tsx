@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, Check } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Check, Shield, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -55,36 +55,36 @@ const Signup = () => {
     <div className="min-h-screen bg-background flex">
       {/* Left Side - Graphic */}
       <div className="hidden lg:flex flex-1 bg-card items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
         <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-accent/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
         
         <div className="relative z-10 text-center max-w-md">
-          <div className="glass-card p-8 mb-8">
+          <div className="glass-card p-8 mb-8 premium-border">
             <div className="text-6xl mb-4">🚀</div>
             <h2 className="text-2xl font-bold mb-2">Start Your Journey</h2>
             <p className="text-muted-foreground">
-              Join Kenya's fastest-growing P2P crypto community
+              Join the modern P2P crypto marketplace built for trust and transparency
             </p>
           </div>
           
           <div className="space-y-3">
-            <div className="glass px-4 py-3 rounded-xl flex items-center gap-3">
+            <div className="glass px-4 py-3 rounded-xl flex items-center gap-3 premium-border">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <Check className="w-5 h-5 text-primary" />
+                <Shield className="w-5 h-5 text-primary" />
               </div>
               <div className="text-left">
-                <p className="font-medium">Zero Trading Fees</p>
-                <p className="text-sm text-muted-foreground">Start trading at no cost</p>
+                <p className="font-medium">Escrow Protection</p>
+                <p className="text-sm text-muted-foreground">Every trade is secured</p>
               </div>
             </div>
-            <div className="glass px-4 py-3 rounded-xl flex items-center gap-3">
+            <div className="glass px-4 py-3 rounded-xl flex items-center gap-3 premium-border">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <Check className="w-5 h-5 text-primary" />
+                <Zap className="w-5 h-5 text-primary" />
               </div>
               <div className="text-left">
-                <p className="font-medium">MPESA Integration</p>
-                <p className="text-sm text-muted-foreground">Instant mobile payments</p>
+                <p className="font-medium">Instant Notifications</p>
+                <p className="text-sm text-muted-foreground">Real-time trade updates</p>
               </div>
             </div>
           </div>
@@ -95,19 +95,19 @@ const Signup = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">K</span>
+          <Link to="/" className="flex items-center gap-2.5 mb-8">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+              <span className="text-primary-foreground font-bold text-lg">P</span>
             </div>
-            <span className="font-bold text-xl text-foreground">
-              Kenya<span className="text-primary">Coin</span>
+            <span className="font-bold text-xl text-foreground tracking-tight">
+              Peer<span className="text-primary">ly</span>
             </span>
           </Link>
 
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Create account</h1>
             <p className="text-muted-foreground">
-              Sign up to start trading crypto in Kenya
+              Sign up to start trading crypto securely
             </p>
           </div>
 

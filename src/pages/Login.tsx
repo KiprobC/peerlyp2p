@@ -89,12 +89,12 @@ const Login = () => {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="w-full max-w-md">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">K</span>
+            <Link to="/" className="flex items-center gap-2.5 mb-8">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+                <span className="text-primary-foreground font-bold text-lg">P</span>
               </div>
-              <span className="font-bold text-xl text-foreground">
-                Kenya<span className="text-primary">Coin</span>
+              <span className="font-bold text-xl text-foreground tracking-tight">
+                Peer<span className="text-primary">ly</span>
               </span>
             </Link>
 
@@ -179,12 +179,12 @@ const Login = () => {
 
         {/* Right Side - Graphic */}
         <div className="hidden lg:flex flex-1 bg-card items-center justify-center p-12 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
           <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-accent/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
           
           <div className="relative z-10 text-center">
-            <div className="glass-card p-8 mb-8">
+            <div className="glass-card p-8 mb-8 premium-border">
               <div className="text-6xl mb-4">🔐</div>
               <h2 className="text-2xl font-bold mb-2">Secure Login</h2>
               <p className="text-muted-foreground">
@@ -203,12 +203,12 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">K</span>
+          <Link to="/" className="flex items-center gap-2.5 mb-8">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+              <span className="text-primary-foreground font-bold text-lg">P</span>
             </div>
-            <span className="font-bold text-xl text-foreground">
-              Kenya<span className="text-primary">Coin</span>
+            <span className="font-bold text-xl text-foreground tracking-tight">
+              Peer<span className="text-primary">ly</span>
             </span>
           </Link>
 
@@ -284,12 +284,12 @@ const Login = () => {
 
       {/* Right Side - Graphic */}
       <div className="hidden lg:flex flex-1 bg-card items-center justify-center p-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
         <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-accent/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
         
         <div className="relative z-10 text-center">
-          <div className="glass-card p-8 mb-8">
+          <div className="glass-card p-8 mb-8 premium-border">
             <div className="text-6xl mb-4">🔐</div>
             <h2 className="text-2xl font-bold mb-2">Secure Trading</h2>
             <p className="text-muted-foreground">
@@ -297,10 +297,10 @@ const Login = () => {
             </p>
           </div>
           <div className="flex gap-4 justify-center">
-            <div className="glass px-4 py-2 rounded-full text-sm">
+            <div className="glass px-4 py-2 rounded-full text-sm premium-border">
               <span className="text-primary">✓</span> 2FA Protection
             </div>
-            <div className="glass px-4 py-2 rounded-full text-sm">
+            <div className="glass px-4 py-2 rounded-full text-sm premium-border">
               <span className="text-primary">✓</span> Escrow System
             </div>
           </div>

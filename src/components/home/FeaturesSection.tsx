@@ -5,37 +5,31 @@ const features = [
     icon: Shield,
     title: "Secure Escrow",
     description: "Every trade is protected by our smart escrow system. Crypto is held securely until payment is confirmed.",
-    color: "text-primary",
   },
   {
-    icon: Smartphone,
-    title: "MPESA Integration",
-    description: "Pay instantly with MPESA, Kenya's most popular mobile money service. Fast, simple, and reliable.",
-    color: "text-accent",
+    icon: Users,
+    title: "Verified Traders",
+    description: "Trade with confidence. Our reputation system helps you find reliable, verified trading partners.",
   },
   {
     icon: Zap,
     title: "Instant Trades",
     description: "Complete trades in minutes. Our streamlined process gets you your crypto or cash quickly.",
-    color: "text-primary",
   },
   {
-    icon: Users,
-    title: "Trusted Community",
-    description: "Trade with verified users. Our rating system helps you find reliable trading partners.",
-    color: "text-accent",
+    icon: TrendingUp,
+    title: "Real-Time Pricing",
+    description: "Always get the best rates with live market prices and competitive trading margins.",
   },
   {
     icon: Lock,
     title: "Bank-Grade Security",
-    description: "Two-factor authentication, encryption, and cold storage keep your assets safe.",
-    color: "text-primary",
+    description: "Two-factor authentication, encryption, and advanced security keep your assets safe.",
   },
   {
-    icon: TrendingUp,
-    title: "Best Rates",
-    description: "Competitive pricing with low fees. Get the best value for your trades.",
-    color: "text-accent",
+    icon: Smartphone,
+    title: "Mobile First",
+    description: "Trade anywhere, anytime. Our platform is optimized for seamless mobile experience.",
   },
 ];
 
@@ -44,11 +38,11 @@ const FeaturesSection = () => {
     <section className="py-24 bg-card">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Why Choose <span className="gradient-text">KenyaCoin</span>?
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+            Why Choose <span className="gradient-text">Peerly</span>?
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Built for Kenyans, by Kenyans. We understand what you need for safe and easy crypto trading.
+            Built for trust, speed, and transparency. We put control back in the hands of users — peer to peer, done right.
           </p>
         </div>
 
@@ -56,14 +50,14 @@ const FeaturesSection = () => {
           {features.map((feature, index) => (
             <div
               key={feature.title}
-              className="glass-card hover:border-primary/30 transition-all duration-300 group"
+              className="glass-card premium-border group"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className={`w-12 h-12 rounded-xl bg-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${feature.color}`}>
-                <feature.icon className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+                <feature.icon className="w-6 h-6 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-2 text-foreground">{feature.title}</h3>
-              <p className="text-muted-foreground text-sm">{feature.description}</p>
+              <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>

@@ -26,12 +26,12 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">K</span>
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+              <span className="text-primary-foreground font-bold text-lg">P</span>
             </div>
-            <span className="font-bold text-xl text-foreground">
-              Kenya<span className="text-primary">Coin</span>
+            <span className="font-bold text-xl text-foreground tracking-tight">
+              Peer<span className="text-primary">ly</span>
             </span>
           </Link>
 
