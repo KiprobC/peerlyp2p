@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
 import {
   Select,
   SelectContent,
@@ -15,40 +14,60 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, Loader2 } from "lucide-react";
 import { useMyOffers } from "@/hooks/useOffers";
-import { useCryptoPrices, convertToKES } from "@/hooks/useCryptoPrices";
+import { useCryptoPrices } from "@/hooks/useCryptoPrices";
+import { useProfile } from "@/hooks/useProfile";
+import { useCountries, useCurrencyConversion } from "@/hooks/useCountries";
+import { PaymentMethodSelect } from "@/components/country/PaymentMethodSelect";
 import { toast } from "sonner";
 
 const cryptoOptions = ["BTC", "USDT", "ETH"];
-const paymentMethodOptions = ["MPESA", "Bank Transfer", "Airtel Money"];
 
 const CreateOffer = () => {
   const navigate = useNavigate();
   const { createOffer } = useMyOffers();
+  const { profile, loading: profileLoading } = useProfile();
+  const { countries } = useCountries();
+  const { convert, formatCurrency } = useCurrencyConversion();
+  
+  // Get user's preferred currency from profile, default to USD
+  const userCurrency = profile?.preferred_currency || "USD";
+  const userCountry = profile?.country || profile?.kyc_country;
+  
+  // Find country details for currency symbol
+  const countryDetails = countries.find(c => c.code === userCountry);
+  const currencySymbol = countryDetails?.currency_symbol || "$";
+  
   const { prices, loading: pricesLoading, lastUpdated, refetch: refetchPrices } = useCryptoPrices("USD");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     type: "sell" as "buy" | "sell",
     crypto_type: "BTC",
     crypto_amount: "",
-    price_margin: 0, // Percentage above/below market
+    price_margin: 0,
     min_amount: "",
     max_amount: "",
-    payment_methods: ["MPESA"],
+    payment_methods: [] as string[],
     time_limit: "30",
     terms: "",
   });
 
   // Calculate price based on market price and margin
   const marketPriceUSD = prices[formData.crypto_type] || 0;
-  const marketPriceKES = convertToKES(marketPriceUSD);
-  const finalPriceKES = Math.round(marketPriceKES * (1 + formData.price_margin / 100));
+  const marketPriceLocal = convert(marketPriceUSD, "USD", userCurrency);
+  const finalPriceLocal = Math.round(marketPriceLocal * (1 + formData.price_margin / 100));
 
   const totalValue = formData.crypto_amount
-    ? (parseFloat(formData.crypto_amount) * finalPriceKES).toLocaleString()
+    ? (parseFloat(formData.crypto_amount) * finalPriceLocal).toLocaleString()
     : "0";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.payment_methods.length === 0) {
+      toast.error("Please select at least one payment method");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -56,7 +75,7 @@ const CreateOffer = () => {
         type: formData.type,
         crypto_type: formData.crypto_type,
         crypto_amount: parseFloat(formData.crypto_amount),
-        price_per_unit: finalPriceKES,
+        price_per_unit: finalPriceLocal,
         price_margin: formData.price_margin,
         min_amount: parseFloat(formData.min_amount),
         max_amount: parseFloat(formData.max_amount),
@@ -64,7 +83,7 @@ const CreateOffer = () => {
         time_limit: parseInt(formData.time_limit),
         terms: formData.terms || null,
         is_active: true,
-        fiat_currency: "KES",
+        fiat_currency: userCurrency,
       });
 
       if (error) throw error;
@@ -78,14 +97,13 @@ const CreateOffer = () => {
     }
   };
 
-  const togglePaymentMethod = (method: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      payment_methods: prev.payment_methods.includes(method)
-        ? prev.payment_methods.filter((m) => m !== method)
-        : [...prev.payment_methods, method],
-    }));
-  };
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -117,7 +135,7 @@ const CreateOffer = () => {
                 >
                   <div className="text-center">
                     <div className="font-semibold">Sell Crypto</div>
-                    <div className="text-xs opacity-80">Receive KES</div>
+                    <div className="text-xs opacity-80">Receive {userCurrency}</div>
                   </div>
                 </Button>
                 <Button
@@ -129,7 +147,7 @@ const CreateOffer = () => {
                 >
                   <div className="text-center">
                     <div className="font-semibold">Buy Crypto</div>
-                    <div className="text-xs opacity-80">Pay with KES</div>
+                    <div className="text-xs opacity-80">Pay with {userCurrency}</div>
                   </div>
                 </Button>
               </div>
@@ -173,11 +191,13 @@ const CreateOffer = () => {
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold text-foreground">
-                    KES {marketPriceKES.toLocaleString()}
+                    {formatCurrency(marketPriceLocal, userCurrency)}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    (${marketPriceUSD.toLocaleString()})
-                  </span>
+                  {userCurrency !== "USD" && (
+                    <span className="text-sm text-muted-foreground">
+                      (${marketPriceUSD.toLocaleString()})
+                    </span>
+                  )}
                 </div>
                 {lastUpdated && (
                   <p className="text-xs text-muted-foreground mt-1">
@@ -247,21 +267,23 @@ const CreateOffer = () => {
               <div className="p-4 bg-primary/10 rounded-lg text-center">
                 <p className="text-sm text-muted-foreground mb-1">Your Offer Price</p>
                 <p className="text-2xl font-bold text-primary">
-                  KES {finalPriceKES.toLocaleString()} / {formData.crypto_type}
+                  {formatCurrency(finalPriceLocal, userCurrency)} / {formData.crypto_type}
                 </p>
               </div>
 
               {formData.crypto_amount && (
                 <div className="p-3 bg-secondary/50 rounded-lg text-center">
                   <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-xl font-bold text-foreground">KES {totalValue}</p>
+                  <p className="text-xl font-bold text-foreground">
+                    {currencySymbol} {totalValue}
+                  </p>
                 </div>
               )}
             </div>
 
             {/* Trade Limits */}
             <div className="glass-card space-y-4">
-              <Label className="text-base font-semibold">Trade Limits (KES)</Label>
+              <Label className="text-base font-semibold">Trade Limits ({userCurrency})</Label>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Minimum</Label>
@@ -290,21 +312,22 @@ const CreateOffer = () => {
               </div>
             </div>
 
-            {/* Payment Methods */}
+            {/* Payment Methods - Country-specific */}
             <div className="glass-card space-y-4">
               <Label className="text-base font-semibold">Accepted Payment Methods</Label>
-              <div className="flex flex-wrap gap-2">
-                {paymentMethodOptions.map((method) => (
-                  <Button
-                    key={method}
-                    type="button"
-                    variant={formData.payment_methods.includes(method) ? "default" : "secondary"}
-                    onClick={() => togglePaymentMethod(method)}
-                  >
-                    {method}
-                  </Button>
-                ))}
-              </div>
+              {userCountry ? (
+                <PaymentMethodSelect
+                  countryCode={userCountry}
+                  selectedMethods={formData.payment_methods}
+                  onMethodsChange={(methods) => 
+                    setFormData((prev) => ({ ...prev, payment_methods: methods }))
+                  }
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Please set your country in your profile to see available payment methods.
+                </p>
+              )}
             </div>
 
             {/* Time Limit */}
