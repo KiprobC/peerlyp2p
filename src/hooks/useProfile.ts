@@ -23,6 +23,7 @@ export interface Profile {
   kyc_status: "pending" | "submitted" | "verified" | "rejected" | null;
   kyc_submitted_at: string | null;
   kyc_verified_at: string | null;
+  kyc_country: string | null;
   id_type: string | null;
   id_number: string | null;
   id_front_url: string | null;
@@ -34,6 +35,7 @@ export interface Profile {
   bank_name: string | null;
   bank_account_number: string | null;
   bank_account_name: string | null;
+  preferred_currency: string | null;
   created_at: string;
   updated_at: string;
   last_seen: string | null;
