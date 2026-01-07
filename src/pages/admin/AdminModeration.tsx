@@ -31,7 +31,7 @@ const DisputeMessages = ({ tradeId }: DisputeMessagesProps) => {
           >
             {!msg.is_system && (
               <p className="text-xs text-muted-foreground mb-1">
-                {msg.sender_id.slice(0, 8)}... • {format(new Date(msg.created_at), 'HH:mm')}
+                @{msg.sender_username || msg.sender_id.slice(0, 8)} • {format(new Date(msg.created_at), 'HH:mm')}
               </p>
             )}
             <p className={msg.is_system ? 'text-muted-foreground' : ''}>{msg.message}</p>
