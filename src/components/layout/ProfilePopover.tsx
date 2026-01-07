@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { User, Settings, LogOut, Wallet, FileText, Shield, Tag } from "lucide-react";
+import { User, Settings, LogOut, Wallet, FileText, Shield, Tag, ShieldCheck, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,13 +9,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import { useAdminRole } from "@/hooks/useAdmin";
+import { useModeratorRole } from "@/hooks/useModeratorRole";
 import { Separator } from "@/components/ui/separator";
 
 export const ProfilePopover = () => {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
-  const { isAdmin } = useAdminRole();
+  const { isModerator, isAdmin } = useModeratorRole();
 
   const getInitials = (username: string | null) => {
     if (!username) return "U";
@@ -61,7 +61,16 @@ export const ProfilePopover = () => {
           <div className="mt-2 flex items-center gap-2">
             {getVerificationBadge()}
             {isAdmin && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary">Admin</span>
+              <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 flex items-center gap-1">
+                <Crown className="h-3 w-3" />
+                Admin
+              </span>
+            )}
+            {isModerator && !isAdmin && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-500 flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3" />
+                Moderator
+              </span>
             )}
           </div>
         </div>
@@ -99,13 +108,29 @@ export const ProfilePopover = () => {
               Settings
             </Button>
           </Link>
-          {isAdmin && (
-            <Link to="/admin">
+          {isModerator && !isAdmin && (
+            <Link to="/moderator">
               <Button variant="ghost" className="w-full justify-start h-9" size="sm">
-                <Shield className="h-4 w-4 mr-2" />
-                Admin Panel
+                <ShieldCheck className="h-4 w-4 mr-2 text-blue-500" />
+                Moderator Panel
               </Button>
             </Link>
+          )}
+          {isAdmin && (
+            <>
+              <Link to="/moderator">
+                <Button variant="ghost" className="w-full justify-start h-9" size="sm">
+                  <ShieldCheck className="h-4 w-4 mr-2 text-blue-500" />
+                  Moderator Panel
+                </Button>
+              </Link>
+              <Link to="/admin">
+                <Button variant="ghost" className="w-full justify-start h-9" size="sm">
+                  <Crown className="h-4 w-4 mr-2 text-yellow-500" />
+                  Admin Panel
+                </Button>
+              </Link>
+            </>
           )}
         </div>
         
