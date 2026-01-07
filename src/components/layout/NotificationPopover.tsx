@@ -1,5 +1,6 @@
-import { Bell, Check, CheckCheck } from "lucide-react";
+import { Bell, Check, CheckCheck, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -14,7 +15,8 @@ export const NotificationPopover = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
   const navigate = useNavigate();
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (type: string, needsRating?: boolean) => {
+    if (needsRating) return "bg-accent/20 text-accent";
     switch (type) {
       case "trade": return "bg-primary/20 text-primary";
       case "payment": return "bg-green-500/20 text-green-500";
@@ -96,31 +98,42 @@ export const NotificationPopover = () => {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {notifications.slice(0, 10).map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-3 hover:bg-secondary/50 cursor-pointer transition-colors ${
-                    !notification.read ? "bg-primary/5" : ""
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeColor(notification.type)}`}>
-                      {notification.type}
-                    </span>
-                    {!notification.read && (
-                      <span className="h-2 w-2 rounded-full bg-primary ml-auto flex-shrink-0 mt-1" />
-                    )}
+              {notifications.slice(0, 10).map((notification) => {
+                const data = notification.data as Record<string, any> | null;
+                const needsRating = data?.needs_rating === true;
+                
+                return (
+                  <div
+                    key={notification.id}
+                    className={`p-3 hover:bg-secondary/50 cursor-pointer transition-colors ${
+                      !notification.read ? "bg-primary/5" : ""
+                    }`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeColor(notification.type, needsRating)}`}>
+                        {needsRating ? "rate" : notification.type}
+                      </span>
+                      {needsRating && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-accent/50 text-accent gap-1">
+                          <Star className="h-2.5 w-2.5 fill-accent" />
+                          Rate now
+                        </Badge>
+                      )}
+                      {!notification.read && (
+                        <span className="h-2 w-2 rounded-full bg-primary ml-auto flex-shrink-0 mt-1" />
+                      )}
+                    </div>
+                    <p className="font-medium text-sm mt-1">{notification.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                    </p>
                   </div>
-                  <p className="font-medium text-sm mt-1">{notification.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                    {notification.message}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </ScrollArea>
