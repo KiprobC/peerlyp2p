@@ -53,6 +53,87 @@ export type Database = {
         }
         Relationships: []
       }
+      countries: {
+        Row: {
+          code: string
+          created_at: string
+          currency_code: string
+          currency_symbol: string
+          flag_emoji: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone_code: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency_code: string
+          currency_symbol: string
+          flag_emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone_code: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          flag_emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone_code?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      country_payment_methods: {
+        Row: {
+          country_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          payment_method_id: string
+          priority: number | null
+        }
+        Insert: {
+          country_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          payment_method_id: string
+          priority?: number | null
+        }
+        Update: {
+          country_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          payment_method_id?: string
+          priority?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_payment_methods_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "country_payment_methods_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispute_assignments: {
         Row: {
           assigned_by: string
@@ -247,6 +328,36 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       platform_fees: {
         Row: {
           created_at: string
@@ -333,12 +444,14 @@ export type Database = {
           id_number: string | null
           id_type: string | null
           is_verified: boolean | null
+          kyc_country: string | null
           kyc_status: Database["public"]["Enums"]["kyc_status"] | null
           kyc_submitted_at: string | null
           kyc_verified_at: string | null
           last_seen: string | null
           mpesa_phone: string | null
           phone: string | null
+          preferred_currency: string | null
           rating: number | null
           selfie_url: string | null
           setup_completed: boolean | null
@@ -369,12 +482,14 @@ export type Database = {
           id_number?: string | null
           id_type?: string | null
           is_verified?: boolean | null
+          kyc_country?: string | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"] | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
           last_seen?: string | null
           mpesa_phone?: string | null
           phone?: string | null
+          preferred_currency?: string | null
           rating?: number | null
           selfie_url?: string | null
           setup_completed?: boolean | null
@@ -405,12 +520,14 @@ export type Database = {
           id_number?: string | null
           id_type?: string | null
           is_verified?: boolean | null
+          kyc_country?: string | null
           kyc_status?: Database["public"]["Enums"]["kyc_status"] | null
           kyc_submitted_at?: string | null
           kyc_verified_at?: string | null
           last_seen?: string | null
           mpesa_phone?: string | null
           phone?: string | null
+          preferred_currency?: string | null
           rating?: number | null
           selfie_url?: string | null
           setup_completed?: boolean | null

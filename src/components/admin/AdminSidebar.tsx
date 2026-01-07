@@ -19,7 +19,8 @@ import {
   X,
   Landmark,
   UserCheck,
-  FileCheck
+  FileCheck,
+  Globe
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +59,7 @@ const navSections = [
     items: [
       { href: "/admin/disputes", icon: AlertTriangle, label: "Disputes" },
       { href: "/admin/moderation", icon: UserCheck, label: "Moderation" },
+      { href: "/admin/payment-methods", icon: Globe, label: "Payment Methods" },
       { href: "/admin/kyc", icon: FileCheck, label: "KYC Verification" },
       { href: "/admin/notifications", icon: Bell, label: "Notifications" },
     ],
