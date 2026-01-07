@@ -772,12 +772,14 @@ export const usePlatformStats = () => {
   return { stats, loading };
 };
 
-// Trade Messages Hook for Disputes
+// Trade Messages Hook for Disputes - Enhanced with usernames
 export const useAdminTradeMessages = (tradeId: string) => {
   const [messages, setMessages] = useState<Array<{
     id: string;
     trade_id: string;
     sender_id: string;
+    sender_username?: string;
+    sender_avatar?: string;
     message: string;
     is_system: boolean;
     created_at: string;
@@ -796,7 +798,27 @@ export const useAdminTradeMessages = (tradeId: string) => {
           .order("created_at", { ascending: true });
 
         if (error) throw error;
-        setMessages(data || []);
+
+        // Fetch sender profiles for usernames
+        if (data && data.length > 0) {
+          const senderIds = [...new Set(data.map(m => m.sender_id))];
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, username, full_name, avatar_url")
+            .in("user_id", senderIds);
+
+          const enrichedMessages = data.map(msg => {
+            const profile = profiles?.find(p => p.user_id === msg.sender_id);
+            return {
+              ...msg,
+              sender_username: profile?.username || profile?.full_name || msg.sender_id.slice(0, 8),
+              sender_avatar: profile?.avatar_url || null,
+            };
+          });
+          setMessages(enrichedMessages);
+        } else {
+          setMessages([]);
+        }
       } catch (error) {
         console.error("Error fetching messages:", error);
       } finally {
@@ -808,6 +830,77 @@ export const useAdminTradeMessages = (tradeId: string) => {
   }, [tradeId]);
 
   return { messages, loading };
+};
+
+// Trade Details Hook for Disputes - Fetch full trade with trader profiles
+export const useAdminTradeDetails = (tradeId: string) => {
+  const [trade, setTrade] = useState<AdminTrade & {
+    buyer_username?: string;
+    seller_username?: string;
+    buyer_rating?: number;
+    seller_rating?: number;
+    buyer_trades?: number;
+    seller_trades?: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!tradeId) return;
+
+    const fetchTradeDetails = async () => {
+      try {
+        const { data: tradeData, error } = await supabase
+          .from("trades")
+          .select("*")
+          .eq("id", tradeId)
+          .single();
+
+        if (error) throw error;
+
+        if (tradeData) {
+          // Fetch buyer and seller profiles
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("user_id, username, full_name, rating")
+            .in("user_id", [tradeData.buyer_id, tradeData.seller_id]);
+
+          // Fetch trade counts
+          const { data: allTrades } = await supabase
+            .from("trades")
+            .select("buyer_id, seller_id, status")
+            .or(`buyer_id.eq.${tradeData.buyer_id},seller_id.eq.${tradeData.buyer_id},buyer_id.eq.${tradeData.seller_id},seller_id.eq.${tradeData.seller_id}`);
+
+          const buyerProfile = profiles?.find(p => p.user_id === tradeData.buyer_id);
+          const sellerProfile = profiles?.find(p => p.user_id === tradeData.seller_id);
+
+          const buyerTrades = allTrades?.filter(t => 
+            t.buyer_id === tradeData.buyer_id || t.seller_id === tradeData.buyer_id
+          ).length || 0;
+          const sellerTrades = allTrades?.filter(t => 
+            t.buyer_id === tradeData.seller_id || t.seller_id === tradeData.seller_id
+          ).length || 0;
+
+          setTrade({
+            ...tradeData,
+            buyer_username: buyerProfile?.username || buyerProfile?.full_name || 'Unknown',
+            seller_username: sellerProfile?.username || sellerProfile?.full_name || 'Unknown',
+            buyer_rating: buyerProfile?.rating || 0,
+            seller_rating: sellerProfile?.rating || 0,
+            buyer_trades: buyerTrades,
+            seller_trades: sellerTrades,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching trade details:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTradeDetails();
+  }, [tradeId]);
+
+  return { trade, loading };
 };
 
 // Admin Notifications Hook

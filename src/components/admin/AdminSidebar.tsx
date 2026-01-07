@@ -85,7 +85,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           </div>
           <div>
             <h1 className="font-bold text-lg">Admin Panel</h1>
-            <p className="text-xs text-muted-foreground">Kenya Coin Connect</p>
+            <p className="text-xs text-muted-foreground">Peerly</p>
           </div>
         </div>
       </div>
