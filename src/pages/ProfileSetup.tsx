@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { KYCCountryForm } from "@/components/profile/KYCCountryForm";
 import {
   User,
   CreditCard,
@@ -19,6 +20,7 @@ import {
   MapPin,
   Calendar,
   Building,
+  FileImage,
 } from "lucide-react";
 
 const steps = [
@@ -32,34 +34,68 @@ const ProfileSetup = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, updateProfile, loading } = useProfile();
-  const [currentStep, setCurrentStep] = useState(profile?.setup_step || 1);
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const idFrontRef = useRef<HTMLInputElement>(null);
   const idBackRef = useRef<HTMLInputElement>(null);
+  const selfieRef = useRef<HTMLInputElement>(null);
 
   // Form data
   const [formData, setFormData] = useState({
-    full_name: profile?.full_name || "",
-    phone: profile?.phone || "",
-    date_of_birth: profile?.date_of_birth || "",
-    city: profile?.city || "",
-    address: profile?.address || "",
-    id_type: profile?.id_type || "national_id",
-    id_number: profile?.id_number || "",
-    mpesa_phone: profile?.mpesa_phone || "",
-    bank_name: profile?.bank_name || "",
-    bank_account_name: profile?.bank_account_name || "",
-    bank_account_number: profile?.bank_account_number || "",
+    full_name: "",
+    phone: "",
+    date_of_birth: "",
+    city: "",
+    address: "",
+    kyc_country: "",
+    id_type: "",
+    id_number: "",
+    mpesa_phone: "",
+    bank_name: "",
+    bank_account_name: "",
+    bank_account_number: "",
   });
 
-  const [idFrontUrl, setIdFrontUrl] = useState(profile?.id_front_url || "");
-  const [idBackUrl, setIdBackUrl] = useState(profile?.id_back_url || "");
-  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+  const [idFrontUrl, setIdFrontUrl] = useState("");
+  const [idBackUrl, setIdBackUrl] = useState("");
+  const [selfieUrl, setSelfieUrl] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+
+  // Populate form data from profile
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || "",
+        phone: profile.phone || "",
+        date_of_birth: profile.date_of_birth || "",
+        city: profile.city || "",
+        address: profile.address || "",
+        kyc_country: profile.kyc_country || "",
+        id_type: profile.id_type || "",
+        id_number: profile.id_number || "",
+        mpesa_phone: profile.mpesa_phone || "",
+        bank_name: profile.bank_name || "",
+        bank_account_name: profile.bank_account_name || "",
+        bank_account_number: profile.bank_account_number || "",
+      });
+      setIdFrontUrl(profile.id_front_url || "");
+      setIdBackUrl(profile.id_back_url || "");
+      setSelfieUrl(profile.selfie_url || "");
+      setAvatarUrl(profile.avatar_url || "");
+      if (profile.setup_step) {
+        setCurrentStep(profile.setup_step);
+      }
+    }
+  }, [profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const handleKYCChange = useCallback((data: Partial<typeof formData>) => {
+    setFormData(prev => ({ ...prev, ...data }));
+  }, []);
 
   const uploadFile = async (file: File, bucket: string, folder: string): Promise<string | null> => {
     if (!user) return null;
@@ -82,7 +118,7 @@ const ProfileSetup = () => {
 
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    type: "id_front" | "id_back" | "avatar"
+    type: "id_front" | "id_back" | "selfie" | "avatar"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -94,6 +130,7 @@ const ProfileSetup = () => {
     if (url) {
       if (type === "id_front") setIdFrontUrl(url);
       else if (type === "id_back") setIdBackUrl(url);
+      else if (type === "selfie") setSelfieUrl(url);
       else setAvatarUrl(url);
       toast.success("File uploaded successfully");
     } else {
@@ -105,7 +142,7 @@ const ProfileSetup = () => {
   const saveStep = async () => {
     setIsSubmitting(true);
 
-    let updates: Record<string, any> = { setup_step: currentStep + 1 };
+    let updates: Record<string, unknown> = { setup_step: currentStep + 1 };
 
     if (currentStep === 1) {
       updates = {
@@ -119,12 +156,14 @@ const ProfileSetup = () => {
     } else if (currentStep === 2) {
       updates = {
         ...updates,
+        kyc_country: formData.kyc_country,
         id_type: formData.id_type,
         id_number: formData.id_number,
         id_front_url: idFrontUrl,
         id_back_url: idBackUrl,
-        kyc_status: "submitted",
-        kyc_submitted_at: new Date().toISOString(),
+        selfie_url: selfieUrl,
+        kyc_status: idFrontUrl && selfieUrl ? "submitted" : "pending",
+        kyc_submitted_at: idFrontUrl && selfieUrl ? new Date().toISOString() : null,
       };
     } else if (currentStep === 3) {
       updates = {
@@ -171,14 +210,14 @@ const ProfileSetup = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="glass border-b border-white/10 py-4">
+      <div className="glass border-b border-border py-4">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">K</span>
+              <span className="text-primary-foreground font-bold text-lg">P</span>
             </div>
             <span className="font-bold text-xl text-foreground">
-              Kenya<span className="text-primary">Coin</span>
+              Peer<span className="text-primary">ly</span>
             </span>
           </div>
         </div>
@@ -278,7 +317,7 @@ const ProfileSetup = () => {
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                       <Input
                         name="city"
-                        placeholder="Nairobi"
+                        placeholder="Your city"
                         value={formData.city}
                         onChange={handleChange}
                         className="pl-10"
@@ -299,92 +338,113 @@ const ProfileSetup = () => {
               </div>
             )}
 
-            {/* Step 2: KYC Verification */}
+            {/* Step 2: KYC Verification with Country-Aware Form */}
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold mb-2">KYC Verification</h2>
-                  <p className="text-muted-foreground">Upload your ID for verification</p>
+                  <p className="text-muted-foreground">Verify your identity for secure trading</p>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">ID Type</label>
-                    <select
-                      name="id_type"
-                      value={formData.id_type}
-                      onChange={handleChange}
-                      className="w-full h-11 rounded-lg border border-border bg-secondary/50 px-4 text-foreground"
-                    >
-                      <option value="national_id">National ID</option>
-                      <option value="passport">Passport</option>
-                      <option value="driving_license">Driving License</option>
-                    </select>
-                  </div>
+                {/* Country-aware KYC Form */}
+                <KYCCountryForm
+                  formData={{
+                    kyc_country: formData.kyc_country,
+                    id_type: formData.id_type,
+                    id_number: formData.id_number,
+                  }}
+                  onChange={handleKYCChange}
+                />
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">ID Number</label>
-                    <Input
-                      name="id_number"
-                      placeholder="Enter your ID number"
-                      value={formData.id_number}
-                      onChange={handleChange}
-                    />
-                  </div>
+                {/* Document Uploads */}
+                <div className="space-y-4 pt-4 border-t">
+                  <label className="block text-sm font-medium">Upload Documents</label>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* ID Front */}
+                    <div>
+                      <input
+                        type="file"
+                        ref={idFrontRef}
+                        onChange={(e) => handleFileUpload(e, "id_front")}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <div
+                        onClick={() => idFrontRef.current?.click()}
+                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors ${
+                          idFrontUrl ? "border-primary bg-primary/5" : "border-border"
+                        }`}
+                      >
+                        {idFrontUrl ? (
+                          <div className="flex flex-col items-center gap-2 text-primary">
+                            <Check className="w-6 h-6" />
+                            <span className="text-xs">Front uploaded</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <FileImage className="w-6 h-6" />
+                            <span className="text-xs">ID Front</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">ID Front</label>
-                    <input
-                      type="file"
-                      ref={idFrontRef}
-                      onChange={(e) => handleFileUpload(e, "id_front")}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <div
-                      onClick={() => idFrontRef.current?.click()}
-                      className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors ${
-                        idFrontUrl ? "border-primary bg-primary/5" : "border-border"
-                      }`}
-                    >
-                      {idFrontUrl ? (
-                        <div className="flex items-center justify-center gap-2 text-primary">
-                          <Check className="w-5 h-5" />
-                          <span>Front uploaded</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                          <Upload className="w-8 h-8" />
-                          <span>Click to upload ID front</span>
-                        </div>
-                      )}
+                    {/* ID Back */}
+                    <div>
+                      <input
+                        type="file"
+                        ref={idBackRef}
+                        onChange={(e) => handleFileUpload(e, "id_back")}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <div
+                        onClick={() => idBackRef.current?.click()}
+                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors ${
+                          idBackUrl ? "border-primary bg-primary/5" : "border-border"
+                        }`}
+                      >
+                        {idBackUrl ? (
+                          <div className="flex flex-col items-center gap-2 text-primary">
+                            <Check className="w-6 h-6" />
+                            <span className="text-xs">Back uploaded</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                            <FileImage className="w-6 h-6" />
+                            <span className="text-xs">ID Back</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
+                  {/* Selfie with ID */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">ID Back</label>
                     <input
                       type="file"
-                      ref={idBackRef}
-                      onChange={(e) => handleFileUpload(e, "id_back")}
+                      ref={selfieRef}
+                      onChange={(e) => handleFileUpload(e, "selfie")}
                       accept="image/*"
                       className="hidden"
                     />
                     <div
-                      onClick={() => idBackRef.current?.click()}
+                      onClick={() => selfieRef.current?.click()}
                       className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors ${
-                        idBackUrl ? "border-primary bg-primary/5" : "border-border"
+                        selfieUrl ? "border-primary bg-primary/5" : "border-border"
                       }`}
                     >
-                      {idBackUrl ? (
-                        <div className="flex items-center justify-center gap-2 text-primary">
-                          <Check className="w-5 h-5" />
-                          <span>Back uploaded</span>
+                      {selfieUrl ? (
+                        <div className="flex flex-col items-center gap-2 text-primary">
+                          <Check className="w-8 h-8" />
+                          <span className="text-sm">Selfie uploaded</span>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                          <Upload className="w-8 h-8" />
-                          <span>Click to upload ID back</span>
+                          <Camera className="w-8 h-8" />
+                          <span className="text-sm">Selfie with ID</span>
+                          <span className="text-xs">Hold your ID next to your face</span>
                         </div>
                       )}
                     </div>
@@ -403,9 +463,9 @@ const ProfileSetup = () => {
 
                 <div className="space-y-4">
                   <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                    <h3 className="font-semibold text-primary mb-3">MPESA</h3>
+                    <h3 className="font-semibold text-primary mb-3">M-PESA</h3>
                     <div>
-                      <label className="block text-sm font-medium mb-2">MPESA Phone Number</label>
+                      <label className="block text-sm font-medium mb-2">M-PESA Phone Number</label>
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <Input
@@ -464,56 +524,68 @@ const ProfileSetup = () => {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold mb-2">Profile Picture</h2>
-                  <p className="text-muted-foreground">Add a photo to complete your profile</p>
+                  <p className="text-muted-foreground">Add a photo to personalize your profile</p>
                 </div>
 
-                <div className="flex flex-col items-center gap-6">
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="relative w-32 h-32 rounded-full bg-secondary flex items-center justify-center cursor-pointer hover:bg-secondary/70 transition-colors overflow-hidden border-4 border-primary/20"
-                  >
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <Camera className="w-10 h-10 text-muted-foreground" />
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={(e) => handleFileUpload(e, "avatar")}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    {avatarUrl ? "Change Photo" : "Upload Photo"}
-                  </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => handleFileUpload(e, "avatar")}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors ${
+                    avatarUrl ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  {avatarUrl ? (
+                    <div className="flex flex-col items-center gap-4">
+                      <img
+                        src={avatarUrl}
+                        alt="Profile"
+                        className="w-24 h-24 rounded-full object-cover"
+                      />
+                      <span className="text-primary">Click to change photo</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                      <Upload className="w-12 h-12" />
+                      <div>
+                        <p className="font-medium">Click to upload a photo</p>
+                        <p className="text-sm">JPG, PNG up to 5MB</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between mt-8 pt-6 border-t border-border">
-              {currentStep > 1 ? (
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentStep(currentStep - 1)}
-                  disabled={isSubmitting}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              ) : (
-                <div />
-              )}
-              <Button variant="hero" onClick={saveStep} disabled={isSubmitting}>
-                {isSubmitting
-                  ? "Saving..."
-                  : currentStep === 4
-                  ? "Complete Setup"
-                  : "Continue"}
-                <ArrowRight className="w-4 h-4 ml-2" />
+            <div className="flex justify-between pt-6 mt-6 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                disabled={currentStep === 1 || isSubmitting}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <Button onClick={saveStep} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-foreground" />
+                ) : currentStep === 4 ? (
+                  <>
+                    Complete Setup
+                    <Check className="w-4 h-4 ml-2" />
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
