@@ -40,6 +40,7 @@ import AdminKYC from "./pages/admin/AdminKYC";
 import { AdminTreasury } from "./pages/admin/AdminTreasury";
 import { AdminModeration } from "./pages/admin/AdminModeration";
 import AdminSecurity from "./pages/admin/AdminSecurity";
+import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
 
 const queryClient = new QueryClient();
 
@@ -179,6 +180,7 @@ const AppRoutes = () => {
         <Route path="logs" element={<AdminLogs />} />
         <Route path="treasury" element={<AdminTreasury />} />
         <Route path="moderation" element={<AdminModeration />} />
+        <Route path="payment-methods" element={<AdminPaymentMethods />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
