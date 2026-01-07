@@ -20,7 +20,8 @@ import {
   Landmark,
   UserCheck,
   FileCheck,
-  Globe
+  Globe,
+  Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,6 +41,7 @@ const navSections = [
     title: "Management",
     items: [
       { href: "/admin/users", icon: Users, label: "Users" },
+      { href: "/admin/roles", icon: Crown, label: "Role Management" },
       { href: "/admin/offers", icon: Package, label: "Offers" },
       { href: "/admin/trades", icon: ArrowRightLeft, label: "Trades" },
     ],
