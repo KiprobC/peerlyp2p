@@ -1,6 +1,9 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Globe } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import MarketplaceFilters from "@/components/marketplace/MarketplaceFilters";
 import OfferCard from "@/components/marketplace/OfferCard";
@@ -17,7 +20,7 @@ const Marketplace = () => {
   const { user } = useAuth();
   const { settings } = useSettings();
   const { profile } = useProfile();
-  const { convert, formatCurrency } = useCurrencyConversion();
+  const { convert } = useCurrencyConversion();
   const { getCountryByCode } = useCountries();
 
   // Get user's country and preferred currency
@@ -27,6 +30,9 @@ const Marketplace = () => {
   // Get country's currency code
   const countryData = userCountry ? getCountryByCode(userCountry) : null;
   const countryCurrency = countryData?.currency_code || null;
+
+  // Toggle to show all offers globally
+  const [showGlobalOffers, setShowGlobalOffers] = useState(false);
 
   const [filters, setFilters] = useState({
     type: null as "buy" | "sell" | null,
@@ -46,7 +52,7 @@ const Marketplace = () => {
   const { offers, loading } = useOffers({
     type: filters.type || undefined,
     crypto_type: filters.crypto,
-    fiat_currency: countryCurrency || undefined,
+    fiat_currency: showGlobalOffers ? undefined : (countryCurrency || undefined),
   });
 
   // Filter and sort offers based on all criteria
@@ -133,20 +139,33 @@ const Marketplace = () => {
           {/* Filters */}
           <MarketplaceFilters onFilterChange={setFilters} initialFilters={filters} />
 
-          {/* Results Info */}
-          <div className="flex items-center justify-between mb-6">
+          {/* Results Info & Global Toggle */}
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground">
                 Showing <span className="text-foreground font-medium">{filteredOffers.length}</span> offers
-                {countryCurrency && (
+                {!showGlobalOffers && countryCurrency && (
                   <span className="ml-1">in {countryCurrency}</span>
                 )}
+                {showGlobalOffers && (
+                  <span className="ml-1 text-primary">globally</span>
+                )}
               </p>
-              {preferredCurrency && preferredCurrency !== countryCurrency && (
+              {preferredCurrency && (
                 <span className="text-xs text-muted-foreground/70">
                   (prices in {preferredCurrency})
                 </span>
               )}
+            </div>
+            
+            {/* Global Offers Toggle */}
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Global</span>
+              <Switch 
+                checked={showGlobalOffers} 
+                onCheckedChange={setShowGlobalOffers}
+              />
             </div>
           </div>
 
@@ -162,6 +181,7 @@ const Marketplace = () => {
               {filteredOffers.map((offer) => {
                 // Convert price to user's preferred currency
                 const offerCurrency = offer.fiat_currency || "KES";
+                const isOutsideRegion = showGlobalOffers && countryCurrency && offerCurrency !== countryCurrency;
                 const convertedPrice = preferredCurrency !== offerCurrency 
                   ? convert(offer.price_per_unit, offerCurrency, preferredCurrency)
                   : offer.price_per_unit;
@@ -173,32 +193,42 @@ const Marketplace = () => {
                   : offer.max_amount;
 
                 return (
-                  <OfferCard
-                    key={offer.id}
-                    offer={{
-                      id: offer.id,
-                      type: offer.type,
-                      crypto: offer.crypto_type,
-                      cryptoAmount: offer.crypto_amount,
-                      fiatCurrency: preferredCurrency,
-                      price: convertedPrice,
-                      minAmount: convertedMin,
-                      maxAmount: convertedMax,
-                      paymentMethods: offer.payment_methods,
-                      trader: {
-                        name: offer.trader_name || "Anonymous",
-                        avatar: offer.trader_avatar,
-                        rating: offer.trader_rating || 0,
-                        trades: offer.trader_trades || 0,
-                        verified: offer.trader_verified || false,
-                        positiveCount: offer.trader_positive_count || 0,
-                        lastSeen: offer.trader_last_seen,
-                      },
-                      timeLimit: offer.time_limit,
-                      priceMargin: offer.price_margin,
-                    }}
-                    onAction={() => handleOfferAction(offer)}
-                  />
+                  <div key={offer.id} className="relative">
+                    {isOutsideRegion && (
+                      <Badge 
+                        variant="outline" 
+                        className="absolute -top-2 -right-2 z-10 text-[10px] bg-background border-amber-500/50 text-amber-500"
+                      >
+                        <Globe className="w-2.5 h-2.5 mr-1" />
+                        {offerCurrency}
+                      </Badge>
+                    )}
+                    <OfferCard
+                      offer={{
+                        id: offer.id,
+                        type: offer.type,
+                        crypto: offer.crypto_type,
+                        cryptoAmount: offer.crypto_amount,
+                        fiatCurrency: preferredCurrency,
+                        price: convertedPrice,
+                        minAmount: convertedMin,
+                        maxAmount: convertedMax,
+                        paymentMethods: offer.payment_methods,
+                        trader: {
+                          name: offer.trader_name || "Anonymous",
+                          avatar: offer.trader_avatar,
+                          rating: offer.trader_rating || 0,
+                          trades: offer.trader_trades || 0,
+                          verified: offer.trader_verified || false,
+                          positiveCount: offer.trader_positive_count || 0,
+                          lastSeen: offer.trader_last_seen,
+                        },
+                        timeLimit: offer.time_limit,
+                        priceMargin: offer.price_margin,
+                      }}
+                      onAction={() => handleOfferAction(offer)}
+                    />
+                  </div>
                 );
               })}
             </div>
