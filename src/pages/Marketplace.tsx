@@ -9,9 +9,25 @@ import InitiateTradeDialog from "@/components/marketplace/InitiateTradeDialog";
 import { useOffers, OfferWithProfile } from "@/hooks/useOffers";
 import { useAuth } from "@/contexts/AuthContext";
 import { isUserOnline } from "@/hooks/useOnlineStatus";
+import { useSettings } from "@/hooks/useSettings";
+import { useProfile } from "@/hooks/useProfile";
+import { useCurrencyConversion, useCountries } from "@/hooks/useCountries";
 
 const Marketplace = () => {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const { profile } = useProfile();
+  const { convert, formatCurrency } = useCurrencyConversion();
+  const { getCountryByCode } = useCountries();
+
+  // Get user's country and preferred currency
+  const userCountry = profile?.country || profile?.kyc_country || null;
+  const preferredCurrency = settings?.preferred_currency || "USD";
+  
+  // Get country's currency code
+  const countryData = userCountry ? getCountryByCode(userCountry) : null;
+  const countryCurrency = countryData?.currency_code || null;
+
   const [filters, setFilters] = useState({
     type: null as "buy" | "sell" | null,
     crypto: "All",
@@ -30,6 +46,7 @@ const Marketplace = () => {
   const { offers, loading } = useOffers({
     type: filters.type || undefined,
     crypto_type: filters.crypto,
+    fiat_currency: countryCurrency || undefined,
   });
 
   // Filter and sort offers based on all criteria
@@ -118,9 +135,19 @@ const Marketplace = () => {
 
           {/* Results Info */}
           <div className="flex items-center justify-between mb-6">
-            <p className="text-sm text-muted-foreground">
-              Showing <span className="text-foreground font-medium">{filteredOffers.length}</span> offers
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                Showing <span className="text-foreground font-medium">{filteredOffers.length}</span> offers
+                {countryCurrency && (
+                  <span className="ml-1">in {countryCurrency}</span>
+                )}
+              </p>
+              {preferredCurrency && preferredCurrency !== countryCurrency && (
+                <span className="text-xs text-muted-foreground/70">
+                  (prices in {preferredCurrency})
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Offers Grid */}
@@ -132,34 +159,48 @@ const Marketplace = () => {
             </div>
           ) : filteredOffers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredOffers.map((offer) => (
-                <OfferCard
-                  key={offer.id}
-                  offer={{
-                    id: offer.id,
-                    type: offer.type,
-                    crypto: offer.crypto_type,
-                    cryptoAmount: offer.crypto_amount,
-                    fiatCurrency: offer.fiat_currency,
-                    price: offer.price_per_unit,
-                    minAmount: offer.min_amount,
-                    maxAmount: offer.max_amount,
-                    paymentMethods: offer.payment_methods,
-                    trader: {
-                      name: offer.trader_name || "Anonymous",
-                      avatar: offer.trader_avatar,
-                      rating: offer.trader_rating || 0,
-                      trades: offer.trader_trades || 0,
-                      verified: offer.trader_verified || false,
-                      positiveCount: offer.trader_positive_count || 0,
-                      lastSeen: offer.trader_last_seen,
-                    },
-                    timeLimit: offer.time_limit,
-                    priceMargin: offer.price_margin,
-                  }}
-                  onAction={() => handleOfferAction(offer)}
-                />
-              ))}
+              {filteredOffers.map((offer) => {
+                // Convert price to user's preferred currency
+                const offerCurrency = offer.fiat_currency || "KES";
+                const convertedPrice = preferredCurrency !== offerCurrency 
+                  ? convert(offer.price_per_unit, offerCurrency, preferredCurrency)
+                  : offer.price_per_unit;
+                const convertedMin = preferredCurrency !== offerCurrency
+                  ? convert(offer.min_amount, offerCurrency, preferredCurrency)
+                  : offer.min_amount;
+                const convertedMax = preferredCurrency !== offerCurrency
+                  ? convert(offer.max_amount, offerCurrency, preferredCurrency)
+                  : offer.max_amount;
+
+                return (
+                  <OfferCard
+                    key={offer.id}
+                    offer={{
+                      id: offer.id,
+                      type: offer.type,
+                      crypto: offer.crypto_type,
+                      cryptoAmount: offer.crypto_amount,
+                      fiatCurrency: preferredCurrency,
+                      price: convertedPrice,
+                      minAmount: convertedMin,
+                      maxAmount: convertedMax,
+                      paymentMethods: offer.payment_methods,
+                      trader: {
+                        name: offer.trader_name || "Anonymous",
+                        avatar: offer.trader_avatar,
+                        rating: offer.trader_rating || 0,
+                        trades: offer.trader_trades || 0,
+                        verified: offer.trader_verified || false,
+                        positiveCount: offer.trader_positive_count || 0,
+                        lastSeen: offer.trader_last_seen,
+                      },
+                      timeLimit: offer.time_limit,
+                      priceMargin: offer.price_margin,
+                    }}
+                    onAction={() => handleOfferAction(offer)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-16">

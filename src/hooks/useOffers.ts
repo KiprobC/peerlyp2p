@@ -36,6 +36,7 @@ export interface OfferFilters {
   type?: "buy" | "sell";
   crypto_type?: string;
   payment_method?: string;
+  fiat_currency?: string;
   min_amount?: number;
   max_amount?: number;
   minRating?: number;
@@ -61,6 +62,9 @@ export const useOffers = (filters?: OfferFilters) => {
       }
       if (filters?.crypto_type && filters.crypto_type !== "All") {
         query = query.eq("crypto_type", filters.crypto_type);
+      }
+      if (filters?.fiat_currency) {
+        query = query.eq("fiat_currency", filters.fiat_currency);
       }
 
       const { data, error } = await query;
@@ -134,7 +138,7 @@ export const useOffers = (filters?: OfferFilters) => {
 
   useEffect(() => {
     fetchOffers();
-  }, [filters?.type, filters?.crypto_type, filters?.payment_method]);
+  }, [filters?.type, filters?.crypto_type, filters?.payment_method, filters?.fiat_currency]);
 
   return { offers, loading, refetch: fetchOffers };
 };
