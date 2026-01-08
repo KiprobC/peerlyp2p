@@ -13,13 +13,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Star, AlertTriangle } from "lucide-react";
+import { Shield, Star, AlertTriangle, Globe } from "lucide-react";
 import { useTrades } from "@/hooks/useTrades";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,9 +40,11 @@ interface InitiateTradeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   offer: OfferWithProfile | null;
+  isOutsideRegion?: boolean;
+  userCurrency?: string | null;
 }
 
-const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogProps) => {
+const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userCurrency }: InitiateTradeDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { createTrade, updateTrade } = useTrades();
@@ -40,6 +52,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogP
   const [loading, setLoading] = useState(false);
   const [fiatAmount, setFiatAmount] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
+  const [showRegionWarning, setShowRegionWarning] = useState(false);
 
   if (!offer) return null;
 
@@ -225,10 +238,29 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogP
               </p>
             </div>
 
+            {/* Cross-Region Warning Banner */}
+            {isOutsideRegion && (
+              <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm">
+                <Globe className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-amber-500">Cross-region offer</p>
+                  <p className="text-muted-foreground">
+                    This offer uses {offer.fiat_currency || "a different currency"} payment methods which may differ from your region ({userCurrency || "your currency"}).
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Action Button */}
             <Button
               className="w-full"
-              onClick={handleTrade}
+              onClick={() => {
+                if (isOutsideRegion) {
+                  setShowRegionWarning(true);
+                } else {
+                  handleTrade();
+                }
+              }}
               disabled={loading || !isValidAmount || !selectedPayment}
             >
               {loading ? "Processing..." : `${isBuyOffer ? "Sell" : "Buy"} ${offer.crypto_type}`}
@@ -236,6 +268,46 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer }: InitiateTradeDialogP
           </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* Cross-Region Warning Dialog */}
+      <AlertDialog open={showRegionWarning} onOpenChange={setShowRegionWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-amber-500" />
+              Cross-Region Trade Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                You're about to trade with an offer from a <strong>different region</strong> ({offer.fiat_currency}).
+              </p>
+              <div className="bg-secondary/50 p-3 rounded-lg space-y-2 text-sm">
+                <p className="font-medium text-foreground">Please be aware:</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>Payment methods may not be available in your region</li>
+                  <li>Currency conversion fees may apply from your bank</li>
+                  <li>International transfers may take longer to process</li>
+                  <li>The trader may have different banking hours</li>
+                </ul>
+              </div>
+              <p className="text-sm">
+                Are you sure you want to proceed with this cross-region trade?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowRegionWarning(false);
+                handleTrade();
+              }}
+            >
+              Proceed with Trade
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

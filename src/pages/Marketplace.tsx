@@ -258,6 +258,8 @@ const Marketplace = () => {
         open={tradeDialogOpen} 
         onOpenChange={setTradeDialogOpen} 
         offer={selectedOffer}
+        isOutsideRegion={showGlobalOffers && countryCurrency && selectedOffer?.fiat_currency !== countryCurrency}
+        userCurrency={countryCurrency}
       />
     </div>
   );
