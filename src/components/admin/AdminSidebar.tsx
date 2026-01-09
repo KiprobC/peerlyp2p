@@ -16,12 +16,12 @@ import {
   Percent,
   Lock,
   Menu,
-  X,
   Landmark,
   UserCheck,
   FileCheck,
   Globe,
-  Crown
+  Crown,
+  MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,6 +59,7 @@ const navSections = [
   {
     title: "Support",
     items: [
+      { href: "/admin/support", icon: MessageCircle, label: "Support Chat" },
       { href: "/admin/disputes", icon: AlertTriangle, label: "Disputes" },
       { href: "/admin/moderation", icon: UserCheck, label: "Moderation" },
       { href: "/admin/payment-methods", icon: Globe, label: "Payment Methods" },
