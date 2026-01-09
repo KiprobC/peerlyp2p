@@ -4,6 +4,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Globe } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Navbar from "@/components/layout/Navbar";
 import MarketplaceFilters from "@/components/marketplace/MarketplaceFilters";
 import OfferCard from "@/components/marketplace/OfferCard";
@@ -21,7 +28,7 @@ const Marketplace = () => {
   const { settings } = useSettings();
   const { profile } = useProfile();
   const { convert } = useCurrencyConversion();
-  const { getCountryByCode } = useCountries();
+  const { countries, getCountryByCode } = useCountries();
 
   // Get user's country and preferred currency
   const userCountry = profile?.country || profile?.kyc_country || null;
@@ -33,6 +40,22 @@ const Marketplace = () => {
 
   // Toggle to show all offers globally
   const [showGlobalOffers, setShowGlobalOffers] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
+
+  // Get unique currencies from countries for the dropdown
+  const regionOptions = useMemo(() => {
+    const uniqueCurrencies = new Map<string, { code: string; name: string; flag: string | null }>();
+    countries.forEach((c) => {
+      if (!uniqueCurrencies.has(c.currency_code)) {
+        uniqueCurrencies.set(c.currency_code, {
+          code: c.currency_code,
+          name: c.name,
+          flag: c.flag_emoji,
+        });
+      }
+    });
+    return Array.from(uniqueCurrencies.values());
+  }, [countries]);
 
   const [filters, setFilters] = useState({
     type: null as "buy" | "sell" | null,
@@ -49,10 +72,21 @@ const Marketplace = () => {
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<OfferWithProfile | null>(null);
 
+  // Determine fiat currency filter
+  const fiatCurrencyFilter = useMemo(() => {
+    if (!showGlobalOffers) {
+      return countryCurrency || undefined;
+    }
+    if (selectedRegion !== "all") {
+      return selectedRegion;
+    }
+    return undefined;
+  }, [showGlobalOffers, selectedRegion, countryCurrency]);
+
   const { offers, loading } = useOffers({
     type: filters.type || undefined,
     crypto_type: filters.crypto,
-    fiat_currency: showGlobalOffers ? undefined : (countryCurrency || undefined),
+    fiat_currency: fiatCurrencyFilter,
   });
 
   // Filter and sort offers based on all criteria
@@ -159,13 +193,36 @@ const Marketplace = () => {
             </div>
             
             {/* Global Offers Toggle */}
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Global</span>
-              <Switch 
-                checked={showGlobalOffers} 
-                onCheckedChange={setShowGlobalOffers}
-              />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Global</span>
+                <Switch 
+                  checked={showGlobalOffers} 
+                  onCheckedChange={(checked) => {
+                    setShowGlobalOffers(checked);
+                    if (!checked) setSelectedRegion("all");
+                  }}
+                />
+              </div>
+              
+              {/* Region Filter - only visible when Global is enabled */}
+              {showGlobalOffers && (
+                <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                  <SelectTrigger className="w-[160px] h-8 text-xs">
+                    <SelectValue placeholder="All Regions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Regions</SelectItem>
+                    {regionOptions.map((region) => (
+                      <SelectItem key={region.code} value={region.code}>
+                        {region.flag && <span className="mr-1">{region.flag}</span>}
+                        {region.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 
