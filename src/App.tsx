@@ -42,6 +42,7 @@ import { AdminModeration } from "./pages/admin/AdminModeration";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
 import { AdminRoles } from "./pages/admin/AdminRoles";
+import AdminSupport from "./pages/admin/AdminSupport";
 import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
@@ -186,6 +187,7 @@ const AppRoutes = () => {
         <Route path="moderation" element={<AdminModeration />} />
         <Route path="payment-methods" element={<AdminPaymentMethods />} />
         <Route path="roles" element={<AdminRoles />} />
+        <Route path="support" element={<AdminSupport />} />
       </Route>
       <Route path="/moderator" element={<ModeratorLayout />}>
         <Route index element={<ModeratorDashboard />} />

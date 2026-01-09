@@ -1,9 +1,11 @@
+import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowRight, Shield, Clock, Smartphone, HelpCircle } from "lucide-react";
+import SupportChatDialog from "@/components/support/SupportChatDialog";
 
 const faqs = [
   {
@@ -29,6 +31,8 @@ const faqs = [
 ];
 
 const HowItWorks = () => {
+  const [supportOpen, setSupportOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -139,7 +143,7 @@ const HowItWorks = () => {
 
             <div className="text-center mt-12">
               <p className="text-muted-foreground mb-4">Still have questions?</p>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setSupportOpen(true)}>
                 Contact Support
               </Button>
             </div>
@@ -147,6 +151,7 @@ const HowItWorks = () => {
         </section>
       </main>
       <Footer />
+      <SupportChatDialog open={supportOpen} onOpenChange={setSupportOpen} />
     </div>
   );
 };
