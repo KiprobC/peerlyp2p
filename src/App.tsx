@@ -24,6 +24,10 @@ import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import KYCUpload from "./pages/KYCUpload";
 import MyOffers from "./pages/MyOffers";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import WalletDeposit from "./pages/WalletDeposit";
+import WalletWithdraw from "./pages/WalletWithdraw";
 import { AdminLayout } from "./pages/admin/AdminLayout";
 import { AdminOverview } from "./pages/admin/AdminOverview";
 import { AdminUsers } from "./pages/admin/AdminUsers";
@@ -32,7 +36,8 @@ import { AdminAnalytics } from "./pages/admin/AdminAnalytics";
 import { AdminTrades } from "./pages/admin/AdminTrades";
 import { AdminOffers } from "./pages/admin/AdminOffers";
 import { AdminWallets, AdminTransactions } from "./pages/admin/AdminWallets";
-import { AdminSettings, AdminLogs } from "./pages/admin/AdminPlaceholders";
+import { AdminSettings } from "./pages/admin/AdminSettings";
+import { AdminLogs } from "./pages/admin/AdminLogs";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import { AdminFees } from "./pages/admin/AdminFees";
 import { AdminEscrow } from "./pages/admin/AdminEscrow";
@@ -79,6 +84,24 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route
+        path="/wallet/deposit"
+        element={
+          <ProtectedRoute>
+            <WalletDeposit />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wallet/withdraw"
+        element={
+          <ProtectedRoute>
+            <WalletWithdraw />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/profile-setup"
         element={
