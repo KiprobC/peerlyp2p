@@ -54,6 +54,11 @@ const MyOffers = () => {
     );
   };
 
+  // Check if offer has any trades (for deletion restriction)
+  const hasAnyTrades = (offerId: string) => {
+    return trades.some((t) => t.offer_id === offerId);
+  };
+
   const getOfferStatus = (offer: Offer) => {
     if (hasActiveTrades(offer.id)) {
       return { label: "In Trade", variant: "secondary" as const, color: "text-blue-500" };
@@ -118,11 +123,16 @@ const MyOffers = () => {
     const { error } = await deleteOffer(deleteConfirmOffer.id);
     setDeleting(false);
     if (error) {
-      toast.error("Failed to delete offer");
+      // Check if it's a foreign key constraint error (offer has trade history)
+      if (error.message?.includes("foreign key") || error.code === "23503") {
+        toast.error("Cannot delete offer with trade history. Deactivate it instead.");
+      } else {
+        toast.error(error.message || "Failed to delete offer");
+      }
     } else {
       toast.success("Offer deleted");
-      setDeleteConfirmOffer(null);
     }
+    setDeleteConfirmOffer(null);
   };
 
   const filteredOffers = offers.filter(
@@ -383,14 +393,33 @@ const MyOffers = () => {
               Delete Offer
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this offer? This action cannot be undone.
+              {deleteConfirmOffer && hasAnyTrades(deleteConfirmOffer.id) ? (
+                <span className="text-amber-500">
+                  This offer has trade history and cannot be deleted. You can deactivate it instead to hide it from the marketplace.
+                </span>
+              ) : (
+                "Are you sure you want to delete this offer? This action cannot be undone."
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirmOffer(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Deleting..." : "Delete Offer"}
-            </Button>
+            {deleteConfirmOffer && hasAnyTrades(deleteConfirmOffer.id) ? (
+              <Button 
+                variant="secondary" 
+                onClick={async () => {
+                  await updateOffer(deleteConfirmOffer.id, { is_active: false });
+                  toast.success("Offer deactivated");
+                  setDeleteConfirmOffer(null);
+                }}
+              >
+                Deactivate Instead
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete Offer"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
