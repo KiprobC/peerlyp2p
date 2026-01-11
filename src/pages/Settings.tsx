@@ -315,7 +315,7 @@ const Settings = () => {
               iconColor="#6366f1"
               label="Profile"
               subtitle={profile?.username ? `@${profile.username}` : "Edit your profile"}
-              onClick={() => navigate("/edit-profile")}
+              onClick={() => navigate("/profile/edit")}
             />
             <SettingsItem
               icon={Shield}
@@ -386,7 +386,7 @@ const Settings = () => {
               iconColor={getKYCStatusColor()}
               label="KYC & Verification"
               subtitle={getKYCStatusText()}
-              onClick={() => navigate("/kyc")}
+              onClick={() => navigate("/profile/kyc")}
             />
           </SettingsSection>
 

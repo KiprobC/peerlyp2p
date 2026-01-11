@@ -72,7 +72,8 @@ export const OTPVerificationDialog = ({
     if (open && !codeSent && !otpLoading) {
       requestCode(actionType);
     }
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, actionType]);
 
   // Reset state when dialog closes
   useEffect(() => {
