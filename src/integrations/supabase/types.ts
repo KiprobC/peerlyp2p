@@ -1269,6 +1269,22 @@ export type Database = {
         }
         Returns: string
       }
+      create_sell_offer_with_reservation: {
+        Args: {
+          p_crypto_amount: number
+          p_crypto_type: string
+          p_fiat_currency: string
+          p_max_amount: number
+          p_min_amount: number
+          p_payment_methods: string[]
+          p_price_margin: number
+          p_price_per_unit: number
+          p_terms: string
+          p_time_limit: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       credit_buyer_wallet: {
         Args: { p_amount: number; p_wallet_id: string }
         Returns: undefined
