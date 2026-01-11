@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Copy, CheckCircle, AlertTriangle, QrCode, Wallet, Loader2 } from "lucide-react";
+import { ArrowLeft, Copy, CheckCircle, AlertTriangle, Wallet, Loader2 } from "lucide-react";
 import { useWallets, cryptoInfo } from "@/hooks/useWallets";
 import { useDepositAddresses } from "@/hooks/useDepositAddresses";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const NETWORK_INFO: Record<string, { name: string; confirmations: number; time: string }> = {
@@ -151,13 +152,24 @@ const WalletDeposit = () => {
               <CardDescription>{networkInfo?.name}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* QR Code Placeholder */}
+              {/* QR Code */}
               <div className="flex justify-center p-6 bg-white rounded-lg">
-                <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                <div className="w-44 h-44 flex items-center justify-center">
                   {generatingAddress ? (
                     <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                  ) : currentAddress ? (
+                    <QRCodeSVG 
+                      value={currentAddress}
+                      size={160}
+                      level="H"
+                      includeMargin={true}
+                      fgColor="#000000"
+                      bgColor="#ffffff"
+                    />
                   ) : (
-                    <QrCode className="w-16 h-16 text-gray-400" />
+                    <div className="w-40 h-40 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-400 text-sm">No address</span>
+                    </div>
                   )}
                 </div>
               </div>
