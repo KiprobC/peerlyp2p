@@ -90,7 +90,7 @@ export const Step2Cryptocurrency = ({ formData, updateFormData, onNext, onBack }
             type="button"
             variant="ghost"
             size="sm"
-            onClick={refetchPrices}
+            onClick={() => refetchPrices()}
             disabled={pricesLoading}
             className="h-7 px-2"
           >
