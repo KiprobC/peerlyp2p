@@ -5,19 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, AlertTriangle, Loader2, Wallet, ExternalLink } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Loader2, Wallet, ExternalLink, Mail, Shield } from "lucide-react";
 import { useWallets, cryptoInfo } from "@/hooks/useWallets";
 import { usePlatformFees } from "@/hooks/usePlatformFees";
+import { useMFA } from "@/hooks/useMFA";
+import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { toast } from "sonner";
 
 const WalletWithdraw = () => {
   const navigate = useNavigate();
   const { wallets, loading } = useWallets();
   const { calculateFee } = usePlatformFees();
+  const { isEnabled: mfaEnabled } = useMFA();
   const [selectedCrypto, setSelectedCrypto] = useState("BTC");
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOTPVerify, setShowOTPVerify] = useState(false);
 
   const selectedInfo = cryptoInfo[selectedCrypto];
   const selectedWallet = wallets.find(w => w.crypto_type === selectedCrypto);
@@ -31,9 +35,13 @@ const WalletWithdraw = () => {
   const isValidAmount = parsedAmount > 0 && totalDeduction <= availableBalance;
   const isValidAddress = address.length > 20;
 
-  const handleWithdraw = async () => {
+  const handleWithdrawClick = () => {
     if (!isValidAmount || !isValidAddress) return;
+    // Always require OTP verification for withdrawals
+    setShowOTPVerify(true);
+  };
 
+  const executeWithdraw = async () => {
     setIsSubmitting(true);
     
     // Simulate withdrawal processing
@@ -45,6 +53,11 @@ const WalletWithdraw = () => {
     
     setIsSubmitting(false);
     navigate("/dashboard");
+  };
+
+  const handleOTPVerified = () => {
+    setShowOTPVerify(false);
+    executeWithdraw();
   };
 
   const handleMaxAmount = () => {
@@ -214,9 +227,20 @@ const WalletWithdraw = () => {
                 </div>
               </div>
 
+              <div className="flex items-start gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-primary">Security verification required</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    You'll receive a verification code to confirm this withdrawal.
+                    {mfaEnabled && " Your authenticator app will also be required."}
+                  </p>
+                </div>
+              </div>
+
               <Button 
                 className="w-full" 
-                onClick={handleWithdraw}
+                onClick={handleWithdrawClick}
                 disabled={!isValidAmount || !isValidAddress || isSubmitting}
               >
                 {isSubmitting ? (
@@ -239,6 +263,18 @@ const WalletWithdraw = () => {
           </p>
         </div>
       </main>
+
+      {/* OTP Verification Dialog - with optional MFA */}
+      <OTPVerificationDialog
+        open={showOTPVerify}
+        onOpenChange={setShowOTPVerify}
+        onVerified={handleOTPVerified}
+        actionType="crypto_withdraw"
+        title="Verify Withdrawal"
+        description={`Confirm withdrawal of ${parsedAmount} ${selectedCrypto} to external wallet`}
+        actionLabel="Confirm Withdrawal"
+        requireMFA={mfaEnabled}
+      />
     </div>
   );
 };
