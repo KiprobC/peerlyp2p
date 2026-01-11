@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, ArrowLeft, Check, Clock, Camera, FileText, AlertTriangle } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Clock, Camera, FileText, AlertTriangle, Globe } from "lucide-react";
 import { StepProps } from "../types";
-import { usePaymentMethods } from "@/hooks/useCountries";
-import { useProfile } from "@/hooks/useProfile";
+import { usePaymentMethodsForCountries, useCountries } from "@/hooks/useCountries";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -28,12 +27,29 @@ const TIME_OPTIONS = [
 ];
 
 export const Step4PaymentMethods = ({ formData, updateFormData, onNext, onBack }: StepProps) => {
-  const { profile } = useProfile();
-  const userCountry = profile?.country || profile?.kyc_country;
+  const { countries } = useCountries();
   
-  // Get payment methods for user's country or first target country
-  const targetCountry = formData.target_countries[0] || userCountry || "";
-  const { paymentMethods, loading: methodsLoading } = usePaymentMethods(targetCountry);
+  // Get payment methods for all selected target countries
+  const { paymentMethods, loading: methodsLoading } = usePaymentMethodsForCountries(
+    formData.visibility === "global" ? [] : formData.target_countries
+  );
+
+  // Group payment methods by country
+  const groupedMethods = paymentMethods.reduce((acc, method) => {
+    const key = method.countryCode;
+    if (!acc[key]) {
+      acc[key] = {
+        countryCode: method.countryCode,
+        countryName: method.countryName,
+        methods: []
+      };
+    }
+    // Avoid duplicates by checking if method already exists
+    if (!acc[key].methods.find(m => m.name === method.name)) {
+      acc[key].methods.push(method);
+    }
+    return acc;
+  }, {} as Record<string, { countryCode: string; countryName: string; methods: typeof paymentMethods }>);
 
   const toggleMethod = (methodName: string) => {
     const current = formData.payment_methods;
@@ -53,6 +69,11 @@ export const Step4PaymentMethods = ({ formData, updateFormData, onNext, onBack }
     }
   };
 
+  const getCountryFlag = (code: string) => {
+    const country = countries.find(c => c.code === code);
+    return country?.flag_emoji || "🌍";
+  };
+
   const canProceed = formData.payment_methods.length > 0;
 
   return (
@@ -65,19 +86,26 @@ export const Step4PaymentMethods = ({ formData, updateFormData, onNext, onBack }
       </div>
 
       {/* Payment Methods Selection */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Label className="text-sm font-medium">
           Accepted Payment Methods
           <span className="text-destructive ml-1">*</span>
         </Label>
         
         {methodsLoading ? (
-          <div className="grid grid-cols-2 gap-2">
-            {[1, 2, 3, 4].map(i => (
-              <Skeleton key={i} className="h-20 rounded-xl" />
+          <div className="space-y-4">
+            {[1, 2].map(i => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2, 3, 4].map(j => (
+                    <Skeleton key={j} className="h-20 rounded-xl" />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
-        ) : paymentMethods.length === 0 ? (
+        ) : Object.keys(groupedMethods).length === 0 ? (
           <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
             <div>
@@ -88,41 +116,61 @@ export const Step4PaymentMethods = ({ formData, updateFormData, onNext, onBack }
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {paymentMethods.map((method) => {
-              const isSelected = formData.payment_methods.includes(method.name);
-              
-              return (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => toggleMethod(method.name)}
-                  className={cn(
-                    "p-4 rounded-xl border-2 transition-all text-left relative",
-                    "hover:scale-[1.02] active:scale-[0.98]",
-                    isSelected
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:border-muted-foreground/30"
+          <div className="space-y-6">
+            {Object.values(groupedMethods).map(({ countryCode, countryName, methods }) => (
+              <div key={countryCode} className="space-y-3">
+                {/* Country Header */}
+                <div className="flex items-center gap-2 pb-2 border-b border-border">
+                  {countryCode === "GLOBAL" ? (
+                    <Globe className="w-5 h-5 text-primary" />
+                  ) : (
+                    <span className="text-lg">{getCountryFlag(countryCode)}</span>
                   )}
-                >
-                  {isSelected && (
-                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="w-3 h-3 text-primary-foreground" />
-                    </div>
-                  )}
-                  <p className="font-medium text-sm">{method.display_name}</p>
-                  {method.description && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                      {method.description}
-                    </p>
-                  )}
-                </button>
-              );
-            })}
+                  <h3 className="font-semibold text-sm">{countryName}</h3>
+                  <span className="text-xs text-muted-foreground">
+                    ({methods.length} method{methods.length !== 1 ? "s" : ""})
+                  </span>
+                </div>
+                
+                {/* Payment Methods Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  {methods.map((method) => {
+                    const isSelected = formData.payment_methods.includes(method.name);
+                    
+                    return (
+                      <button
+                        key={`${method.id}-${countryCode}`}
+                        type="button"
+                        onClick={() => toggleMethod(method.name)}
+                        className={cn(
+                          "p-4 rounded-xl border-2 transition-all text-left relative",
+                          "hover:scale-[1.02] active:scale-[0.98]",
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-card hover:border-muted-foreground/30"
+                        )}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-3 h-3 text-primary-foreground" />
+                          </div>
+                        )}
+                        <p className="font-medium text-sm">{method.display_name}</p>
+                        {method.description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {method.description}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {formData.payment_methods.length === 0 && !methodsLoading && paymentMethods.length > 0 && (
+        {formData.payment_methods.length === 0 && !methodsLoading && Object.keys(groupedMethods).length > 0 && (
           <p className="text-sm text-destructive flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
             Select at least one payment method

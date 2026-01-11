@@ -148,6 +148,110 @@ export const usePaymentMethods = (countryCode?: string) => {
   return { paymentMethods, loading, refetch: fetchPaymentMethods };
 };
 
+export interface PaymentMethodWithCountry extends PaymentMethod {
+  countryCode: string;
+  countryName: string;
+}
+
+export const usePaymentMethodsForCountries = (countryCodes: string[]) => {
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodWithCountry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPaymentMethods = useCallback(async () => {
+    if (countryCodes.length === 0) {
+      // If no countries selected, fetch all available payment methods
+      try {
+        const { data, error } = await supabase
+          .from("payment_methods")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_name");
+
+        if (error) throw error;
+        
+        const methods: PaymentMethodWithCountry[] = (data || []).map(pm => ({
+          ...pm,
+          countryCode: "GLOBAL",
+          countryName: "Global"
+        }));
+        setPaymentMethods(methods);
+      } catch (error) {
+        console.error("Error fetching payment methods:", error);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    try {
+      // Fetch countries by codes
+      const { data: countriesData, error: countriesError } = await supabase
+        .from("countries")
+        .select("id, code, name")
+        .in("code", countryCodes);
+
+      if (countriesError) throw countriesError;
+
+      if (!countriesData || countriesData.length === 0) {
+        setPaymentMethods([]);
+        setLoading(false);
+        return;
+      }
+
+      const countryIds = countriesData.map(c => c.id);
+      const countryMap = new Map(countriesData.map(c => [c.id, { code: c.code, name: c.name }]));
+
+      // Fetch payment methods for all countries
+      const { data, error } = await supabase
+        .from("country_payment_methods")
+        .select(`
+          id,
+          country_id,
+          payment_method_id,
+          is_active,
+          priority,
+          payment_methods (*)
+        `)
+        .in("country_id", countryIds)
+        .eq("is_active", true)
+        .order("priority");
+
+      if (error) throw error;
+
+      // Map with country info and deduplicate
+      const methodsMap = new Map<string, PaymentMethodWithCountry>();
+      
+      (data as unknown as CountryPaymentMethod[])?.forEach((cpm) => {
+        if (cpm.payment_methods) {
+          const countryInfo = countryMap.get(cpm.country_id);
+          const key = `${cpm.payment_methods.id}-${cpm.country_id}`;
+          
+          if (!methodsMap.has(key)) {
+            methodsMap.set(key, {
+              ...cpm.payment_methods,
+              countryCode: countryInfo?.code || "",
+              countryName: countryInfo?.name || ""
+            });
+          }
+        }
+      });
+
+      setPaymentMethods(Array.from(methodsMap.values()));
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [countryCodes.join(",")]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchPaymentMethods();
+  }, [fetchPaymentMethods]);
+
+  return { paymentMethods, loading, refetch: fetchPaymentMethods };
+};
+
 export const useCurrencyConversion = () => {
   const convert = useCallback(
     (amount: number, fromCurrency: string, toCurrency: string): number => {
