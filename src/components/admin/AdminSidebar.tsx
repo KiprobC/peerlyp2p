@@ -51,6 +51,7 @@ const navSections = [
     items: [
       { href: "/admin/wallets", icon: Wallet, label: "Wallets" },
       { href: "/admin/transactions", icon: Receipt, label: "Transactions" },
+      { href: "/admin/deposits", icon: Wallet, label: "Deposit Addresses" },
       { href: "/admin/fees", icon: Percent, label: "Fee Management" },
       { href: "/admin/escrow", icon: Lock, label: "Escrow Management" },
       { href: "/admin/treasury", icon: Landmark, label: "Treasury" },
