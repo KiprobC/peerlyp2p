@@ -42,6 +42,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useMFA } from "@/hooks/useMFA";
 import { MFAEnrollDialog } from "@/components/mfa/MFAEnrollDialog";
 import { MFAVerifyDialog } from "@/components/mfa/MFAVerifyDialog";
+import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { SettingsItem, SettingsSection } from "@/components/settings/SettingsItem";
 import SupportChatDialog from "@/components/support/SupportChatDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +82,12 @@ const Settings = () => {
   // Disable MFA verification state
   const [disableMFAPassword, setDisableMFAPassword] = useState("");
 
+  // OTP verification states
+  const [showOTPForPassword, setShowOTPForPassword] = useState(false);
+  const [showOTPForDisable2FA, setShowOTPForDisable2FA] = useState(false);
+  const [showOTPForEnable2FA, setShowOTPForEnable2FA] = useState(false);
+  const [showOTPForDelete, setShowOTPForDelete] = useState(false);
+
   const handleToggle = async (key: string, value: boolean) => {
     await updateSettings({ [key]: value });
   };
@@ -109,7 +116,7 @@ const Settings = () => {
     }
   }, [settings?.theme]);
 
-  const handleDeleteAccount = async () => {
+  const executeDeleteAccount = async () => {
     setIsDeleting(true);
     try {
       await signOut();
@@ -135,12 +142,20 @@ const Settings = () => {
       return;
     }
 
+    // Always require OTP verification for password changes
+    setShowPasswordDialog(false);
+    setShowOTPForPassword(true);
+  };
+
+  const handlePasswordOTPVerified = async () => {
+    setShowOTPForPassword(false);
+    
+    // If MFA is enabled, also require MFA verification
     if (isEnabled) {
       setShowMFAVerifyForPassword(true);
-      return;
+    } else {
+      await executePasswordChange();
     }
-
-    await executePasswordChange();
   };
 
   const executePasswordChange = async () => {
@@ -168,7 +183,37 @@ const Settings = () => {
       toast.error("Please enter your password to disable 2FA");
       return;
     }
+    // Require OTP verification first
+    setShowDisableMFADialog(false);
+    setShowOTPForDisable2FA(true);
+  };
+
+  const handleDisable2FAOTPVerified = async () => {
+    setShowOTPForDisable2FA(false);
+    // Now require the existing 2FA code
     setShowMFAVerifyForDisable(true);
+  };
+
+  const handleEnable2FA = () => {
+    setShowSecurityDialog(false);
+    // Require OTP verification before enabling 2FA
+    setShowOTPForEnable2FA(true);
+  };
+
+  const handleEnable2FAOTPVerified = () => {
+    setShowOTPForEnable2FA(false);
+    setShowEnrollDialog(true);
+  };
+
+  const handleDeleteAccount = async () => {
+    // Require OTP verification before deleting account
+    setShowDeleteDialog(false);
+    setShowOTPForDelete(true);
+  };
+
+  const handleDeleteOTPVerified = async () => {
+    setShowOTPForDelete(false);
+    await executeDeleteAccount();
   };
 
   const executeDisableMFA = async () => {
@@ -477,10 +522,7 @@ const Settings = () => {
               ) : (
                 <Button 
                   className="w-full"
-                  onClick={() => {
-                    setShowSecurityDialog(false);
-                    setShowEnrollDialog(true);
-                  }}
+                  onClick={handleEnable2FA}
                 >
                   <Shield className="w-4 h-4 mr-2" />
                   Enable 2FA
@@ -806,6 +848,49 @@ const Settings = () => {
       <SupportChatDialog 
         open={showSupportChat} 
         onOpenChange={setShowSupportChat} 
+      />
+
+      {/* OTP Verification Dialogs */}
+      <OTPVerificationDialog
+        open={showOTPForPassword}
+        onOpenChange={setShowOTPForPassword}
+        onVerified={handlePasswordOTPVerified}
+        actionType="password_change"
+        title="Verify Password Change"
+        description="For your security, please verify your identity"
+        actionLabel="Verify"
+        requireMFA={isEnabled}
+      />
+
+      <OTPVerificationDialog
+        open={showOTPForEnable2FA}
+        onOpenChange={setShowOTPForEnable2FA}
+        onVerified={handleEnable2FAOTPVerified}
+        actionType="enable_2fa"
+        title="Verify to Enable 2FA"
+        description="Confirm your identity before enabling two-factor authentication"
+        actionLabel="Continue"
+      />
+
+      <OTPVerificationDialog
+        open={showOTPForDisable2FA}
+        onOpenChange={setShowOTPForDisable2FA}
+        onVerified={handleDisable2FAOTPVerified}
+        actionType="disable_2fa"
+        title="Verify to Disable 2FA"
+        description="Confirm your identity before disabling two-factor authentication"
+        actionLabel="Continue"
+      />
+
+      <OTPVerificationDialog
+        open={showOTPForDelete}
+        onOpenChange={setShowOTPForDelete}
+        onVerified={handleDeleteOTPVerified}
+        actionType="delete_account"
+        title="Verify Account Deletion"
+        description="This is a permanent action. Verify your identity to proceed."
+        actionLabel="Verify & Delete"
+        requireMFA={isEnabled}
       />
     </div>
   );

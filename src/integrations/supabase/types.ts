@@ -379,6 +379,84 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_codes: {
+        Row: {
+          action_type: string
+          attempts: number | null
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          max_attempts: number | null
+          metadata: Json | null
+          method: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          attempts?: number | null
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          max_attempts?: number | null
+          metadata?: Json | null
+          method?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          attempts?: number | null
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          max_attempts?: number | null
+          metadata?: Json | null
+          method?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      otp_rate_limits: {
+        Row: {
+          action_type: string
+          attempt_count: number | null
+          created_at: string
+          first_attempt_at: string
+          id: string
+          identifier: string
+          last_attempt_at: string
+          locked_until: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          attempt_count?: number | null
+          created_at?: string
+          first_attempt_at?: string
+          id?: string
+          identifier: string
+          last_attempt_at?: string
+          locked_until?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          attempt_count?: number | null
+          created_at?: string
+          first_attempt_at?: string
+          id?: string
+          identifier?: string
+          last_attempt_at?: string
+          locked_until?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           created_at: string
@@ -589,6 +667,45 @@ export type Database = {
           user_id?: string
           username?: string | null
           username_changed?: boolean | null
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          action_type: string
+          created_at: string
+          device_info: Json | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          method: string | null
+          status: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          device_info?: Json | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          method?: string | null
+          status: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          device_info?: Json | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          method?: string | null
+          status?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1141,6 +1258,7 @@ export type Database = {
         Returns: string
       }
       cancel_expired_trades: { Args: never; Returns: Json }
+      cleanup_expired_otps: { Args: never; Returns: number }
       create_notification: {
         Args: {
           p_data?: Json
@@ -1160,6 +1278,16 @@ export type Database = {
           p_amount: number
           p_crypto_type: string
           p_recipient_username: string
+        }
+        Returns: Json
+      }
+      generate_otp_code: {
+        Args: {
+          p_action_type: string
+          p_expiry_minutes?: number
+          p_metadata?: Json
+          p_method?: string
+          p_user_id: string
         }
         Returns: Json
       }
@@ -1212,6 +1340,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      log_security_event: {
+        Args: {
+          p_action_type: string
+          p_ip_address?: string
+          p_metadata?: Json
+          p_method?: string
+          p_status: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       resolve_dispute: {
         Args: {
           p_resolution_notes: string
@@ -1225,6 +1364,10 @@ export type Database = {
         Returns: Json
       }
       update_last_seen: { Args: never; Returns: undefined }
+      verify_otp_code: {
+        Args: { p_action_type: string; p_code: string; p_user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
