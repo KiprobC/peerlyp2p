@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Shield, ShieldCheck, ShieldX, MoreVertical, Eye, Search, RefreshCw, Loader2 } from "lucide-react";
+import { Shield, ShieldCheck, ShieldX, MoreVertical, Eye, Search, RefreshCw, Loader2, Clock, Key, Smartphone, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow, format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UserMFAStatus {
@@ -27,8 +28,19 @@ interface UserMFAStatus {
   last_seen: string | null;
 }
 
+interface SecurityEvent {
+  id: string;
+  user_id: string;
+  action_type: string;
+  method: string | null;
+  status: string;
+  ip_address: string | null;
+  created_at: string;
+  user_email?: string;
+  username?: string;
+}
+
 export const AdminSecurity = () => {
-  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserMFAStatus | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -37,7 +49,6 @@ export const AdminSecurity = () => {
   const { data: users = [], isLoading, refetch } = useQuery({
     queryKey: ["admin-users-mfa"],
     queryFn: async () => {
-      // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, email, full_name, username, created_at, last_seen")
@@ -46,13 +57,48 @@ export const AdminSecurity = () => {
 
       if (profilesError) throw profilesError;
 
-      // Note: In a production system, you'd query MFA factors from a backend function
-      // For now, we'll return the profiles with a placeholder MFA status
-      // The actual MFA status would need to be checked via auth.admin API
+      // Check user_settings for two_factor_enabled
+      const userIds = (profiles || []).map(p => p.user_id);
+      const { data: settings } = await supabase
+        .from("user_settings")
+        .select("user_id, two_factor_enabled")
+        .in("user_id", userIds);
+
+      const settingsMap = new Map(settings?.map(s => [s.user_id, s.two_factor_enabled]) || []);
+
       return (profiles || []).map((profile) => ({
         ...profile,
-        mfa_enabled: false, // Placeholder - would be fetched from auth API
+        mfa_enabled: settingsMap.get(profile.user_id) || false,
       })) as UserMFAStatus[];
+    },
+  });
+
+  // Fetch recent security events
+  const { data: securityEvents = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery({
+    queryKey: ["admin-security-events"],
+    queryFn: async () => {
+      const { data: events, error } = await supabase
+        .from("security_events")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+
+      // Fetch user profiles
+      const userIds = [...new Set((events || []).map(e => e.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, email, username")
+        .in("user_id", userIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+
+      return (events || []).map(event => ({
+        ...event,
+        user_email: profileMap.get(event.user_id)?.email || null,
+        username: profileMap.get(event.user_id)?.username || null,
+      })) as SecurityEvent[];
     },
   });
 

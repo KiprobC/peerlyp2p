@@ -11,7 +11,9 @@ import {
   Shield
 } from "lucide-react";
 import { StatsCard } from "@/components/admin/StatsCard";
-import { usePlatformStats, useAdminTrades, useAdminUsers } from "@/hooks/useAdmin";
+import { AdminAlerts } from "@/components/admin/AdminAlerts";
+import { DataConsistencyCard } from "@/components/admin/DataConsistencyCard";
+import { usePlatformStats, useAdminTrades, useAdminUsers, useAdminTransactions } from "@/hooks/useAdmin";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
@@ -20,9 +22,11 @@ export const AdminOverview = () => {
   const { stats, loading: statsLoading } = usePlatformStats();
   const { trades, disputedTrades } = useAdminTrades();
   const { users } = useAdminUsers();
+  const { pendingTransactions } = useAdminTransactions();
 
   const recentTrades = trades.slice(0, 5);
-  const pendingKYCUsers = users.filter((u) => u.kyc_status === "submitted").slice(0, 5);
+  const pendingKYCUsers = users.filter((u) => u.kyc_status === "submitted");
+  const pendingKYCDisplay = pendingKYCUsers.slice(0, 5);
 
   if (statsLoading) {
     return (
@@ -123,6 +127,14 @@ export const AdminOverview = () => {
         </div>
       </div>
 
+      {/* Alerts Section */}
+      <AdminAlerts
+        pendingKYC={pendingKYCUsers.length}
+        disputedTrades={disputedTrades.length}
+        totalEscrowLocked={stats.totalEscrowLocked}
+        failedTransactions={pendingTransactions.filter(t => t.status === "failed").length}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Trades */}
         <div className="glass-card">
@@ -176,17 +188,17 @@ export const AdminOverview = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Shield className="h-5 w-5 text-accent" />
-              Pending KYC Approvals
+              Pending KYC ({pendingKYCUsers.length})
             </h2>
-            <Link to="/admin/users" className="text-sm text-primary hover:underline">
-              View all
+            <Link to="/admin/kyc" className="text-sm text-primary hover:underline">
+              Review all
             </Link>
           </div>
           <div className="space-y-3">
-            {pendingKYCUsers.length === 0 ? (
+            {pendingKYCDisplay.length === 0 ? (
               <p className="text-center text-muted-foreground py-4">No pending approvals</p>
             ) : (
-              pendingKYCUsers.map((user) => (
+              pendingKYCDisplay.map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
@@ -209,6 +221,9 @@ export const AdminOverview = () => {
           </div>
         </div>
       </div>
+
+      {/* Data Consistency Check */}
+      <DataConsistencyCard />
 
       {/* Active Disputes Alert */}
       {disputedTrades.length > 0 && (

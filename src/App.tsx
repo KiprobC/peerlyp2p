@@ -43,6 +43,7 @@ import { AdminFees } from "./pages/admin/AdminFees";
 import { AdminEscrow } from "./pages/admin/AdminEscrow";
 import AdminKYC from "./pages/admin/AdminKYC";
 import { AdminTreasury } from "./pages/admin/AdminTreasury";
+import AdminDeposits from "./pages/admin/AdminDeposits";
 import { AdminModeration } from "./pages/admin/AdminModeration";
 import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
@@ -197,6 +198,7 @@ const AppRoutes = () => {
         <Route path="trades" element={<AdminTrades />} />
         <Route path="wallets" element={<AdminWallets />} />
         <Route path="transactions" element={<AdminTransactions />} />
+        <Route path="deposits" element={<AdminDeposits />} />
         <Route path="fees" element={<AdminFees />} />
         <Route path="escrow" element={<AdminEscrow />} />
         <Route path="kyc" element={<AdminKYC />} />
