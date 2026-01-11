@@ -164,7 +164,7 @@ export const useEscrow = () => {
     }
   };
 
-  // Return funds to seller if trade is cancelled
+  // Return funds to seller if trade is cancelled (restores offer reservation)
   const returnEscrow = async (
     sellerId: string,
     cryptoType: string,
@@ -174,40 +174,23 @@ export const useEscrow = () => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-      // Get seller's wallet
-      const { data: wallet, error: walletError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", sellerId)
-        .eq("crypto_type", normalizedCrypto)
-        .maybeSingle();
+      // Use the new RPC function that handles reservation restoration
+      const { data, error } = await (supabase.rpc as any)("return_escrow_with_reservation", {
+        p_seller_id: sellerId,
+        p_crypto_type: normalizedCrypto,
+        p_amount: amount,
+        p_trade_id: tradeId,
+      });
 
-      if (walletError) throw walletError;
-      if (!wallet) {
-        return { success: false, error: "Wallet not found" };
+      if (error) {
+        console.error("Error calling return_escrow_with_reservation:", error);
+        return { success: false, error: error.message };
       }
 
-      // Return funds from escrow (reduce locked_balance)
-      const { error: updateError } = await supabase
-        .from("wallets")
-        .update({
-          locked_balance: Math.max(0, Number(wallet.locked_balance) - amount),
-        })
-        .eq("id", wallet.id);
-
-      if (updateError) throw updateError;
-
-      // Log the return transaction
-      await supabase.from("wallet_transactions").insert({
-        wallet_id: wallet.id,
-        user_id: sellerId,
-        type: "escrow_release",
-        amount: 0,
-        crypto_type: normalizedCrypto,
-        status: "completed",
-        trade_id: tradeId,
-        description: `Escrow returned - trade cancelled ${tradeId.slice(0, 8)}`,
-      });
+      const result = data as { success: boolean; error?: string };
+      if (!result.success) {
+        return { success: false, error: result.error || "Failed to return escrow" };
+      }
 
       return { success: true };
     } catch (error: any) {

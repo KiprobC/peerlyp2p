@@ -175,9 +175,38 @@ export const useMyOffers = () => {
     if (!user) return { error: new Error("Not authenticated") };
 
     try {
+      // For sell offers, use the backend function with balance validation
+      if (offer.type === "sell") {
+        const { data, error: rpcError } = await (supabase.rpc as any)("create_sell_offer_with_reservation", {
+          p_user_id: user.id,
+          p_crypto_type: offer.crypto_type,
+          p_crypto_amount: offer.crypto_amount,
+          p_price_per_unit: offer.price_per_unit,
+          p_price_margin: offer.price_margin || 0,
+          p_min_amount: offer.min_amount,
+          p_max_amount: offer.max_amount,
+          p_payment_methods: offer.payment_methods,
+          p_time_limit: offer.time_limit,
+          p_terms: offer.terms || null,
+          p_fiat_currency: offer.fiat_currency,
+        });
+
+        if (rpcError) throw rpcError;
+
+        const result = data as { success: boolean; error?: string; available_balance?: number };
+        if (!result.success) {
+          throw new Error(result.error || "Failed to create sell offer");
+        }
+
+        await fetchMyOffers();
+        return { error: null };
+      }
+
+      // For buy offers, use standard insert (no balance validation needed)
       const { error } = await supabase.from("offers").insert({
         ...offer,
         user_id: user.id,
+        reserved_amount: 0, // Buy offers don't reserve balance
       });
 
       if (error) throw error;

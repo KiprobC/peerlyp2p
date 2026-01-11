@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -12,11 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, RefreshCw, Loader2, AlertTriangle, Wallet } from "lucide-react";
 import { useMyOffers } from "@/hooks/useOffers";
 import { useCryptoPrices } from "@/hooks/useCryptoPrices";
 import { useProfile } from "@/hooks/useProfile";
 import { useCountries, useCurrencyConversion } from "@/hooks/useCountries";
+import { useAvailableBalance } from "@/hooks/useAvailableBalance";
 import { PaymentMethodSelect } from "@/components/country/PaymentMethodSelect";
 import { toast } from "sonner";
 
@@ -28,6 +30,7 @@ const CreateOffer = () => {
   const { profile, loading: profileLoading } = useProfile();
   const { countries } = useCountries();
   const { convert, formatCurrency } = useCurrencyConversion();
+  const { getAvailableBalance, getBalanceDetails, refetch: refetchBalance, loading: balanceLoading } = useAvailableBalance();
   
   // Get user's preferred currency from profile, default to USD
   const userCurrency = profile?.preferred_currency || "USD";
@@ -56,6 +59,12 @@ const CreateOffer = () => {
   const marketPriceLocal = convert(marketPriceUSD, "USD", userCurrency);
   const finalPriceLocal = Math.round(marketPriceLocal * (1 + formData.price_margin / 100));
 
+  // Available balance for sell offers
+  const availableBalance = getAvailableBalance(formData.crypto_type);
+  const balanceDetails = getBalanceDetails(formData.crypto_type);
+  const isSellOffer = formData.type === "sell";
+  const hasInsufficientBalance = isSellOffer && parseFloat(formData.crypto_amount || "0") > availableBalance;
+
   const totalValue = formData.crypto_amount
     ? (parseFloat(formData.crypto_amount) * finalPriceLocal).toLocaleString()
     : "0";
@@ -65,6 +74,12 @@ const CreateOffer = () => {
     
     if (formData.payment_methods.length === 0) {
       toast.error("Please select at least one payment method");
+      return;
+    }
+
+    // Validate balance for sell offers
+    if (isSellOffer && hasInsufficientBalance) {
+      toast.error(`Insufficient balance. Available: ${availableBalance.toFixed(8)} ${formData.crypto_type}`);
       return;
     }
     
@@ -89,6 +104,7 @@ const CreateOffer = () => {
       if (error) throw error;
 
       toast.success("Offer created successfully!");
+      refetchBalance(); // Refresh balance after offer creation
       navigate("/marketplace");
     } catch (error: any) {
       toast.error(error.message || "Failed to create offer");
@@ -96,6 +112,11 @@ const CreateOffer = () => {
       setLoading(false);
     }
   };
+
+  // Refetch balance when crypto type changes
+  useEffect(() => {
+    refetchBalance();
+  }, [formData.crypto_type]);
 
   if (profileLoading) {
     return (
@@ -206,9 +227,64 @@ const CreateOffer = () => {
                 )}
               </div>
 
+              {/* Available Balance for Sell Offers */}
+              {isSellOffer && (
+                <div className={`p-3 rounded-lg border ${hasInsufficientBalance ? "bg-destructive/10 border-destructive/30" : "bg-primary/10 border-primary/30"}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4" />
+                      <span className="text-sm font-medium">Available Balance</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={refetchBalance}
+                      disabled={balanceLoading}
+                      className="h-6 px-2"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${balanceLoading ? "animate-spin" : ""}`} />
+                    </Button>
+                  </div>
+                  <div className="text-lg font-bold">
+                    {availableBalance.toFixed(8)} {formData.crypto_type}
+                  </div>
+                  {balanceDetails && (
+                    <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                      <div>Total: {balanceDetails.total_balance.toFixed(8)}</div>
+                      {balanceDetails.locked_balance > 0 && (
+                        <div>In trades: -{balanceDetails.locked_balance.toFixed(8)}</div>
+                      )}
+                      {balanceDetails.reserved_balance > 0 && (
+                        <div>In offers: -{balanceDetails.reserved_balance.toFixed(8)}</div>
+                      )}
+                    </div>
+                  )}
+                  {hasInsufficientBalance && (
+                    <div className="flex items-center gap-1 mt-2 text-destructive text-sm">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>Insufficient balance for this offer</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Amount */}
               <div className="space-y-2">
-                <Label>Amount ({formData.crypto_type})</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Amount ({formData.crypto_type})</Label>
+                  {isSellOffer && availableBalance > 0 && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs"
+                      onClick={() => setFormData((prev) => ({ ...prev, crypto_amount: availableBalance.toString() }))}
+                    >
+                      Use Max
+                    </Button>
+                  )}
+                </div>
                 <Input
                   type="number"
                   step="any"
@@ -217,8 +293,15 @@ const CreateOffer = () => {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, crypto_amount: e.target.value }))
                   }
+                  max={isSellOffer ? availableBalance : undefined}
+                  className={hasInsufficientBalance ? "border-destructive" : ""}
                   required
                 />
+                {isSellOffer && formData.crypto_amount && !hasInsufficientBalance && (
+                  <p className="text-xs text-muted-foreground">
+                    Remaining after offer: {(availableBalance - parseFloat(formData.crypto_amount || "0")).toFixed(8)} {formData.crypto_type}
+                  </p>
+                )}
               </div>
             </div>
 

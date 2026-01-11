@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -29,11 +30,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Star, AlertTriangle, Globe } from "lucide-react";
+import { Shield, Star, AlertTriangle, Globe, Wallet } from "lucide-react";
 import { useTrades } from "@/hooks/useTrades";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useAuth } from "@/contexts/AuthContext";
 import { OfferWithProfile } from "@/hooks/useOffers";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface InitiateTradeDialogProps {
@@ -53,14 +55,57 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
   const [fiatAmount, setFiatAmount] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
   const [showRegionWarning, setShowRegionWarning] = useState(false);
+  const [maxTradeAmount, setMaxTradeAmount] = useState<number | null>(null);
+  const [escrowValidated, setEscrowValidated] = useState(false);
 
   if (!offer) return null;
 
   const cryptoAmount = fiatAmount ? parseFloat(fiatAmount) / offer.price_per_unit : 0;
   const isBuyOffer = offer.type === "buy";
+  
+  // For sell offers (user is buying), check if trade amount exceeds seller's available escrow
+  const maxCryptoFromOffer = (offer as any).reserved_amount || offer.crypto_amount;
+  const maxFiatFromOffer = maxCryptoFromOffer * offer.price_per_unit;
+  
   const isValidAmount = 
     parseFloat(fiatAmount) >= offer.min_amount && 
-    parseFloat(fiatAmount) <= offer.max_amount;
+    parseFloat(fiatAmount) <= Math.min(offer.max_amount, maxFiatFromOffer);
+  
+  const exceedsSellerBalance = !isBuyOffer && cryptoAmount > maxCryptoFromOffer;
+
+  // Validate escrow when dialog opens for sell offers
+  useEffect(() => {
+    const validateEscrow = async () => {
+      if (!offer || isBuyOffer) {
+        setEscrowValidated(true);
+        return;
+      }
+      
+      try {
+        const { data, error } = await (supabase.rpc as any)("validate_trade_escrow", {
+          p_offer_id: offer.id,
+          p_trade_amount: offer.crypto_amount,
+        });
+        
+        if (error) {
+          console.error("Error validating escrow:", error);
+          return;
+        }
+        
+        const result = data as { success: boolean; max_trade_amount?: number };
+        if (result.max_trade_amount !== undefined) {
+          setMaxTradeAmount(result.max_trade_amount);
+        }
+        setEscrowValidated(result.success);
+      } catch (error) {
+        console.error("Error validating escrow:", error);
+      }
+    };
+    
+    if (open && offer) {
+      validateEscrow();
+    }
+  }, [open, offer, isBuyOffer]);
 
   const handleTrade = async () => {
     if (!user || !offer) return;
