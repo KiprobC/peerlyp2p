@@ -1316,7 +1316,7 @@ export type Database = {
           p_amount: number
           p_crypto_type: string
           p_seller_id: string
-          p_trade_id?: string
+          p_trade_id: string
         }
         Returns: Json
       }
