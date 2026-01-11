@@ -1292,6 +1292,10 @@ export type Database = {
         Returns: Json
       }
       generate_random_username: { Args: never; Returns: string }
+      get_available_balance: {
+        Args: { p_crypto_type: string; p_user_id: string }
+        Returns: number
+      }
       get_or_create_deposit_address: {
         Args: { p_crypto_type: string; p_user_id: string }
         Returns: {
