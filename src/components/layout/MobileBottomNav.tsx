@@ -20,8 +20,8 @@ export const MobileBottomNav = () => {
   // Don't show on admin pages
   if (location.pathname.startsWith("/admin")) return null;
 
-  // Don't show on auth pages
-  if (["/login", "/signup", "/"].includes(location.pathname)) return null;
+  // Don't show on auth pages or focused flows
+  if (["/login", "/signup", "/", "/create-offer"].includes(location.pathname)) return null;
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
