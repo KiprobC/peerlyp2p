@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface AvailableBalance {
   crypto_type: string;
@@ -12,10 +13,11 @@ export interface AvailableBalance {
 
 export const useAvailableBalance = (cryptoType?: string) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [balances, setBalances] = useState<Record<string, AvailableBalance>>({});
   const [loading, setLoading] = useState(true);
 
-  const fetchAvailableBalance = async (crypto?: string) => {
+  const fetchAvailableBalance = useCallback(async (crypto?: string) => {
     if (!user) {
       setBalances({});
       setLoading(false);
@@ -73,11 +75,53 @@ export const useAvailableBalance = (cryptoType?: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchAvailableBalance(cryptoType);
-  }, [user, cryptoType]);
+  }, [user, cryptoType, fetchAvailableBalance]);
+
+  // Real-time subscription for wallet and offer changes
+  useEffect(() => {
+    if (!user) return;
+
+    const walletChannel = supabase
+      .channel(`balance-wallets-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "wallets",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchAvailableBalance(cryptoType);
+        }
+      )
+      .subscribe();
+
+    const offerChannel = supabase
+      .channel(`balance-offers-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "offers",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchAvailableBalance(cryptoType);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(walletChannel);
+      supabase.removeChannel(offerChannel);
+    };
+  }, [user, cryptoType, fetchAvailableBalance]);
 
   const getAvailableBalance = (crypto: string): number => {
     return balances[crypto.toUpperCase()]?.available_balance || 0;
