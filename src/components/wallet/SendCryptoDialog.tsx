@@ -22,8 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, useWallets, cryptoInfo } from "@/hooks/useWallets";
 import { useInternalTransfer, RecipientPreview } from "@/hooks/useInternalTransfer";
 import { useMFA } from "@/hooks/useMFA";
-import { MFAVerifyDialog } from "@/components/mfa/MFAVerifyDialog";
-import { Send, CheckCircle, Star, Shield, AlertCircle, Loader2, AtSign } from "lucide-react";
+import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
+import { Send, CheckCircle, Star, Shield, AlertCircle, Loader2, AtSign, Mail } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -40,12 +40,12 @@ export const SendCryptoDialog = ({
   wallets,
   onSuccess,
 }: SendCryptoDialogProps) => {
-  const [step, setStep] = useState<"form" | "confirm" | "mfa">("form");
+  const [step, setStep] = useState<"form" | "confirm">("form");
   const [username, setUsername] = useState("");
   const [cryptoType, setCryptoType] = useState("BTC");
   const [amount, setAmount] = useState("");
   const [debouncedUsername, setDebouncedUsername] = useState("");
-  const [showMFAVerify, setShowMFAVerify] = useState(false);
+  const [showOTPVerify, setShowOTPVerify] = useState(false);
 
   const { loading, recipientPreview, lookupUsername, executeTransfer, clearRecipientPreview } =
     useInternalTransfer();
@@ -82,7 +82,7 @@ export const SendCryptoDialog = ({
     setAmount("");
     setCryptoType("BTC");
     clearRecipientPreview();
-    setShowMFAVerify(false);
+    setShowOTPVerify(false);
   };
 
   const handleClose = (open: boolean) => {
@@ -97,13 +97,8 @@ export const SendCryptoDialog = ({
   };
 
   const handleConfirmTransfer = () => {
-    if (mfaEnabled) {
-      // Require MFA verification for transfers
-      setShowMFAVerify(true);
-    } else {
-      // No MFA, proceed directly
-      executeTransferAction();
-    }
+    // Always require OTP verification for crypto transfers
+    setShowOTPVerify(true);
   };
 
   const executeTransferAction = async () => {
@@ -117,8 +112,8 @@ export const SendCryptoDialog = ({
     }
   };
 
-  const handleMFAVerified = () => {
-    setShowMFAVerify(false);
+  const handleOTPVerified = () => {
+    setShowOTPVerify(false);
     executeTransferAction();
   };
 
@@ -313,14 +308,13 @@ export const SendCryptoDialog = ({
                 </p>
               </div>
 
-              {mfaEnabled && (
-                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                  <p className="text-sm text-primary flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
-                    You'll need to verify with your authenticator app to complete this transfer.
-                  </p>
-                </div>
-              )}
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <p className="text-sm text-primary flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  You'll receive a verification code to confirm this transfer.
+                  {mfaEnabled && " Your authenticator app will also be required."}
+                </p>
+              </div>
             </div>
           )}
 
@@ -358,14 +352,16 @@ export const SendCryptoDialog = ({
         </DialogContent>
       </Dialog>
 
-      {/* MFA Verification Dialog */}
-      <MFAVerifyDialog
-        open={showMFAVerify}
-        onOpenChange={setShowMFAVerify}
-        onVerified={handleMFAVerified}
+      {/* OTP Verification Dialog - with optional MFA */}
+      <OTPVerificationDialog
+        open={showOTPVerify}
+        onOpenChange={setShowOTPVerify}
+        onVerified={handleOTPVerified}
+        actionType="crypto_send"
         title="Verify Transfer"
-        description="Enter the 6-digit code from your authenticator app to confirm this transfer"
+        description="For your security, please verify your identity to confirm this transfer"
         actionLabel="Confirm Transfer"
+        requireMFA={mfaEnabled}
       />
     </>
   );
