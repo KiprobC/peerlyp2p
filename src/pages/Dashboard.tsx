@@ -121,11 +121,13 @@ const Dashboard = () => {
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-base sm:text-lg">K</span>
-              </div>
+              <img 
+                src="/peerly-logo.png" 
+                alt="Peerly" 
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-contain"
+              />
               <span className="font-bold text-lg sm:text-xl text-foreground hidden xs:block">
-                Kenya<span className="text-primary">Coin</span>
+                Peerly
               </span>
             </Link>
 
