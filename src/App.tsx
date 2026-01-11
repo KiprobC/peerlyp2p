@@ -25,6 +25,7 @@ import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import KYCUpload from "./pages/KYCUpload";
 import MyOffers from "./pages/MyOffers";
+import OfferAnalytics from "./pages/OfferAnalytics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import WalletDeposit from "./pages/WalletDeposit";
@@ -190,6 +191,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <MyOffers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/offer-analytics"
+        element={
+          <ProtectedRoute>
+            <OfferAnalytics />
           </ProtectedRoute>
         }
       />
