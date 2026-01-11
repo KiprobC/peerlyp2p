@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface Wallet {
   id: string;
@@ -38,11 +39,12 @@ export const cryptoInfo: Record<string, { name: string; icon: string; color: str
 
 export const useWallets = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchWallets = async () => {
+  const fetchWallets = useCallback(async () => {
     if (!user) {
       setWallets([]);
       setLoading(false);
@@ -62,9 +64,9 @@ export const useWallets = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -80,12 +82,38 @@ export const useWallets = () => {
     } catch (error) {
       console.error("Error fetching transactions:", error);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchWallets();
     fetchTransactions();
-  }, [user]);
+  }, [user, fetchWallets, fetchTransactions]);
+
+  // Real-time subscription for wallet changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`user-wallets-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "wallets",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchWallets();
+          queryClient.invalidateQueries({ queryKey: ["available-balance"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchWallets, queryClient]);
 
   const getTotalValue = (priceMap: Record<string, number>) => {
     return wallets.reduce((total, wallet) => {
