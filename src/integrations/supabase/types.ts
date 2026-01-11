@@ -134,6 +134,57 @@ export type Database = {
           },
         ]
       }
+      deposit_addresses: {
+        Row: {
+          address: string
+          address_generated_at: string
+          created_at: string
+          crypto_type: string
+          id: string
+          is_active: boolean
+          last_deposit_at: string | null
+          last_monitored_at: string | null
+          metadata: Json | null
+          network: string | null
+          pending_amount: number
+          total_deposited: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          address_generated_at?: string
+          created_at?: string
+          crypto_type: string
+          id?: string
+          is_active?: boolean
+          last_deposit_at?: string | null
+          last_monitored_at?: string | null
+          metadata?: Json | null
+          network?: string | null
+          pending_amount?: number
+          total_deposited?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          address_generated_at?: string
+          created_at?: string
+          crypto_type?: string
+          id?: string
+          is_active?: boolean
+          last_deposit_at?: string | null
+          last_monitored_at?: string | null
+          metadata?: Json | null
+          network?: string | null
+          pending_amount?: number
+          total_deposited?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       dispute_assignments: {
         Row: {
           assigned_by: string
@@ -1113,6 +1164,13 @@ export type Database = {
         Returns: Json
       }
       generate_random_username: { Args: never; Returns: string }
+      get_or_create_deposit_address: {
+        Args: { p_crypto_type: string; p_user_id: string }
+        Returns: {
+          address: string
+          is_new: boolean
+        }[]
+      }
       get_or_create_wallet: {
         Args: { p_crypto_type: string; p_user_id: string }
         Returns: string
