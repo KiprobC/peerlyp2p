@@ -268,6 +268,7 @@ const Marketplace = () => {
                           type: offer?.type || "buy",
                           crypto: offer?.crypto_type || "BTC",
                           cryptoAmount: offer?.crypto_amount ?? 0,
+                          availableAmount: offer?.available_amount ?? (offer?.crypto_amount ?? 0),
                           fiatCurrency: preferredCurrency,
                           price: convertedPrice,
                           minAmount: convertedMin,

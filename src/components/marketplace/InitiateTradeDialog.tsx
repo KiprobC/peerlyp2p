@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,11 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Star, AlertTriangle, Globe, AlertCircle, RefreshCw } from "lucide-react";
+import { Shield, Star, AlertTriangle, Globe, AlertCircle, RefreshCw, TrendingUp, Info } from "lucide-react";
 import { useTrades } from "@/hooks/useTrades";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useAuth } from "@/contexts/AuthContext";
-import { OfferWithProfile } from "@/hooks/useOffers";
+import { OfferWithProfile, getAvailableAmount } from "@/hooks/useOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -98,28 +98,153 @@ const DialogNotFoundState = ({ onClose }: { onClose: () => void }) => (
   </div>
 );
 
-const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userCurrency }: InitiateTradeDialogProps) => {
+// Offer Updated Warning
+const OfferUpdatedWarning = ({ onReview, onClose }: { onReview: () => void; onClose: () => void }) => (
+  <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px]">
+    <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
+      <Info className="w-6 h-6 text-amber-500" />
+    </div>
+    <h3 className="font-semibold text-lg mb-2">Offer Updated</h3>
+    <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+      The seller has updated this offer while you were viewing it. Please review the new details before proceeding.
+    </p>
+    <div className="flex gap-2">
+      <Button onClick={onClose} variant="outline" size="sm">
+        Cancel
+      </Button>
+      <Button onClick={onReview} size="sm">
+        Review Changes
+      </Button>
+    </div>
+  </div>
+);
+
+const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsideRegion, userCurrency }: InitiateTradeDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { createTrade, updateTrade } = useTrades();
   const { lockEscrow } = useEscrow();
+  
+  // Core state
   const [loading, setLoading] = useState(false);
   const [fiatAmount, setFiatAmount] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
   const [showRegionWarning, setShowRegionWarning] = useState(false);
-  const [maxTradeAmount, setMaxTradeAmount] = useState<number | null>(null);
-  const [escrowValidated, setEscrowValidated] = useState(false);
-  const [escrowValidating, setEscrowValidating] = useState(false);
-  const [escrowError, setEscrowError] = useState<string | null>(null);
-
+  
+  // Real-time offer state
+  const [liveOffer, setLiveOffer] = useState<OfferWithProfile | null>(null);
+  const [offerLoading, setOfferLoading] = useState(false);
+  const [offerError, setOfferError] = useState<string | null>(null);
+  const [offerUpdated, setOfferUpdated] = useState(false);
+  const initialOfferVersionRef = useRef<string | null>(null);
+  
+  // Use live offer if available, fallback to initial
+  const offer = liveOffer || initialOffer;
+  
+  // Fetch latest offer data
+  const fetchLatestOffer = useCallback(async (showLoading = true) => {
+    if (!initialOffer?.id) return null;
+    
+    if (showLoading) setOfferLoading(true);
+    setOfferError(null);
+    
+    try {
+      const { data, error } = await supabase
+        .from("offers")
+        .select("*")
+        .eq("id", initialOffer.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      if (!data) {
+        setOfferError("This offer is no longer available.");
+        setLiveOffer(null);
+        return null;
+      }
+      
+      if (!data.is_active) {
+        setOfferError("This offer has been deactivated by the seller.");
+        setLiveOffer(null);
+        return null;
+      }
+      
+      // Check if offer was updated since initial view
+      const newVersion = data.updated_at;
+      if (initialOfferVersionRef.current && newVersion !== initialOfferVersionRef.current) {
+        setOfferUpdated(true);
+      }
+      
+      // Merge with profile data from initial offer
+      const updatedOffer: OfferWithProfile = {
+        ...data,
+        reserved_amount: data.reserved_amount ?? 0,
+        trader_name: initialOffer.trader_name,
+        trader_avatar: initialOffer.trader_avatar,
+        trader_rating: initialOffer.trader_rating,
+        trader_trades: initialOffer.trader_trades,
+        trader_verified: initialOffer.trader_verified,
+        trader_positive_count: initialOffer.trader_positive_count,
+        trader_last_seen: initialOffer.trader_last_seen,
+        available_amount: Math.max(0, (data.crypto_amount ?? 0) - (data.reserved_amount ?? 0)),
+      };
+      
+      setLiveOffer(updatedOffer);
+      return updatedOffer;
+    } catch (error: any) {
+      console.error("Error fetching offer:", error);
+      setOfferError(error.message || "Failed to load offer details.");
+      return null;
+    } finally {
+      setOfferLoading(false);
+    }
+  }, [initialOffer?.id]);
+  
   // Reset state when dialog opens/closes or offer changes
   useEffect(() => {
-    if (open) {
+    if (open && initialOffer?.id) {
       setFiatAmount("");
       setSelectedPayment("");
-      setEscrowError(null);
+      setOfferError(null);
+      setOfferUpdated(false);
+      setLiveOffer(null);
+      initialOfferVersionRef.current = initialOffer.updated_at;
+      
+      // Fetch fresh offer data
+      fetchLatestOffer();
     }
-  }, [open, offer?.id]);
+  }, [open, initialOffer?.id]);
+  
+  // Set up real-time subscription for offer changes
+  useEffect(() => {
+    if (!open || !initialOffer?.id) return;
+    
+    const channel = supabase
+      .channel(`offer-${initialOffer.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "offers",
+          filter: `id=eq.${initialOffer.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            setOfferError("This offer has been removed by the seller.");
+            setLiveOffer(null);
+          } else if (payload.eventType === "UPDATE") {
+            // Refresh offer data
+            fetchLatestOffer(false);
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, initialOffer?.id, fetchLatestOffer]);
 
   // Safe access to offer properties with optional chaining
   const offerId = offer?.id;
@@ -140,63 +265,24 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
   const cryptoAmount = fiatAmount && pricePerUnit > 0 ? parseFloat(fiatAmount) / pricePerUnit : 0;
   const isBuyOffer = offerType === "buy";
   
-  // For sell offers (user is buying), check if trade amount exceeds seller's available escrow
-  const maxCryptoFromOffer = (offer as any)?.reserved_amount ?? offer?.crypto_amount ?? 0;
-  const maxFiatFromOffer = maxCryptoFromOffer * pricePerUnit;
+  // Calculate available crypto for sell offers
+  const totalCryptoAmount = offer?.crypto_amount ?? 0;
+  const reservedAmount = offer?.reserved_amount ?? 0;
+  const availableCrypto = Math.max(0, totalCryptoAmount - reservedAmount);
+  const maxFiatFromAvailable = availableCrypto * pricePerUnit;
+  
+  // Dynamic max amount - adjust based on available crypto
+  const dynamicMaxAmount = !isBuyOffer 
+    ? Math.min(maxAmount, maxFiatFromAvailable)
+    : maxAmount;
   
   const parsedFiatAmount = parseFloat(fiatAmount) || 0;
   const isValidAmount = 
     parsedFiatAmount >= minAmount && 
-    parsedFiatAmount <= Math.min(maxAmount, maxFiatFromOffer);
+    parsedFiatAmount <= dynamicMaxAmount;
   
-  const exceedsSellerBalance = !isBuyOffer && cryptoAmount > maxCryptoFromOffer;
-
-  // Validate escrow when dialog opens for sell offers
-  useEffect(() => {
-    const validateEscrow = async () => {
-      if (!offer || !offerId || isBuyOffer) {
-        setEscrowValidated(true);
-        setEscrowValidating(false);
-        return;
-      }
-      
-      setEscrowValidating(true);
-      setEscrowError(null);
-      
-      try {
-        const { data, error } = await (supabase.rpc as any)("validate_trade_escrow", {
-          p_offer_id: offerId,
-          p_trade_amount: offer.crypto_amount ?? 0,
-        });
-        
-        if (error) {
-          console.error("Error validating escrow:", error);
-          // Don't block the UI, just log the error
-          setEscrowValidated(true);
-          return;
-        }
-        
-        const result = data as { success: boolean; max_trade_amount?: number; error?: string } | null;
-        if (result?.max_trade_amount !== undefined) {
-          setMaxTradeAmount(result.max_trade_amount);
-        }
-        if (result?.error) {
-          setEscrowError(result.error);
-        }
-        setEscrowValidated(result?.success ?? true);
-      } catch (error) {
-        console.error("Error validating escrow:", error);
-        // Don't block the UI on validation errors
-        setEscrowValidated(true);
-      } finally {
-        setEscrowValidating(false);
-      }
-    };
-    
-    if (open && offer && offerId) {
-      validateEscrow();
-    }
-  }, [open, offerId, offer?.crypto_amount, isBuyOffer]);
+  const exceedsAvailableBalance = !isBuyOffer && cryptoAmount > availableCrypto;
+  const insufficientAvailable = !isBuyOffer && availableCrypto <= 0;
 
   const handleTrade = async () => {
     if (!user || !offer || !offerId) return;
@@ -207,18 +293,40 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
     }
 
     if (!isValidAmount) {
-      toast.error(`Amount must be between ${fiatCurrency} ${minAmount.toLocaleString()} and ${fiatCurrency} ${maxAmount.toLocaleString()}`);
+      toast.error(`Amount must be between ${fiatCurrency} ${minAmount.toLocaleString()} and ${fiatCurrency} ${dynamicMaxAmount.toLocaleString()}`);
       return;
     }
 
     setLoading(true);
 
     try {
+      // Step 0: Re-fetch latest offer data to prevent race conditions
+      const latestOffer = await fetchLatestOffer(false);
+      
+      if (!latestOffer) {
+        toast.error("This offer is no longer available.");
+        setLoading(false);
+        return;
+      }
+      
+      // Recalculate available amount from latest data
+      const latestAvailable = Math.max(0, (latestOffer.crypto_amount ?? 0) - (latestOffer.reserved_amount ?? 0));
+      const calculatedCryptoAmount = parsedFiatAmount / (latestOffer.price_per_unit ?? pricePerUnit);
+      
+      if (!isBuyOffer && calculatedCryptoAmount > latestAvailable) {
+        toast.error(
+          latestAvailable > 0 
+            ? `This offer was partially filled. Only ${latestAvailable.toFixed(6)} ${cryptoType} available now. Please adjust your amount.`
+            : "This offer has been fully filled. Please try another offer."
+        );
+        setLoading(false);
+        return;
+      }
+      
       // For a BUY offer, the offer creator is buying, so they're the buyer
       // The person responding to the offer is selling, so they're the seller
-      const buyer_id = isBuyOffer ? offer.user_id : user.id;
-      const seller_id = isBuyOffer ? user.id : offer.user_id;
-      const calculatedCryptoAmount = parsedFiatAmount / pricePerUnit;
+      const buyer_id = isBuyOffer ? latestOffer.user_id : user.id;
+      const seller_id = isBuyOffer ? user.id : latestOffer.user_id;
 
       // Step 1: Create the trade FIRST to get a real UUID
       const { error, data: tradeData } = await createTrade({
@@ -233,7 +341,14 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
       });
 
       if (error || !tradeData) {
-        throw error || new Error("Failed to create trade");
+        // Check for duplicate trade error (race condition)
+        if (error?.message?.includes("duplicate") || error?.message?.includes("unique")) {
+          toast.error("You already have an active trade for this offer.");
+        } else {
+          throw error || new Error("Failed to create trade");
+        }
+        setLoading(false);
+        return;
       }
 
       // Step 2: Lock escrow using the real trade UUID
@@ -251,7 +366,16 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
           cancelled_at: new Date().toISOString(),
           cancelled_by: user.id,
         });
-        toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
+        
+        // Provide actionable error message
+        if (escrowResult.error?.includes("insufficient") || escrowResult.error?.includes("balance")) {
+          toast.error("This offer was partially filled just now. Please refresh and try a lower amount.");
+        } else {
+          toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
+        }
+        
+        // Refresh offer data
+        fetchLatestOffer(false);
         setLoading(false);
         return;
       }
@@ -268,6 +392,8 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
     } catch (error: any) {
       console.error("Trade initiation error:", error);
       toast.error(error?.message || "Failed to initiate trade");
+      // Refresh offer on error
+      fetchLatestOffer(false);
     } finally {
       setLoading(false);
     }
@@ -276,30 +402,37 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
   const handleClose = () => {
     onOpenChange(false);
   };
+  
+  const handleReviewChanges = () => {
+    setOfferUpdated(false);
+    initialOfferVersionRef.current = offer?.updated_at || null;
+  };
 
   // Render dialog with proper states
   const renderDialogContent = () => {
-    // Loading state - when escrow is being validated
-    if (escrowValidating) {
+    // Loading state
+    if (offerLoading && !liveOffer) {
       return <DialogLoadingState />;
+    }
+
+    // Error state
+    if (offerError && !offer) {
+      return (
+        <DialogErrorState 
+          message={offerError} 
+          onRetry={() => fetchLatestOffer()} 
+        />
+      );
     }
 
     // Offer not found state
     if (!offer || !offerId) {
       return <DialogNotFoundState onClose={handleClose} />;
     }
-
-    // Escrow error state (optional - you might want to show a warning instead)
-    if (escrowError && !escrowValidated) {
-      return (
-        <DialogErrorState 
-          message={escrowError} 
-          onRetry={() => {
-            setEscrowError(null);
-            setEscrowValidated(false);
-          }} 
-        />
-      );
+    
+    // Offer updated warning
+    if (offerUpdated) {
+      return <OfferUpdatedWarning onReview={handleReviewChanges} onClose={handleClose} />;
     }
 
     // Main content
@@ -336,21 +469,42 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Limit</span>
               <span>
-                {fiatCurrency} {minAmount.toLocaleString()} - {maxAmount.toLocaleString()}
+                {fiatCurrency} {minAmount.toLocaleString()} - {dynamicMaxAmount.toLocaleString()}
               </span>
             </div>
           </div>
+          
+          {/* Available Balance Indicator (for sell offers) */}
+          {!isBuyOffer && (
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  Available to buy
+                </span>
+                <span className={`font-semibold ${availableCrypto > 0 ? 'text-primary' : 'text-destructive'}`}>
+                  {availableCrypto.toFixed(cryptoType === "USDT" ? 2 : 6)} {cryptoType}
+                </span>
+              </div>
+              {insufficientAvailable && (
+                <p className="text-xs text-destructive mt-1">
+                  This offer is currently fully reserved in other trades.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Amount Input */}
           <div className="space-y-2">
             <Label>Amount ({fiatCurrency})</Label>
             <Input
               type="number"
-              placeholder={`${minAmount} - ${maxAmount}`}
+              placeholder={`${minAmount} - ${dynamicMaxAmount.toLocaleString()}`}
               value={fiatAmount}
               onChange={(e) => setFiatAmount(e.target.value)}
               min={minAmount}
-              max={Math.min(maxAmount, maxFiatFromOffer)}
+              max={dynamicMaxAmount}
+              disabled={insufficientAvailable}
             />
             {fiatAmount && parsedFiatAmount > 0 && (
               <p className="text-sm text-muted-foreground">
@@ -360,9 +514,9 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
                 </span>
               </p>
             )}
-            {exceedsSellerBalance && (
+            {exceedsAvailableBalance && (
               <p className="text-sm text-destructive">
-                Amount exceeds seller's available balance
+                Amount exceeds available balance. Max: {availableCrypto.toFixed(6)} {cryptoType}
               </p>
             )}
           </div>
@@ -370,7 +524,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
           {/* Payment Method */}
           <div className="space-y-2">
             <Label>Payment Method</Label>
-            <Select value={selectedPayment} onValueChange={setSelectedPayment}>
+            <Select value={selectedPayment} onValueChange={setSelectedPayment} disabled={insufficientAvailable}>
               <SelectTrigger>
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
@@ -430,9 +584,18 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
                 handleTrade();
               }
             }}
-            disabled={loading || !isValidAmount || !selectedPayment || exceedsSellerBalance}
+            disabled={loading || !isValidAmount || !selectedPayment || exceedsAvailableBalance || insufficientAvailable}
           >
-            {loading ? "Processing..." : `${isBuyOffer ? "Sell" : "Buy"} ${cryptoType || "CRYPTO"}`}
+            {loading ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : insufficientAvailable ? (
+              "No Available Balance"
+            ) : (
+              `${isBuyOffer ? "Sell" : "Buy"} ${cryptoType || "CRYPTO"}`
+            )}
           </Button>
         </div>
       </ScrollArea>

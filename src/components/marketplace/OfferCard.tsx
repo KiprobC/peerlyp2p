@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Shield, Clock, ArrowUpRight, ArrowDownLeft, ThumbsUp } from "lucide-react";
+import { Star, Shield, Clock, ArrowUpRight, ArrowDownLeft, ThumbsUp, TrendingUp } from "lucide-react";
 import { isUserOnline } from "@/hooks/useOnlineStatus";
 
 interface OfferCardProps {
@@ -9,6 +9,7 @@ interface OfferCardProps {
     type: "buy" | "sell";
     crypto: string;
     cryptoAmount: number;
+    availableAmount?: number; // Available for trading (crypto_amount - reserved_amount)
     fiatCurrency: string;
     price: number;
     minAmount: number;
@@ -33,6 +34,12 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
   const isBuy = offer.type === "buy";
   const isOnline = isUserOnline(offer.trader.lastSeen || null);
   const margin = offer.priceMargin || 0;
+  
+  // Calculate available amount (for sell offers, show remaining balance)
+  const totalAmount = offer.cryptoAmount ?? 0;
+  const availableAmount = offer.availableAmount ?? totalAmount;
+  const hasPartialFill = totalAmount > 0 && availableAmount < totalAmount;
+  const fillPercentage = totalAmount > 0 ? ((totalAmount - availableAmount) / totalAmount) * 100 : 0;
 
   return (
     <div className="glass-card p-3 hover:border-primary/30 transition-all duration-300 group">
@@ -95,7 +102,7 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           </span>
           <span className="text-xs text-muted-foreground">/ {offer.crypto}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-muted-foreground">
             Limit: {offer.fiatCurrency} {offer.minAmount.toLocaleString()} - {offer.maxAmount.toLocaleString()}
           </span>
@@ -107,6 +114,34 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           </Badge>
         </div>
       </div>
+
+      {/* Available Balance Indicator (for sell offers) */}
+      {!isBuy && (
+        <div className="mb-2 p-2 bg-secondary/30 rounded-md">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="text-muted-foreground flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" />
+              Available
+            </span>
+            <span className={`font-medium ${availableAmount > 0 ? 'text-foreground' : 'text-destructive'}`}>
+              {availableAmount.toFixed(offer.crypto === "USDT" ? 2 : 6)} {offer.crypto}
+            </span>
+          </div>
+          {hasPartialFill && (
+            <div className="relative h-1 bg-secondary rounded-full overflow-hidden">
+              <div 
+                className="absolute inset-y-0 left-0 bg-primary/60 rounded-full transition-all"
+                style={{ width: `${fillPercentage}%` }}
+              />
+            </div>
+          )}
+          {hasPartialFill && (
+            <span className="text-[10px] text-muted-foreground mt-0.5 block">
+              {fillPercentage.toFixed(0)}% reserved in trades
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Payment Methods */}
       <div className="flex flex-wrap gap-1 mb-2">
@@ -128,8 +163,9 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           size="sm"
           className="h-7 text-xs px-3"
           onClick={onAction}
+          disabled={!isBuy && availableAmount <= 0}
         >
-          {isBuy ? "Sell" : "Buy"} {offer.crypto}
+          {!isBuy && availableAmount <= 0 ? "Sold Out" : `${isBuy ? "Sell" : "Buy"} ${offer.crypto}`}
         </Button>
       </div>
     </div>
