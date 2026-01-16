@@ -23,7 +23,13 @@ export interface EnrollmentData {
 
 interface MFAState {
   factors: MFAFactor[];
+  /**
+   * True only when the user has explicitly enabled 2FA in Settings *and*
+   * there is at least one verified authenticator factor.
+   */
   isEnabled: boolean;
+  /** User preference flag stored in user_settings.two_factor_enabled */
+  preferenceEnabled: boolean;
   loading: boolean;
   enrollmentData: EnrollmentData | null;
   enrolling: boolean;
@@ -35,6 +41,7 @@ export const useMFA = () => {
   const [state, setState] = useState<MFAState>({
     factors: [],
     isEnabled: false,
+    preferenceEnabled: false,
     loading: true,
     enrollmentData: null,
     enrolling: false,
@@ -86,26 +93,61 @@ export const useMFA = () => {
   // Fetch current MFA factors
   const fetchFactors = useCallback(async () => {
     if (!user) {
-      setState(prev => ({ ...prev, loading: false, factors: [], isEnabled: false }));
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        factors: [],
+        isEnabled: false,
+        preferenceEnabled: false,
+      }));
       return;
     }
 
     try {
+      // User preference is the primary toggle ("off by default unless enabled in Security")
+      let preferenceEnabled = false;
+      const { data: settingsRow, error: settingsError } = await supabase
+        .from("user_settings")
+        .select("two_factor_enabled")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (settingsError) throw settingsError;
+
+      if (!settingsRow) {
+        // Ensure a settings row exists (defaults are applied in DB)
+        const { data: created, error: createError } = await supabase
+          .from("user_settings")
+          .insert({ user_id: user.id })
+          .select("two_factor_enabled")
+          .single();
+        if (createError) throw createError;
+        preferenceEnabled = !!created?.two_factor_enabled;
+      } else {
+        preferenceEnabled = !!settingsRow.two_factor_enabled;
+      }
+
       const { data, error } = await supabase.auth.mfa.listFactors();
-      
       if (error) throw error;
 
-      const verifiedFactors = data.totp.filter(f => f.status === "verified");
-      
-      setState(prev => ({
+      const verifiedFactors = data.totp.filter((f) => f.status === "verified");
+      const isEnabled = preferenceEnabled && verifiedFactors.length > 0;
+
+      setState((prev) => ({
         ...prev,
         factors: data.totp as MFAFactor[],
-        isEnabled: verifiedFactors.length > 0,
+        preferenceEnabled,
+        isEnabled,
         loading: false,
       }));
     } catch (error: any) {
       console.error("Error fetching MFA factors:", error);
-      setState(prev => ({ ...prev, loading: false }));
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        // Fail-safe: never require 2FA if we can't confidently determine state
+        isEnabled: false,
+      }));
     }
   }, [user]);
 
@@ -170,14 +212,21 @@ export const useMFA = () => {
 
       resetAttempts();
 
-      // Refresh factors FIRST to get updated isEnabled state before closing dialog
+      // Persist user preference ("enabled in Security")
+      await supabase
+        .from("user_settings")
+        .update({ two_factor_enabled: true })
+        .eq("user_id", user.id);
+
+      // Refresh factors FIRST to get updated state before closing dialog
       const { data: factorsData } = await supabase.auth.mfa.listFactors();
-      const verifiedFactors = factorsData?.totp.filter(f => f.status === "verified") || [];
+      const verifiedFactors = factorsData?.totp.filter((f) => f.status === "verified") || [];
       const isNowEnabled = verifiedFactors.length > 0;
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         factors: (factorsData?.totp as MFAFactor[]) || [],
+        preferenceEnabled: true,
         isEnabled: isNowEnabled,
         enrollmentData: null,
         verifying: false,
@@ -210,18 +259,29 @@ export const useMFA = () => {
     setState(prev => ({ ...prev, enrollmentData: null, enrolling: false }));
   };
 
-  // Disable MFA (unenroll all factors)
-  const disableMFA = async (factorId: string) => {
+  // Disable MFA (turn off preference + unenroll all factors)
+  const disableMFA = async (_factorId: string) => {
     if (!checkRateLimit()) return { success: false, error: "Rate limited" };
 
     try {
-      const { error } = await supabase.auth.mfa.unenroll({
-        factorId,
-      });
+      // Turn off preference first (fail-safe: should not require 2FA after this)
+      if (user) {
+        await supabase
+          .from("user_settings")
+          .update({ two_factor_enabled: false })
+          .eq("user_id", user.id);
+      }
 
-      if (error) throw error;
+      // Unenroll every existing factor to avoid "ghost" verified factors
+      const { data: factorsData, error: listError } = await supabase.auth.mfa.listFactors();
+      if (listError) throw listError;
 
-      // Refresh factors to update isEnabled state from Supabase MFA
+      const allFactorIds = (factorsData?.totp || []).map((f) => f.id);
+      for (const id of allFactorIds) {
+        const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
+        if (error) throw error;
+      }
+
       await fetchFactors();
       toast.success("Two-factor authentication disabled");
 
