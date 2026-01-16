@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Star, AlertTriangle, Globe, Wallet } from "lucide-react";
+import { Shield, Star, AlertTriangle, Globe, AlertCircle, RefreshCw } from "lucide-react";
 import { useTrades } from "@/hooks/useTrades";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +46,58 @@ interface InitiateTradeDialogProps {
   userCurrency?: string | null;
 }
 
+// Loading state component
+const DialogLoadingState = () => (
+  <div className="space-y-4 p-4">
+    <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+      <Skeleton className="w-12 h-12 rounded-full" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-3 w-32" />
+      </div>
+    </div>
+    <Skeleton className="h-20 w-full rounded-lg" />
+    <Skeleton className="h-10 w-full" />
+    <Skeleton className="h-10 w-full" />
+    <Skeleton className="h-10 w-full" />
+  </div>
+);
+
+// Error state component
+const DialogErrorState = ({ message, onRetry }: { message: string; onRetry?: () => void }) => (
+  <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px]">
+    <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+      <AlertCircle className="w-6 h-6 text-destructive" />
+    </div>
+    <h3 className="font-semibold text-lg mb-2">Unable to Load Offer</h3>
+    <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+      {message}
+    </p>
+    {onRetry && (
+      <Button onClick={onRetry} variant="outline" size="sm">
+        <RefreshCw className="w-4 h-4 mr-2" />
+        Try Again
+      </Button>
+    )}
+  </div>
+);
+
+// Empty/Not Found state component
+const DialogNotFoundState = ({ onClose }: { onClose: () => void }) => (
+  <div className="flex flex-col items-center justify-center p-6 text-center min-h-[200px]">
+    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+      <AlertTriangle className="w-6 h-6 text-muted-foreground" />
+    </div>
+    <h3 className="font-semibold text-lg mb-2">Offer Not Found</h3>
+    <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+      This offer may have been removed or is no longer available.
+    </p>
+    <Button onClick={onClose} variant="outline" size="sm">
+      Close
+    </Button>
+  </div>
+);
+
 const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userCurrency }: InitiateTradeDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -57,58 +109,97 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
   const [showRegionWarning, setShowRegionWarning] = useState(false);
   const [maxTradeAmount, setMaxTradeAmount] = useState<number | null>(null);
   const [escrowValidated, setEscrowValidated] = useState(false);
+  const [escrowValidating, setEscrowValidating] = useState(false);
+  const [escrowError, setEscrowError] = useState<string | null>(null);
 
-  if (!offer) return null;
+  // Reset state when dialog opens/closes or offer changes
+  useEffect(() => {
+    if (open) {
+      setFiatAmount("");
+      setSelectedPayment("");
+      setEscrowError(null);
+    }
+  }, [open, offer?.id]);
 
-  const cryptoAmount = fiatAmount ? parseFloat(fiatAmount) / offer.price_per_unit : 0;
-  const isBuyOffer = offer.type === "buy";
+  // Safe access to offer properties with optional chaining
+  const offerId = offer?.id;
+  const offerType = offer?.type;
+  const cryptoType = offer?.crypto_type;
+  const pricePerUnit = offer?.price_per_unit ?? 0;
+  const minAmount = offer?.min_amount ?? 0;
+  const maxAmount = offer?.max_amount ?? 0;
+  const paymentMethods = offer?.payment_methods ?? [];
+  const traderName = offer?.trader_name ?? "Unknown Trader";
+  const traderVerified = offer?.trader_verified ?? false;
+  const traderRating = offer?.trader_rating ?? 0;
+  const traderTrades = offer?.trader_trades ?? 0;
+  const timeLimit = offer?.time_limit ?? 30;
+  const terms = offer?.terms;
+  const fiatCurrency = offer?.fiat_currency ?? "KES";
+
+  const cryptoAmount = fiatAmount && pricePerUnit > 0 ? parseFloat(fiatAmount) / pricePerUnit : 0;
+  const isBuyOffer = offerType === "buy";
   
   // For sell offers (user is buying), check if trade amount exceeds seller's available escrow
-  const maxCryptoFromOffer = (offer as any).reserved_amount || offer.crypto_amount;
-  const maxFiatFromOffer = maxCryptoFromOffer * offer.price_per_unit;
+  const maxCryptoFromOffer = (offer as any)?.reserved_amount ?? offer?.crypto_amount ?? 0;
+  const maxFiatFromOffer = maxCryptoFromOffer * pricePerUnit;
   
+  const parsedFiatAmount = parseFloat(fiatAmount) || 0;
   const isValidAmount = 
-    parseFloat(fiatAmount) >= offer.min_amount && 
-    parseFloat(fiatAmount) <= Math.min(offer.max_amount, maxFiatFromOffer);
+    parsedFiatAmount >= minAmount && 
+    parsedFiatAmount <= Math.min(maxAmount, maxFiatFromOffer);
   
   const exceedsSellerBalance = !isBuyOffer && cryptoAmount > maxCryptoFromOffer;
 
   // Validate escrow when dialog opens for sell offers
   useEffect(() => {
     const validateEscrow = async () => {
-      if (!offer || isBuyOffer) {
+      if (!offer || !offerId || isBuyOffer) {
         setEscrowValidated(true);
+        setEscrowValidating(false);
         return;
       }
       
+      setEscrowValidating(true);
+      setEscrowError(null);
+      
       try {
         const { data, error } = await (supabase.rpc as any)("validate_trade_escrow", {
-          p_offer_id: offer.id,
-          p_trade_amount: offer.crypto_amount,
+          p_offer_id: offerId,
+          p_trade_amount: offer.crypto_amount ?? 0,
         });
         
         if (error) {
           console.error("Error validating escrow:", error);
+          // Don't block the UI, just log the error
+          setEscrowValidated(true);
           return;
         }
         
-        const result = data as { success: boolean; max_trade_amount?: number };
-        if (result.max_trade_amount !== undefined) {
+        const result = data as { success: boolean; max_trade_amount?: number; error?: string } | null;
+        if (result?.max_trade_amount !== undefined) {
           setMaxTradeAmount(result.max_trade_amount);
         }
-        setEscrowValidated(result.success);
+        if (result?.error) {
+          setEscrowError(result.error);
+        }
+        setEscrowValidated(result?.success ?? true);
       } catch (error) {
         console.error("Error validating escrow:", error);
+        // Don't block the UI on validation errors
+        setEscrowValidated(true);
+      } finally {
+        setEscrowValidating(false);
       }
     };
     
-    if (open && offer) {
+    if (open && offer && offerId) {
       validateEscrow();
     }
-  }, [open, offer, isBuyOffer]);
+  }, [open, offerId, offer?.crypto_amount, isBuyOffer]);
 
   const handleTrade = async () => {
-    if (!user || !offer) return;
+    if (!user || !offer || !offerId) return;
 
     if (!fiatAmount || !selectedPayment) {
       toast.error("Please fill in all fields");
@@ -116,7 +207,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
     }
 
     if (!isValidAmount) {
-      toast.error(`Amount must be between KES ${offer.min_amount.toLocaleString()} and KES ${offer.max_amount.toLocaleString()}`);
+      toast.error(`Amount must be between ${fiatCurrency} ${minAmount.toLocaleString()} and ${fiatCurrency} ${maxAmount.toLocaleString()}`);
       return;
     }
 
@@ -127,17 +218,17 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
       // The person responding to the offer is selling, so they're the seller
       const buyer_id = isBuyOffer ? offer.user_id : user.id;
       const seller_id = isBuyOffer ? user.id : offer.user_id;
-      const calculatedCryptoAmount = parseFloat(fiatAmount) / offer.price_per_unit;
+      const calculatedCryptoAmount = parsedFiatAmount / pricePerUnit;
 
       // Step 1: Create the trade FIRST to get a real UUID
       const { error, data: tradeData } = await createTrade({
-        offer_id: offer.id,
+        offer_id: offerId,
         buyer_id,
         seller_id,
-        crypto_type: offer.crypto_type,
+        crypto_type: cryptoType || "BTC",
         crypto_amount: calculatedCryptoAmount,
-        fiat_amount: parseFloat(fiatAmount),
-        fiat_currency: offer.fiat_currency,
+        fiat_amount: parsedFiatAmount,
+        fiat_currency: fiatCurrency,
         payment_method: selectedPayment,
       });
 
@@ -148,7 +239,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
       // Step 2: Lock escrow using the real trade UUID
       const escrowResult = await lockEscrow(
         seller_id,
-        offer.crypto_type,
+        cryptoType || "BTC",
         calculatedCryptoAmount,
         tradeData.id // Use real trade UUID
       );
@@ -175,144 +266,195 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
       onOpenChange(false);
       navigate(`/trade/${tradeData.id}`);
     } catch (error: any) {
-      toast.error(error.message || "Failed to initiate trade");
+      console.error("Trade initiation error:", error);
+      toast.error(error?.message || "Failed to initiate trade");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {isBuyOffer ? "Sell" : "Buy"} {offer.crypto_type}
-          </DialogTitle>
-          <DialogDescription>
-            Trading with {offer.trader_name}
-          </DialogDescription>
-        </DialogHeader>
+  const handleClose = () => {
+    onOpenChange(false);
+  };
 
-        <ScrollArea className="max-h-[60vh] pr-4">
-          <div className="space-y-4">
-            {/* Trader Info */}
-            <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                {offer.trader_name?.charAt(0) || "?"}
+  // Render dialog with proper states
+  const renderDialogContent = () => {
+    // Loading state - when escrow is being validated
+    if (escrowValidating) {
+      return <DialogLoadingState />;
+    }
+
+    // Offer not found state
+    if (!offer || !offerId) {
+      return <DialogNotFoundState onClose={handleClose} />;
+    }
+
+    // Escrow error state (optional - you might want to show a warning instead)
+    if (escrowError && !escrowValidated) {
+      return (
+        <DialogErrorState 
+          message={escrowError} 
+          onRetry={() => {
+            setEscrowError(null);
+            setEscrowValidated(false);
+          }} 
+        />
+      );
+    }
+
+    // Main content
+    return (
+      <ScrollArea className="max-h-[60vh] pr-4">
+        <div className="space-y-4">
+          {/* Trader Info */}
+          <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+              {traderName?.charAt(0) || "?"}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">{traderName}</span>
+                {traderVerified && <Shield className="w-4 h-4 text-primary" />}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{offer.trader_name}</span>
-                  {offer.trader_verified && <Shield className="w-4 h-4 text-primary" />}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Star className="w-3 h-3 text-accent fill-accent" />
-                  <span>{offer.trader_rating?.toFixed(1)}</span>
-                  <span>•</span>
-                  <span>{offer.trader_trades} trades</span>
-                </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Star className="w-3 h-3 text-accent fill-accent" />
+                <span>{traderRating?.toFixed(1) ?? "0.0"}</span>
+                <span>•</span>
+                <span>{traderTrades ?? 0} trades</span>
               </div>
             </div>
+          </div>
 
-            {/* Price Info */}
-            <div className="p-3 bg-secondary/50 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-muted-foreground">Price</span>
-                <span className="font-semibold">
-                  KES {offer.price_per_unit.toLocaleString()} / {offer.crypto_type}
+          {/* Price Info */}
+          <div className="p-3 bg-secondary/50 rounded-lg">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-muted-foreground">Price</span>
+              <span className="font-semibold">
+                {fiatCurrency} {pricePerUnit.toLocaleString()} / {cryptoType || "CRYPTO"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Limit</span>
+              <span>
+                {fiatCurrency} {minAmount.toLocaleString()} - {maxAmount.toLocaleString()}
+              </span>
+            </div>
+          </div>
+
+          {/* Amount Input */}
+          <div className="space-y-2">
+            <Label>Amount ({fiatCurrency})</Label>
+            <Input
+              type="number"
+              placeholder={`${minAmount} - ${maxAmount}`}
+              value={fiatAmount}
+              onChange={(e) => setFiatAmount(e.target.value)}
+              min={minAmount}
+              max={Math.min(maxAmount, maxFiatFromOffer)}
+            />
+            {fiatAmount && parsedFiatAmount > 0 && (
+              <p className="text-sm text-muted-foreground">
+                You will {isBuyOffer ? "receive" : "get"}{" "}
+                <span className="font-semibold text-foreground">
+                  {cryptoAmount.toFixed(cryptoType === "USDT" ? 2 : 6)} {cryptoType || "CRYPTO"}
                 </span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Limit</span>
-                <span>
-                  KES {offer.min_amount.toLocaleString()} - {offer.max_amount.toLocaleString()}
-                </span>
-              </div>
-            </div>
+              </p>
+            )}
+            {exceedsSellerBalance && (
+              <p className="text-sm text-destructive">
+                Amount exceeds seller's available balance
+              </p>
+            )}
+          </div>
 
-            {/* Amount Input */}
-            <div className="space-y-2">
-              <Label>Amount (KES)</Label>
-              <Input
-                type="number"
-                placeholder={`${offer.min_amount} - ${offer.max_amount}`}
-                value={fiatAmount}
-                onChange={(e) => setFiatAmount(e.target.value)}
-              />
-              {fiatAmount && (
-                <p className="text-sm text-muted-foreground">
-                  You will {isBuyOffer ? "receive" : "get"}{" "}
-                  <span className="font-semibold text-foreground">
-                    {cryptoAmount.toFixed(offer.crypto_type === "USDT" ? 2 : 6)} {offer.crypto_type}
-                  </span>
-                </p>
-              )}
-            </div>
-
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <Select value={selectedPayment} onValueChange={setSelectedPayment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment method" />
-                </SelectTrigger>
-                <SelectContent>
-                  {offer.payment_methods.map((method) => (
+          {/* Payment Method */}
+          <div className="space-y-2">
+            <Label>Payment Method</Label>
+            <Select value={selectedPayment} onValueChange={setSelectedPayment}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.length > 0 ? (
+                  paymentMethods.map((method) => (
                     <SelectItem key={method} value={method}>
                       {method}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Terms */}
-            {offer.terms && (
-              <div className="p-3 bg-secondary/50 rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Trader's Terms:</p>
-                <p className="text-sm">{offer.terms}</p>
-              </div>
-            )}
-
-            {/* Warning */}
-            <div className="flex items-start gap-2 p-3 bg-accent/10 border border-accent/30 rounded-lg text-sm">
-              <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <p className="text-muted-foreground">
-                Once you initiate this trade, the seller's crypto will be locked in escrow. 
-                Complete the payment within {offer.time_limit} minutes.
-              </p>
-            </div>
-
-            {/* Cross-Region Warning Banner */}
-            {isOutsideRegion && (
-              <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm">
-                <Globe className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-medium text-amber-500">Cross-region offer</p>
-                  <p className="text-muted-foreground">
-                    This offer uses {offer.fiat_currency || "a different currency"} payment methods which may differ from your region ({userCurrency || "your currency"}).
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Action Button */}
-            <Button
-              className="w-full"
-              onClick={() => {
-                if (isOutsideRegion) {
-                  setShowRegionWarning(true);
-                } else {
-                  handleTrade();
-                }
-              }}
-              disabled={loading || !isValidAmount || !selectedPayment}
-            >
-              {loading ? "Processing..." : `${isBuyOffer ? "Sell" : "Buy"} ${offer.crypto_type}`}
-            </Button>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No payment methods available
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
-        </ScrollArea>
-      </DialogContent>
+
+          {/* Terms */}
+          {terms && (
+            <div className="p-3 bg-secondary/50 rounded-lg">
+              <p className="text-sm text-muted-foreground mb-1">Trader's Terms:</p>
+              <p className="text-sm">{terms}</p>
+            </div>
+          )}
+
+          {/* Warning */}
+          <div className="flex items-start gap-2 p-3 bg-accent/10 border border-accent/30 rounded-lg text-sm">
+            <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+            <p className="text-muted-foreground">
+              Once you initiate this trade, the seller's crypto will be locked in escrow. 
+              Complete the payment within {timeLimit} minutes.
+            </p>
+          </div>
+
+          {/* Cross-Region Warning Banner */}
+          {isOutsideRegion && (
+            <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm">
+              <Globe className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium text-amber-500">Cross-region offer</p>
+                <p className="text-muted-foreground">
+                  This offer uses {fiatCurrency || "a different currency"} payment methods which may differ from your region ({userCurrency || "your currency"}).
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Action Button */}
+          <Button
+            className="w-full"
+            onClick={() => {
+              if (isOutsideRegion) {
+                setShowRegionWarning(true);
+              } else {
+                handleTrade();
+              }
+            }}
+            disabled={loading || !isValidAmount || !selectedPayment || exceedsSellerBalance}
+          >
+            {loading ? "Processing..." : `${isBuyOffer ? "Sell" : "Buy"} ${cryptoType || "CRYPTO"}`}
+          </Button>
+        </div>
+      </ScrollArea>
+    );
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {offer ? `${isBuyOffer ? "Sell" : "Buy"} ${cryptoType || "Crypto"}` : "Trade Details"}
+            </DialogTitle>
+            <DialogDescription>
+              {offer ? `Trading with ${traderName}` : "Loading offer details..."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {renderDialogContent()}
+        </DialogContent>
+      </Dialog>
 
       {/* Cross-Region Warning Dialog */}
       <AlertDialog open={showRegionWarning} onOpenChange={setShowRegionWarning}>
@@ -324,7 +466,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
-                You're about to trade with an offer from a <strong>different region</strong> ({offer.fiat_currency}).
+                You're about to trade with an offer from a <strong>different region</strong> ({fiatCurrency}).
               </p>
               <div className="bg-secondary/50 p-3 rounded-lg space-y-2 text-sm">
                 <p className="font-medium text-foreground">Please be aware:</p>
@@ -353,7 +495,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer, isOutsideRegion, userC
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
+    </>
   );
 };
 

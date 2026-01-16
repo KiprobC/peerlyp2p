@@ -16,6 +16,7 @@ import MarketplaceFilters from "@/components/marketplace/MarketplaceFilters";
 import OfferCard from "@/components/marketplace/OfferCard";
 import CreateOfferDialog from "@/components/marketplace/CreateOfferDialog";
 import InitiateTradeDialog from "@/components/marketplace/InitiateTradeDialog";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useOffers, OfferWithProfile } from "@/hooks/useOffers";
 import { useAuth } from "@/contexts/AuthContext";
 import { isUserOnline } from "@/hooks/useOnlineStatus";
@@ -227,97 +228,101 @@ const Marketplace = () => {
           </div>
 
           {/* Offers Grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 rounded-xl" />
-              ))}
-            </div>
-          ) : filteredOffers.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredOffers.map((offer) => {
-                // Convert price to user's preferred currency
-                const offerCurrency = offer.fiat_currency || "KES";
-                const isOutsideRegion = showGlobalOffers && countryCurrency && offerCurrency !== countryCurrency;
-                const convertedPrice = preferredCurrency !== offerCurrency 
-                  ? convert(offer.price_per_unit, offerCurrency, preferredCurrency)
-                  : offer.price_per_unit;
-                const convertedMin = preferredCurrency !== offerCurrency
-                  ? convert(offer.min_amount, offerCurrency, preferredCurrency)
-                  : offer.min_amount;
-                const convertedMax = preferredCurrency !== offerCurrency
-                  ? convert(offer.max_amount, offerCurrency, preferredCurrency)
-                  : offer.max_amount;
+          <ErrorBoundary>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-64 rounded-xl" />
+                ))}
+              </div>
+            ) : filteredOffers.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredOffers.map((offer) => {
+                  // Convert price to user's preferred currency
+                  const offerCurrency = offer?.fiat_currency || "KES";
+                  const isOutsideRegion = showGlobalOffers && countryCurrency && offerCurrency !== countryCurrency;
+                  const convertedPrice = preferredCurrency !== offerCurrency 
+                    ? convert(offer?.price_per_unit ?? 0, offerCurrency, preferredCurrency)
+                    : offer?.price_per_unit ?? 0;
+                  const convertedMin = preferredCurrency !== offerCurrency
+                    ? convert(offer?.min_amount ?? 0, offerCurrency, preferredCurrency)
+                    : offer?.min_amount ?? 0;
+                  const convertedMax = preferredCurrency !== offerCurrency
+                    ? convert(offer?.max_amount ?? 0, offerCurrency, preferredCurrency)
+                    : offer?.max_amount ?? 0;
 
-                return (
-                  <div key={offer.id} className="relative">
-                    {isOutsideRegion && (
-                      <Badge 
-                        variant="outline" 
-                        className="absolute -top-2 -right-2 z-10 text-[10px] bg-background border-amber-500/50 text-amber-500"
-                      >
-                        <Globe className="w-2.5 h-2.5 mr-1" />
-                        {offerCurrency}
-                      </Badge>
-                    )}
-                    <OfferCard
-                      offer={{
-                        id: offer.id,
-                        type: offer.type,
-                        crypto: offer.crypto_type,
-                        cryptoAmount: offer.crypto_amount,
-                        fiatCurrency: preferredCurrency,
-                        price: convertedPrice,
-                        minAmount: convertedMin,
-                        maxAmount: convertedMax,
-                        paymentMethods: offer.payment_methods,
-                        trader: {
-                          name: offer.trader_name || "Anonymous",
-                          avatar: offer.trader_avatar,
-                          rating: offer.trader_rating || 0,
-                          trades: offer.trader_trades || 0,
-                          verified: offer.trader_verified || false,
-                          positiveCount: offer.trader_positive_count || 0,
-                          lastSeen: offer.trader_last_seen,
-                        },
-                        timeLimit: offer.time_limit,
-                        priceMargin: offer.price_margin,
-                      }}
-                      onAction={() => handleOfferAction(offer)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground mb-4">No offers found matching your criteria</p>
-              <Button variant="outline" onClick={() => setFilters({
-                type: null,
-                crypto: "All",
-                paymentMethod: "All",
-                amount: "",
-                minRating: 0,
-                onlineOnly: false,
-                minPrice: "",
-                maxPrice: "",
-                sortBy: "margin_asc",
-              })}>
-                Clear Filters
-              </Button>
-            </div>
-          )}
+                  return (
+                    <div key={offer?.id || Math.random()} className="relative">
+                      {isOutsideRegion && (
+                        <Badge 
+                          variant="outline" 
+                          className="absolute -top-2 -right-2 z-10 text-[10px] bg-background border-amber-500/50 text-amber-500"
+                        >
+                          <Globe className="w-2.5 h-2.5 mr-1" />
+                          {offerCurrency}
+                        </Badge>
+                      )}
+                      <OfferCard
+                        offer={{
+                          id: offer?.id || "",
+                          type: offer?.type || "buy",
+                          crypto: offer?.crypto_type || "BTC",
+                          cryptoAmount: offer?.crypto_amount ?? 0,
+                          fiatCurrency: preferredCurrency,
+                          price: convertedPrice,
+                          minAmount: convertedMin,
+                          maxAmount: convertedMax,
+                          paymentMethods: offer?.payment_methods ?? [],
+                          trader: {
+                            name: offer?.trader_name || "Anonymous",
+                            avatar: offer?.trader_avatar,
+                            rating: offer?.trader_rating ?? 0,
+                            trades: offer?.trader_trades ?? 0,
+                            verified: offer?.trader_verified ?? false,
+                            positiveCount: offer?.trader_positive_count ?? 0,
+                            lastSeen: offer?.trader_last_seen,
+                          },
+                          timeLimit: offer?.time_limit ?? 30,
+                          priceMargin: offer?.price_margin,
+                        }}
+                        onAction={() => handleOfferAction(offer)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <p className="text-muted-foreground mb-4">No offers found matching your criteria</p>
+                <Button variant="outline" onClick={() => setFilters({
+                  type: null,
+                  crypto: "All",
+                  paymentMethod: "All",
+                  amount: "",
+                  minRating: 0,
+                  onlineOnly: false,
+                  minPrice: "",
+                  maxPrice: "",
+                  sortBy: "margin_asc",
+                })}>
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </ErrorBoundary>
         </div>
       </main>
       {/* Dialogs */}
       <CreateOfferDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
-      <InitiateTradeDialog 
-        open={tradeDialogOpen} 
-        onOpenChange={setTradeDialogOpen} 
-        offer={selectedOffer}
-        isOutsideRegion={showGlobalOffers && countryCurrency && selectedOffer?.fiat_currency !== countryCurrency}
-        userCurrency={countryCurrency}
-      />
+      <ErrorBoundary>
+        <InitiateTradeDialog 
+          open={tradeDialogOpen} 
+          onOpenChange={setTradeDialogOpen} 
+          offer={selectedOffer}
+          isOutsideRegion={Boolean(showGlobalOffers && countryCurrency && selectedOffer?.fiat_currency !== countryCurrency)}
+          userCurrency={countryCurrency}
+        />
+      </ErrorBoundary>
     </div>
   );
 };
