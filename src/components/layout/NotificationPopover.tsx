@@ -1,4 +1,4 @@
-import { Bell, Check, CheckCheck, Star } from "lucide-react";
+import { Bell, Check, CheckCheck, Star, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -34,6 +34,12 @@ export const NotificationPopover = () => {
     
     // Navigate based on notification type and data
     const data = notification.data as Record<string, any> | null;
+    
+    // Handle special actions first
+    if (data?.action === "complete_profile") {
+      navigate("/profile-setup");
+      return;
+    }
     
     switch (notification.type) {
       case "trade":
@@ -101,6 +107,7 @@ export const NotificationPopover = () => {
               {notifications.slice(0, 10).map((notification) => {
                 const data = notification.data as Record<string, any> | null;
                 const needsRating = data?.needs_rating === true;
+                const needsProfileSetup = data?.action === "complete_profile";
                 
                 return (
                   <div
@@ -112,12 +119,18 @@ export const NotificationPopover = () => {
                   >
                     <div className="flex items-start gap-2">
                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeColor(notification.type, needsRating)}`}>
-                        {needsRating ? "rate" : notification.type}
+                        {needsRating ? "rate" : needsProfileSetup ? "action" : notification.type}
                       </span>
                       {needsRating && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-accent/50 text-accent gap-1">
                           <Star className="h-2.5 w-2.5 fill-accent" />
                           Rate now
+                        </Badge>
+                      )}
+                      {needsProfileSetup && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-primary/50 text-primary gap-1">
+                          <UserPlus className="h-2.5 w-2.5" />
+                          Setup needed
                         </Badge>
                       )}
                       {!notification.read && (
@@ -128,6 +141,19 @@ export const NotificationPopover = () => {
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                       {notification.message}
                     </p>
+                    {needsProfileSetup && (
+                      <Button
+                        size="sm"
+                        className="mt-2 h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNotificationClick(notification);
+                        }}
+                      >
+                        <UserPlus className="w-3 h-3 mr-1" />
+                        Complete Profile
+                      </Button>
+                    )}
                     <p className="text-xs text-muted-foreground mt-1">
                       {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                     </p>
