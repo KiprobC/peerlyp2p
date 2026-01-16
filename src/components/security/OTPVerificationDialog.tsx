@@ -106,9 +106,22 @@ export const OTPVerificationDialog = ({
     const success = await verifyCode(code, actionType);
     
     if (success) {
-      // Check if MFA is also required
+      // Check if MFA is also required - verify mfaEnabled is truly enabled
+      // by re-checking with fresh data
       if (requireMFA && mfaEnabled) {
-        setStep("mfa");
+        // Double-check MFA is actually enabled before requiring it
+        const { data: factors } = await import("@/integrations/supabase/client").then(m => 
+          m.supabase.auth.mfa.listFactors()
+        );
+        const hasVerifiedFactor = factors?.totp.some(f => f.status === "verified");
+        
+        if (hasVerifiedFactor) {
+          setStep("mfa");
+        } else {
+          // MFA not actually enabled, proceed without it
+          onVerified();
+          onOpenChange(false);
+        }
       } else {
         onVerified();
         onOpenChange(false);

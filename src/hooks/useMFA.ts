@@ -244,7 +244,10 @@ export const useMFA = () => {
         const { data: factors } = await supabase.auth.mfa.listFactors();
         const verifiedFactor = factors?.totp.find(f => f.status === "verified");
         if (!verifiedFactor) {
-          throw new Error("No verified MFA factor found");
+          // No MFA factor found - this means MFA is not enabled for this user
+          // Return success to allow the action to proceed without MFA
+          console.log("No verified MFA factor found - MFA not required");
+          return { success: true, data: null, mfaNotEnabled: true };
         }
         targetFactorId = verifiedFactor.id;
       }

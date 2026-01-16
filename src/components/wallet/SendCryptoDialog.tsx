@@ -50,7 +50,14 @@ export const SendCryptoDialog = ({
   const { loading, recipientPreview, recipientError, lookupUsername, executeTransfer, clearRecipientPreview } =
     useInternalTransfer();
   
-  const { isEnabled: mfaEnabled } = useMFA();
+  const { isEnabled: mfaEnabled, fetchFactors } = useMFA();
+  
+  // Refresh MFA status when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchFactors();
+    }
+  }, [open, fetchFactors]);
 
   // Debounce username lookup
   useEffect(() => {
