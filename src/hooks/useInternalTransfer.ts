@@ -12,6 +12,12 @@ export interface RecipientPreview {
   member_since: string;
 }
 
+export interface RecipientError {
+  error: string;
+  username: string;
+  message: string;
+}
+
 export interface InternalTransfer {
   id: string;
   sender_id: string;
@@ -29,16 +35,19 @@ export interface InternalTransfer {
 export const useInternalTransfer = () => {
   const [loading, setLoading] = useState(false);
   const [recipientPreview, setRecipientPreview] = useState<RecipientPreview | null>(null);
+  const [recipientError, setRecipientError] = useState<RecipientError | null>(null);
   const [transfers, setTransfers] = useState<InternalTransfer[]>([]);
   const { toast } = useToast();
 
   const lookupUsername = async (username: string): Promise<RecipientPreview | null> => {
     if (!username.trim()) {
       setRecipientPreview(null);
+      setRecipientError(null);
       return null;
     }
 
     setLoading(true);
+    setRecipientError(null);
     try {
       const { data, error } = await supabase.rpc("get_user_by_username", {
         p_username: username.replace("@", "").trim(),
@@ -47,16 +56,27 @@ export const useInternalTransfer = () => {
       if (error) throw error;
       
       if (data && typeof data === 'object') {
+        // Check if it's an error response (user exists but hasn't completed setup)
+        const response = data as Record<string, unknown>;
+        if (response.error === 'setup_incomplete') {
+          setRecipientPreview(null);
+          setRecipientError(response as unknown as RecipientError);
+          return null;
+        }
+        
         const preview = data as unknown as RecipientPreview;
         setRecipientPreview(preview);
+        setRecipientError(null);
         return preview;
       } else {
         setRecipientPreview(null);
+        setRecipientError(null);
         return null;
       }
     } catch (error) {
       console.error("Error looking up username:", error);
       setRecipientPreview(null);
+      setRecipientError(null);
       return null;
     } finally {
       setLoading(false);
@@ -124,11 +144,13 @@ export const useInternalTransfer = () => {
 
   const clearRecipientPreview = () => {
     setRecipientPreview(null);
+    setRecipientError(null);
   };
 
   return {
     loading,
     recipientPreview,
+    recipientError,
     transfers,
     lookupUsername,
     executeTransfer,

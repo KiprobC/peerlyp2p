@@ -131,52 +131,52 @@ const OfferAnalyticsPage = () => {
       <main className="pt-24 pb-24 md:pb-16">
         <div className="container mx-auto px-4 max-w-7xl space-y-6">
           {/* Summary Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card className="glass-card overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                    <Target className="w-5 h-5 text-primary" />
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 rounded-lg bg-primary/10 shrink-0">
+                    <Target className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xl font-bold truncate">{summary.totalOffers}</p>
-                    <p className="text-xs text-muted-foreground truncate">Total Offers</p>
+                    <p className="text-lg md:text-2xl font-bold truncate">{summary.totalOffers}</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">Total Offers</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 truncate">
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-2 truncate">
                   {summary.activeOffers} active
                 </p>
               </CardContent>
             </Card>
 
             <Card className="glass-card overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-green-500/10 shrink-0">
-                    <Activity className="w-5 h-5 text-green-500" />
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 rounded-lg bg-green-500/10 shrink-0">
+                    <Activity className="w-4 h-4 md:w-5 md:h-5 text-green-500" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xl font-bold truncate">{summary.totalTrades}</p>
-                    <p className="text-xs text-muted-foreground truncate">Total Trades</p>
+                    <p className="text-lg md:text-2xl font-bold truncate">{summary.totalTrades}</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">Total Trades</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 truncate">
+                <p className="text-[10px] md:text-xs text-muted-foreground mt-2 truncate">
                   {summary.completedTrades} completed
                 </p>
               </CardContent>
             </Card>
 
             <Card className="glass-card overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10 shrink-0">
-                    <Percent className="w-5 h-5 text-blue-500" />
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 rounded-lg bg-blue-500/10 shrink-0">
+                    <Percent className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xl font-bold truncate">
+                    <p className="text-lg md:text-2xl font-bold truncate">
                       {summary.overallConversionRate.toFixed(1)}%
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">Conversion Rate</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">Conversion</p>
                   </div>
                 </div>
                 <Progress 
@@ -187,20 +187,20 @@ const OfferAnalyticsPage = () => {
             </Card>
 
             <Card className="glass-card overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-yellow-500/10 shrink-0">
-                    <DollarSign className="w-5 h-5 text-yellow-500" />
+              <CardContent className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 rounded-lg bg-yellow-500/10 shrink-0">
+                    <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-2xl font-bold truncate">
+                    <p className="text-lg md:text-2xl font-bold truncate">
                       {summary.totalVolumeFiat >= 1000000
                         ? `${(summary.totalVolumeFiat / 1000000).toFixed(1)}M`
                         : summary.totalVolumeFiat >= 1000
                         ? `${(summary.totalVolumeFiat / 1000).toFixed(1)}K`
                         : summary.totalVolumeFiat.toLocaleString()}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">Total Volume (KES)</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">Volume (KES)</p>
                   </div>
                 </div>
               </CardContent>
@@ -568,20 +568,20 @@ const OfferPerformanceCard = ({ offer }: { offer: OfferAnalytics }) => {
       
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="min-w-0">
-          <p className="text-lg font-bold truncate">{offer.conversionRate.toFixed(0)}%</p>
-          <p className="text-xs text-muted-foreground truncate">Conversion</p>
+          <p className="text-base md:text-lg font-bold truncate">{offer.conversionRate.toFixed(0)}%</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground truncate">Conversion</p>
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-bold truncate">{offer.completedTrades}</p>
-          <p className="text-xs text-muted-foreground truncate">Completed</p>
+          <p className="text-base md:text-lg font-bold truncate">{offer.completedTrades}</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground truncate">Completed</p>
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-bold truncate">
+          <p className="text-base md:text-lg font-bold truncate">
             {offer.totalVolumeFiat >= 1000
               ? `${(offer.totalVolumeFiat / 1000).toFixed(0)}K`
               : offer.totalVolumeFiat.toLocaleString()}
           </p>
-          <p className="text-xs text-muted-foreground truncate">Volume</p>
+          <p className="text-[10px] md:text-xs text-muted-foreground truncate">Volume</p>
         </div>
       </div>
     </div>
