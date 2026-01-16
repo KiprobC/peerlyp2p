@@ -56,6 +56,11 @@ const Settings = () => {
   const { settings, loading, updateSettings, refetch } = useSettings();
   const { factors, isEnabled, loading: mfaLoading, disableMFA, fetchFactors } = useMFA();
   
+  // Refresh MFA status when component mounts and security dialog opens
+  useEffect(() => {
+    fetchFactors();
+  }, [fetchFactors]);
+  
   // Dialog states
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDisableMFADialog, setShowDisableMFADialog] = useState(false);
@@ -65,6 +70,13 @@ const Settings = () => {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
+  
+  // Re-fetch MFA when security dialog opens
+  useEffect(() => {
+    if (showSecurityDialog) {
+      fetchFactors();
+    }
+  }, [showSecurityDialog, fetchFactors]);
   
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDisablingMFA, setIsDisablingMFA] = useState(false);
