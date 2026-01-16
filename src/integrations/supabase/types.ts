@@ -330,6 +330,7 @@ export type Database = {
           payment_methods: string[]
           price_margin: number | null
           price_per_unit: number
+          reserved_amount: number
           terms: string | null
           time_limit: number | null
           total_trades: number | null
@@ -350,6 +351,7 @@ export type Database = {
           payment_methods: string[]
           price_margin?: number | null
           price_per_unit: number
+          reserved_amount?: number
           terms?: string | null
           time_limit?: number | null
           total_trades?: number | null
@@ -370,6 +372,7 @@ export type Database = {
           payment_methods?: string[]
           price_margin?: number | null
           price_per_unit?: number
+          reserved_amount?: number
           terms?: string | null
           time_limit?: number | null
           total_trades?: number | null
@@ -1269,22 +1272,39 @@ export type Database = {
         }
         Returns: string
       }
-      create_sell_offer_with_reservation: {
-        Args: {
-          p_crypto_amount: number
-          p_crypto_type: string
-          p_fiat_currency: string
-          p_max_amount: number
-          p_min_amount: number
-          p_payment_methods: string[]
-          p_price_margin: number
-          p_price_per_unit: number
-          p_terms: string
-          p_time_limit: number
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      create_sell_offer_with_reservation:
+        | {
+            Args: {
+              p_crypto_amount: number
+              p_crypto_type: string
+              p_fiat_currency: string
+              p_max_amount: number
+              p_min_amount: number
+              p_payment_methods: string[]
+              p_price_margin: number
+              p_price_per_unit: number
+              p_terms: string
+              p_time_limit: number
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_crypto_amount: number
+              p_crypto_type: string
+              p_fiat_currency: string
+              p_max_amount: number
+              p_min_amount: number
+              p_payment_methods: string[]
+              p_price_margin: number
+              p_price_per_unit: number
+              p_terms: string
+              p_time_limit: number
+              p_user_id: string
+            }
+            Returns: Json
+          }
       credit_buyer_wallet: {
         Args: { p_amount: number; p_wallet_id: string }
         Returns: undefined
@@ -1375,6 +1395,15 @@ export type Database = {
         Args: {
           p_resolution_notes: string
           p_resolution_type: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
+      return_escrow_with_reservation: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_seller_id: string
           p_trade_id: string
         }
         Returns: Json
