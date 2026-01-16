@@ -8,6 +8,7 @@ export interface Offer {
   type: "buy" | "sell";
   crypto_type: string;
   crypto_amount: number;
+  reserved_amount: number;
   fiat_currency: string;
   price_per_unit: number;
   price_margin: number;
@@ -22,6 +23,13 @@ export interface Offer {
   updated_at: string;
 }
 
+// Calculate available amount (crypto_amount - reserved_amount)
+export const getAvailableAmount = (offer: Offer | OfferWithProfile): number => {
+  const total = offer.crypto_amount ?? 0;
+  const reserved = offer.reserved_amount ?? 0;
+  return Math.max(0, total - reserved);
+};
+
 export interface OfferWithProfile extends Offer {
   trader_name?: string;
   trader_avatar?: string;
@@ -30,6 +38,8 @@ export interface OfferWithProfile extends Offer {
   trader_verified?: boolean;
   trader_positive_count?: number;
   trader_last_seen?: string | null;
+  // Calculated fields
+  available_amount?: number;
 }
 
 export interface OfferFilters {
@@ -112,8 +122,11 @@ export const useOffers = (filters?: OfferFilters) => {
         
         const offersWithProfiles: OfferWithProfile[] = data.map(offer => {
           const profile = profileMap.get(offer.user_id);
+          const reservedAmount = offer.reserved_amount ?? 0;
+          const cryptoAmount = offer.crypto_amount ?? 0;
           return {
             ...offer,
+            reserved_amount: reservedAmount,
             price_margin: offer.price_margin || 0,
             trader_name: profile?.username || profile?.full_name || "Anonymous",
             trader_avatar: profile?.avatar_url || undefined,
@@ -122,6 +135,7 @@ export const useOffers = (filters?: OfferFilters) => {
             trader_verified: profile?.is_verified || false,
             trader_positive_count: positiveCounts[offer.user_id] || 0,
             trader_last_seen: profile?.last_seen || null,
+            available_amount: Math.max(0, cryptoAmount - reservedAmount),
           };
         });
         
@@ -171,7 +185,7 @@ export const useMyOffers = () => {
     }
   };
 
-  const createOffer = async (offer: Omit<Offer, "id" | "user_id" | "created_at" | "updated_at" | "total_trades">) => {
+  const createOffer = async (offer: Omit<Offer, "id" | "user_id" | "created_at" | "updated_at" | "total_trades" | "reserved_amount">) => {
     if (!user) return { error: new Error("Not authenticated") };
 
     try {
