@@ -47,7 +47,7 @@ export const SendCryptoDialog = ({
   const [debouncedUsername, setDebouncedUsername] = useState("");
   const [showOTPVerify, setShowOTPVerify] = useState(false);
 
-  const { loading, recipientPreview, lookupUsername, executeTransfer, clearRecipientPreview } =
+  const { loading, recipientPreview, recipientError, lookupUsername, executeTransfer, clearRecipientPreview } =
     useInternalTransfer();
   
   const { isEnabled: mfaEnabled } = useMFA();
@@ -194,10 +194,17 @@ export const SendCryptoDialog = ({
                 </div>
               )}
 
-              {username.length >= 3 && !loading && !recipientPreview && (
+              {username.length >= 3 && !loading && !recipientPreview && !recipientError && (
                 <div className="flex items-center gap-2 text-destructive text-sm">
                   <AlertCircle className="h-4 w-4" />
                   Username not found
+                </div>
+              )}
+
+              {recipientError && (
+                <div className="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  @{recipientError.username} hasn't completed their profile setup yet
                 </div>
               )}
 
