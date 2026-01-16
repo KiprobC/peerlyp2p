@@ -11,6 +11,7 @@ import {
   Shield,
   Settings,
   Star,
+  UserPlus,
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
@@ -35,6 +36,12 @@ const Notifications = () => {
     
     // Navigate based on notification type and data
     const data = notification.data as Record<string, any> | null;
+    
+    // Handle special actions first
+    if (data?.action === "complete_profile") {
+      navigate("/profile-setup");
+      return;
+    }
     
     switch (notification.type) {
       case "trade":
@@ -99,25 +106,26 @@ const Notifications = () => {
               {notifications.map((notification) => {
                 const data = notification.data as Record<string, any> | null;
                 const needsRating = data?.needs_rating === true;
-                const Icon = needsRating ? Star : (iconMap[notification.type] || Bell);
+                const needsProfileSetup = data?.action === "complete_profile";
+                const Icon = needsRating ? Star : needsProfileSetup ? UserPlus : (iconMap[notification.type] || Bell);
                 
                 return (
                   <div
                     key={notification.id}
                     className={`glass-card cursor-pointer transition-all ${
                       !notification.read ? "border-primary/30 bg-primary/5" : ""
-                    } ${needsRating ? "border-accent/30" : ""}`}
+                    } ${needsRating ? "border-accent/30" : ""} ${needsProfileSetup ? "border-primary/50" : ""}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-4">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          needsRating ? "bg-accent/20" : (!notification.read ? "bg-primary/20" : "bg-secondary")
+                          needsRating ? "bg-accent/20" : needsProfileSetup ? "bg-primary/20" : (!notification.read ? "bg-primary/20" : "bg-secondary")
                         }`}
                       >
                         <Icon
                           className={`w-5 h-5 ${
-                            needsRating ? "text-accent fill-accent" : (!notification.read ? "text-primary" : "text-muted-foreground")
+                            needsRating ? "text-accent fill-accent" : needsProfileSetup ? "text-primary" : (!notification.read ? "text-primary" : "text-muted-foreground")
                           }`}
                         />
                       </div>
@@ -145,6 +153,19 @@ const Notifications = () => {
                         <p className="text-sm text-muted-foreground mt-1">
                           {notification.message}
                         </p>
+                        {needsProfileSetup && (
+                          <Button
+                            size="sm"
+                            className="mt-3"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotificationClick(notification);
+                            }}
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Complete Profile
+                          </Button>
+                        )}
                         <p className="text-xs text-muted-foreground mt-2">
                           {formatDistanceToNow(new Date(notification.created_at), {
                             addSuffix: true,
