@@ -35,6 +35,7 @@ export interface OfferWithProfile extends Offer {
   trader_avatar?: string;
   trader_rating?: number;
   trader_trades?: number;
+  trader_successful_trades?: number;
   trader_verified?: boolean;
   trader_positive_count?: number;
   trader_last_seen?: string | null;
@@ -86,7 +87,7 @@ export const useOffers = (filters?: OfferFilters) => {
         const userIds = [...new Set(data.map(o => o.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, full_name, username, avatar_url, rating, is_verified, last_seen")
+          .select("user_id, full_name, username, avatar_url, rating, is_verified, last_seen, successful_trades, total_trades")
           .in("user_id", userIds);
         
         // Fetch positive feedback counts for all users
@@ -124,6 +125,8 @@ export const useOffers = (filters?: OfferFilters) => {
           const profile = profileMap.get(offer.user_id);
           const reservedAmount = offer.reserved_amount ?? 0;
           const cryptoAmount = offer.crypto_amount ?? 0;
+          const traderTrades = tradeCounts[offer.user_id] || profile?.total_trades || 0;
+          const traderSuccessfulTrades = profile?.successful_trades ?? traderTrades;
           return {
             ...offer,
             reserved_amount: reservedAmount,
@@ -131,7 +134,8 @@ export const useOffers = (filters?: OfferFilters) => {
             trader_name: profile?.username || profile?.full_name || "Anonymous",
             trader_avatar: profile?.avatar_url || undefined,
             trader_rating: profile?.rating || 0,
-            trader_trades: tradeCounts[offer.user_id] || 0,
+            trader_trades: traderTrades,
+            trader_successful_trades: traderSuccessfulTrades,
             trader_verified: profile?.is_verified || false,
             trader_positive_count: positiveCounts[offer.user_id] || 0,
             trader_last_seen: profile?.last_seen || null,
