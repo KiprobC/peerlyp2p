@@ -14,6 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
+      abuse_flags: {
+        Row: {
+          action_type: string | null
+          created_at: string
+          details: Json | null
+          flag_type: string
+          id: string
+          ip_address: string | null
+          resolution: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type?: string | null
+          created_at?: string
+          details?: Json | null
+          flag_type: string
+          id?: string
+          ip_address?: string | null
+          resolution?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string | null
+          created_at?: string
+          details?: Json | null
+          flag_type?: string
+          id?: string
+          ip_address?: string | null
+          resolution?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      action_rate_limits: {
+        Row: {
+          action_type: string
+          attempt_count: number
+          backoff_level: number
+          blocked_until: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          last_attempt_at: string
+          user_id: string | null
+          window_start: string
+        }
+        Insert: {
+          action_type: string
+          attempt_count?: number
+          backoff_level?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          last_attempt_at?: string
+          user_id?: string | null
+          window_start?: string
+        }
+        Update: {
+          action_type?: string
+          attempt_count?: number
+          backoff_level?: number
+          blocked_until?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          last_attempt_at?: string
+          user_id?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       admin_actions: {
         Row: {
           action_type: string
@@ -280,6 +361,54 @@ export type Database = {
           sender_id?: string
           sender_username?: string
           status?: string
+        }
+        Relationships: []
+      }
+      kyc_tier_limits: {
+        Row: {
+          allowed_payment_methods: string[]
+          can_create_buy_offers: boolean
+          can_create_sell_offers: boolean
+          created_at: string
+          daily_trade_limit: number
+          description: string | null
+          id: string
+          max_active_offers: number
+          max_daily_trades: number
+          max_single_trade_amount: number
+          monthly_trade_limit: number
+          tier: Database["public"]["Enums"]["kyc_tier"]
+          updated_at: string
+        }
+        Insert: {
+          allowed_payment_methods?: string[]
+          can_create_buy_offers?: boolean
+          can_create_sell_offers?: boolean
+          created_at?: string
+          daily_trade_limit?: number
+          description?: string | null
+          id?: string
+          max_active_offers?: number
+          max_daily_trades?: number
+          max_single_trade_amount?: number
+          monthly_trade_limit?: number
+          tier: Database["public"]["Enums"]["kyc_tier"]
+          updated_at?: string
+        }
+        Update: {
+          allowed_payment_methods?: string[]
+          can_create_buy_offers?: boolean
+          can_create_sell_offers?: boolean
+          created_at?: string
+          daily_trade_limit?: number
+          description?: string | null
+          id?: string
+          max_active_offers?: number
+          max_daily_trades?: number
+          max_single_trade_amount?: number
+          monthly_trade_limit?: number
+          tier?: Database["public"]["Enums"]["kyc_tier"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -670,6 +799,42 @@ export type Database = {
           user_id?: string
           username?: string | null
           username_changed?: boolean | null
+        }
+        Relationships: []
+      }
+      rate_limit_config: {
+        Row: {
+          action_type: string
+          base_cooldown_seconds: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_attempts: number
+          max_cooldown_seconds: number
+          window_seconds: number
+        }
+        Insert: {
+          action_type: string
+          base_cooldown_seconds?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_attempts?: number
+          max_cooldown_seconds?: number
+          window_seconds?: number
+        }
+        Update: {
+          action_type?: string
+          base_cooldown_seconds?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_attempts?: number
+          max_cooldown_seconds?: number
+          window_seconds?: number
         }
         Relationships: []
       }
@@ -1133,6 +1298,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_trading_stats: {
+        Row: {
+          created_at: string
+          daily_reset_at: string
+          daily_trade_count: number
+          daily_trade_volume: number
+          id: string
+          last_trade_at: string | null
+          monthly_reset_at: string
+          monthly_trade_count: number
+          monthly_trade_volume: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_reset_at?: string
+          daily_trade_count?: number
+          daily_trade_volume?: number
+          id?: string
+          last_trade_at?: string | null
+          monthly_reset_at?: string
+          monthly_trade_count?: number
+          monthly_trade_volume?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_reset_at?: string
+          daily_trade_count?: number
+          daily_trade_volume?: number
+          id?: string
+          last_trade_at?: string | null
+          monthly_reset_at?: string
+          monthly_trade_count?: number
+          monthly_trade_volume?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_transfer_freeze: {
         Row: {
           frozen_at: string
@@ -1261,7 +1468,21 @@ export type Database = {
         Returns: string
       }
       cancel_expired_trades: { Args: never; Returns: Json }
+      check_kyc_trade_limits: {
+        Args: {
+          p_action: string
+          p_amount: number
+          p_payment_method?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      check_rate_limit: {
+        Args: { p_action_type: string; p_ip_address: string; p_user_id: string }
+        Returns: Json
+      }
       cleanup_expired_otps: { Args: never; Returns: number }
+      cleanup_expired_rate_limits: { Args: never; Returns: number }
       create_notification: {
         Args: {
           p_data?: Json
@@ -1344,6 +1565,10 @@ export type Database = {
         Returns: string
       }
       get_user_by_username: { Args: { p_username: string }; Returns: Json }
+      get_user_kyc_tier: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Enums"]["kyc_tier"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1359,6 +1584,17 @@ export type Database = {
           p_trade_id: string
         }
         Returns: Json
+      }
+      log_abuse_flag: {
+        Args: {
+          p_action_type: string
+          p_details?: Json
+          p_flag_type: string
+          p_ip_address: string
+          p_severity: string
+          p_user_id: string
+        }
+        Returns: string
       }
       log_admin_action: {
         Args: {
@@ -1391,6 +1627,10 @@ export type Database = {
         }
         Returns: string
       }
+      reset_trading_stats_if_needed: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       resolve_dispute: {
         Args: {
           p_resolution_notes: string
@@ -1413,6 +1653,20 @@ export type Database = {
         Returns: Json
       }
       update_last_seen: { Args: never; Returns: undefined }
+      update_trading_stats: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: undefined
+      }
+      validate_trade_action: {
+        Args: {
+          p_action: string
+          p_amount: number
+          p_ip_address?: string
+          p_payment_method: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       verify_otp_code: {
         Args: { p_action_type: string; p_code: string; p_user_id: string }
         Returns: Json
@@ -1421,6 +1675,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       kyc_status: "pending" | "submitted" | "verified" | "rejected"
+      kyc_tier: "unverified" | "level_1" | "level_2" | "level_3"
       notification_type: "trade" | "payment" | "kyc" | "system" | "message"
       offer_type: "buy" | "sell"
       trade_status:
@@ -1565,6 +1820,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       kyc_status: ["pending", "submitted", "verified", "rejected"],
+      kyc_tier: ["unverified", "level_1", "level_2", "level_3"],
       notification_type: ["trade", "payment", "kyc", "system", "message"],
       offer_type: ["buy", "sell"],
       trade_status: [
