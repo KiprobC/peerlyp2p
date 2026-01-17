@@ -119,10 +119,7 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
       {!isBuy && (
         <div className="mb-2 p-2 bg-secondary/30 rounded-md">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              Available
-            </span>
+            <TrendingUp className="w-3 h-3 text-muted-foreground" />
             <span className={`font-medium ${availableAmount > 0 ? 'text-foreground' : 'text-destructive'}`}>
               {availableAmount.toFixed(offer.crypto === "USDT" ? 2 : 6)} {offer.crypto}
             </span>
