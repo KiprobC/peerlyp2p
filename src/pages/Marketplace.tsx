@@ -184,81 +184,56 @@ const Marketplace = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                  P2P Trading
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Trade crypto directly with verified traders
-                </p>
+      <main className="pt-20 pb-24 md:pb-16">
+        <div className="container mx-auto px-3 md:px-4">
+          {/* Compact Header Bar */}
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            {/* Title + Stats inline */}
+            <div className="flex items-center gap-3">
+              <h1 className="text-base md:text-lg font-bold text-foreground">
+                P2P Trading
+              </h1>
+              <div className="flex items-center gap-2 text-[10px]">
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-secondary/40 rounded text-muted-foreground">
+                  <TrendingUp className="w-3 h-3 text-primary" />
+                  <span className="font-medium text-foreground">{filteredOffers.length}</span>
+                </span>
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-secondary/40 rounded text-muted-foreground">
+                  <Users className="w-3 h-3 text-green-500" />
+                  <span className="font-medium text-foreground">{onlineTraders}</span>
+                </span>
               </div>
-              
-              {/* Quick Stats */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-lg">
-                    <TrendingUp className="w-4 h-4 text-primary" />
-                    <span className="font-medium">{filteredOffers.length}</span>
-                    <span className="text-muted-foreground">offers</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-lg">
-                    <Users className="w-4 h-4 text-green-500" />
-                    <span className="font-medium">{onlineTraders}</span>
-                    <span className="text-muted-foreground">online</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <MarketplaceFilters 
-            onFilterChange={(f) => setFilters({ ...filters, ...f })} 
-            initialFilters={filters} 
-          />
-
-          {/* Results Info & Global Toggle */}
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                {!showGlobalOffers && countryCurrency && (
-                  <span>Trading in <span className="text-foreground font-medium">{countryCurrency}</span></span>
-                )}
-                {showGlobalOffers && (
-                  <span className="text-primary font-medium">Global marketplace</span>
-                )}
-              </p>
             </div>
             
-            {/* Global Offers Toggle */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/30 rounded-lg">
-                <Globe className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Global</span>
+            {/* Global Toggle - Compact */}
+            <div className="flex items-center gap-2">
+              {!showGlobalOffers && countryCurrency && (
+                <span className="text-[10px] text-muted-foreground">
+                  <span className="text-foreground font-medium">{countryCurrency}</span>
+                </span>
+              )}
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-secondary/30 rounded-md">
+                <Globe className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground hidden sm:inline">Global</span>
                 <Switch 
                   checked={showGlobalOffers} 
                   onCheckedChange={(checked) => {
                     setShowGlobalOffers(checked);
                     if (!checked) setSelectedRegion("all");
                   }}
-                  className="scale-90"
+                  className="scale-75"
                 />
               </div>
               
               {showGlobalOffers && (
                 <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs bg-secondary/30">
-                    <SelectValue placeholder="All Regions" />
+                  <SelectTrigger className="w-[90px] h-6 text-[10px] bg-secondary/30 border-0 px-2">
+                    <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Regions</SelectItem>
+                    <SelectItem value="all" className="text-xs">All Regions</SelectItem>
                     {regionOptions.map((region) => (
-                      <SelectItem key={region.code} value={region.code}>
+                      <SelectItem key={region.code} value={region.code} className="text-xs">
                         {region.flag && <span className="mr-1">{region.flag}</span>}
                         {region.code}
                       </SelectItem>
@@ -268,6 +243,12 @@ const Marketplace = () => {
               )}
             </div>
           </div>
+
+          {/* Filters - Now Compact Control Bar */}
+          <MarketplaceFilters 
+            onFilterChange={(f) => setFilters({ ...filters, ...f })} 
+            initialFilters={filters} 
+          />
 
           {/* Offers Grid */}
           <ErrorBoundary>

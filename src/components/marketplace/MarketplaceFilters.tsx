@@ -6,7 +6,6 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Search, 
   SlidersHorizontal, 
   ChevronDown, 
   ChevronUp, 
@@ -61,17 +60,17 @@ interface MarketplaceFiltersProps {
 }
 
 const cryptos = [
-  { value: "All", label: "All Crypto", icon: Wallet },
-  { value: "BTC", label: "Bitcoin", icon: Wallet },
+  { value: "All", label: "All", icon: Wallet },
+  { value: "BTC", label: "BTC", icon: Wallet },
   { value: "USDT", label: "USDT", icon: Wallet },
-  { value: "ETH", label: "Ethereum", icon: Wallet },
+  { value: "ETH", label: "ETH", icon: Wallet },
 ];
 
 const paymentMethods = [
-  { value: "All", label: "All Methods", icon: Wallet },
+  { value: "All", label: "All", icon: Wallet },
   { value: "MPESA", label: "M-Pesa", icon: Smartphone },
-  { value: "Bank Transfer", label: "Bank Transfer", icon: Building2 },
-  { value: "Airtel Money", label: "Airtel Money", icon: Smartphone },
+  { value: "Bank Transfer", label: "Bank", icon: Building2 },
+  { value: "Airtel Money", label: "Airtel", icon: Smartphone },
   { value: "Cash", label: "Cash", icon: Banknote },
 ];
 
@@ -133,187 +132,187 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters }: MarketplaceFilte
   ].filter(Boolean).length;
 
   return (
-    <div className="bg-card border border-border rounded-xl mb-6 overflow-hidden">
-      {/* Primary Filters Row */}
-      <div className="p-4">
-        {/* Trade Type Toggle - Binance Style */}
-        <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg mb-4 w-fit">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "px-6 h-9 rounded-md font-semibold transition-all",
-              type === "sell" 
-                ? "bg-green-500 text-white hover:bg-green-600 shadow-sm" 
-                : "text-muted-foreground hover:text-foreground hover:bg-transparent"
-            )}
-            onClick={() => setType(type === "sell" ? null : "sell")}
-          >
-            Buy
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "px-6 h-9 rounded-md font-semibold transition-all",
-              type === "buy" 
-                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm" 
-                : "text-muted-foreground hover:text-foreground hover:bg-transparent"
-            )}
-            onClick={() => setType(type === "buy" ? null : "buy")}
-          >
-            Sell
-          </Button>
-        </div>
+    <div className="bg-card/50 border border-border/50 rounded-lg mb-3 overflow-hidden">
+      {/* Compact Control Bar */}
+      <div className="px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Buy/Sell Pill Toggle - Compact */}
+          <div className="flex gap-0.5 p-0.5 bg-secondary/60 rounded-md">
+            <button
+              className={cn(
+                "px-3 py-1 text-xs font-semibold rounded transition-all",
+                type === "sell" 
+                  ? "bg-green-500 text-white" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => setType(type === "sell" ? null : "sell")}
+            >
+              Buy
+            </button>
+            <button
+              className={cn(
+                "px-3 py-1 text-xs font-semibold rounded transition-all",
+                type === "buy" 
+                  ? "bg-destructive text-destructive-foreground" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              onClick={() => setType(type === "buy" ? null : "buy")}
+            >
+              Sell
+            </button>
+          </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Crypto Select */}
+          {/* Divider */}
+          <div className="w-px h-5 bg-border/50 hidden sm:block" />
+
+          {/* Crypto Select - Compact */}
           <Select value={selectedCrypto} onValueChange={setSelectedCrypto}>
-            <SelectTrigger className="w-[130px] h-9 text-sm bg-secondary/30 border-border">
+            <SelectTrigger className="w-[80px] h-7 text-xs bg-secondary/40 border-0 px-2">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {cryptos.map((crypto) => (
-                <SelectItem key={crypto.value} value={crypto.value}>
-                  <div className="flex items-center gap-2">
-                    <crypto.icon className="w-4 h-4 text-muted-foreground" />
-                    <span>{crypto.label}</span>
-                  </div>
+                <SelectItem key={crypto.value} value={crypto.value} className="text-xs">
+                  {crypto.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {/* Payment Method */}
+          {/* Payment Method - Compact */}
           <Select value={selectedPayment} onValueChange={setSelectedPayment}>
-            <SelectTrigger className="w-[150px] h-9 text-sm bg-secondary/30 border-border">
+            <SelectTrigger className="w-[90px] h-7 text-xs bg-secondary/40 border-0 px-2">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {paymentMethods.map((method) => (
-                <SelectItem key={method.value} value={method.value}>
-                  <div className="flex items-center gap-2">
-                    <method.icon className="w-4 h-4 text-muted-foreground" />
-                    <span>{method.label}</span>
-                  </div>
+                <SelectItem key={method.value} value={method.value} className="text-xs">
+                  {method.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          {/* Amount Input */}
+          {/* Amount Input - Compact */}
           <div className="relative">
             <Input
               type="number"
-              placeholder="Enter amount"
+              placeholder="Amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-[140px] h-9 text-sm bg-secondary/30 border-border pr-12"
+              className="w-[100px] h-7 text-xs bg-secondary/40 border-0 px-2 pr-8"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
               KES
             </span>
           </div>
 
-          {/* Search Button */}
-          <Button size="sm" className="h-9 px-4 gap-1.5 font-semibold">
-            <Search className="w-4 h-4" />
-            Search
-          </Button>
-
-          {/* Advanced Filters Toggle */}
-          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9 gap-1.5 text-sm bg-secondary/30 border-border"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                Filters
-                {activeFilterCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
-                    {activeFilterCount}
-                  </Badge>
-                )}
-                {advancedOpen ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-          </Collapsible>
-
-          {/* Online Only - Quick Toggle */}
+          {/* Right-aligned controls */}
           <div className="flex items-center gap-2 ml-auto">
-            <div 
-              className={cn(
-                "w-2 h-2 rounded-full",
-                onlineOnly ? "bg-green-500" : "bg-muted-foreground/30"
-              )} 
-            />
-            <Label htmlFor="online-quick" className="text-xs cursor-pointer text-muted-foreground">
-              Online
-            </Label>
-            <Switch
-              id="online-quick"
-              checked={onlineOnly}
-              onCheckedChange={setOnlineOnly}
-              className="scale-90"
-            />
+            {/* Online Toggle - Compact */}
+            <div className="flex items-center gap-1.5">
+              <div 
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  onlineOnly ? "bg-green-500" : "bg-muted-foreground/30"
+                )} 
+              />
+              <Label htmlFor="online-quick" className="text-[10px] cursor-pointer text-muted-foreground">
+                Online
+              </Label>
+              <Switch
+                id="online-quick"
+                checked={onlineOnly}
+                onCheckedChange={setOnlineOnly}
+                className="scale-75"
+              />
+            </div>
+
+            {/* Advanced Filters Toggle - Compact */}
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <SlidersHorizontal className="w-3 h-3" />
+                  {activeFilterCount > 0 && (
+                    <Badge variant="secondary" className="h-4 px-1 text-[9px] bg-primary/20 text-primary">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                  {advancedOpen ? (
+                    <ChevronUp className="w-3 h-3" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+            </Collapsible>
+
+            {/* Clear - Only visible when filters active */}
+            {activeFilterCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 px-2 text-[10px] text-muted-foreground hover:text-destructive"
+                onClick={clearFilters}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Advanced Filters Panel */}
+      {/* Advanced Filters Panel - Compact */}
       <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
         <CollapsibleContent>
-          <div className="p-4 pt-0 border-t border-border bg-secondary/20">
-            <div className="pt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="px-3 py-2 border-t border-border/30 bg-secondary/10">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
               {/* Price Range */}
               <div className="col-span-2">
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                  Price Range (KES)
+                <label className="text-[10px] font-medium text-muted-foreground mb-1 block">
+                  Price Range
                 </label>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-1 items-center">
                   <Input
                     type="number"
                     placeholder="Min"
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
-                    className="flex-1 h-9 text-sm bg-card"
+                    className="flex-1 h-7 text-xs bg-card border-0"
                   />
-                  <span className="text-muted-foreground text-sm">–</span>
+                  <span className="text-muted-foreground text-xs">–</span>
                   <Input
                     type="number"
                     placeholder="Max"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
-                    className="flex-1 h-9 text-sm bg-card"
+                    className="flex-1 h-7 text-xs bg-card border-0"
                   />
                 </div>
               </div>
 
-              {/* Trader Badge Level */}
+              {/* Trader Level */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                <label className="text-[10px] font-medium text-muted-foreground mb-1 block">
                   Trader Level
                 </label>
                 <Select 
                   value={minTierLevel || "any"} 
                   onValueChange={(v) => setMinTierLevel(v === "any" ? null : v as TraderTier)}
                 >
-                  <SelectTrigger className="h-9 text-sm bg-card">
-                    <SelectValue placeholder="Any level" />
+                  <SelectTrigger className="h-7 text-xs bg-card border-0">
+                    <SelectValue placeholder="Any" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="any">Any Level</SelectItem>
+                    <SelectItem value="any" className="text-xs">Any</SelectItem>
                     {Object.values(TRADER_TIERS).map((tier) => (
-                      <SelectItem key={tier.tier} value={tier.tier}>
-                        <span className="flex items-center gap-2">
-                          <span>{tier.icon}</span>
+                      <SelectItem key={tier.tier} value={tier.tier} className="text-xs">
+                        <span className="flex items-center gap-1">
+                          <span className="text-[10px]">{tier.icon}</span>
                           <span>{tier.label}+</span>
                         </span>
                       </SelectItem>
@@ -324,7 +323,7 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters }: MarketplaceFilte
 
               {/* Completion Rate */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                <label className="text-[10px] font-medium text-muted-foreground mb-1 block">
                   Completion: {minCompletionRate > 0 ? `${minCompletionRate}%+` : "Any"}
                 </label>
                 <Slider
@@ -333,44 +332,29 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters }: MarketplaceFilte
                   min={0}
                   max={100}
                   step={5}
-                  className="mt-3"
+                  className="mt-2"
                 />
               </div>
 
               {/* Sort By */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                <label className="text-[10px] font-medium text-muted-foreground mb-1 block">
                   Sort By
                 </label>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-9 text-sm bg-card">
+                  <SelectTrigger className="h-7 text-xs bg-card border-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="margin_asc">Price: Low to High</SelectItem>
-                    <SelectItem value="margin_desc">Price: High to Low</SelectItem>
-                    <SelectItem value="rating_desc">Rating: High to Low</SelectItem>
-                    <SelectItem value="trades_desc">Trades: Most First</SelectItem>
-                    <SelectItem value="completion_desc">Completion: High to Low</SelectItem>
+                    <SelectItem value="margin_asc" className="text-xs">Price ↑</SelectItem>
+                    <SelectItem value="margin_desc" className="text-xs">Price ↓</SelectItem>
+                    <SelectItem value="rating_desc" className="text-xs">Rating ↓</SelectItem>
+                    <SelectItem value="trades_desc" className="text-xs">Trades ↓</SelectItem>
+                    <SelectItem value="completion_desc" className="text-xs">Completion ↓</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
-            {/* Clear Filters */}
-            {activeFilterCount > 0 && (
-              <div className="mt-4 flex justify-end">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                  onClick={clearFilters}
-                >
-                  <X className="w-3 h-3" />
-                  Clear All Filters
-                </Button>
-              </div>
-            )}
           </div>
         </CollapsibleContent>
       </Collapsible>
