@@ -37,6 +37,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { OfferWithProfile, getAvailableAmount } from "@/hooks/useOffers";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateAction, ValidationResult } from "@/hooks/useKYCLimits";
+import { KYCLimitError } from "@/components/kyc/KYCLimitError";
+import { KYCLimitBanner } from "@/components/kyc/KYCLimitBanner";
 
 interface InitiateTradeDialogProps {
   open: boolean;
@@ -130,6 +133,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
   const [fiatAmount, setFiatAmount] = useState("");
   const [selectedPayment, setSelectedPayment] = useState("");
   const [showRegionWarning, setShowRegionWarning] = useState(false);
+  const [validationError, setValidationError] = useState<ValidationResult | null>(null);
   
   // Real-time offer state
   const [liveOffer, setLiveOffer] = useState<OfferWithProfile | null>(null);
@@ -208,6 +212,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
       setOfferError(null);
       setOfferUpdated(false);
       setLiveOffer(null);
+      setValidationError(null);
       initialOfferVersionRef.current = initialOffer.updated_at;
       
       // Fetch fresh offer data
@@ -298,9 +303,19 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
     }
 
     setLoading(true);
+    setValidationError(null);
 
     try {
-      // Step 0: Re-fetch latest offer data to prevent race conditions
+      // Step 0: Validate KYC limits and rate limits server-side
+      const validation = await validateAction("initiate_trade", parsedFiatAmount, selectedPayment);
+      
+      if (!validation.allowed) {
+        setValidationError(validation);
+        setLoading(false);
+        return;
+      }
+
+      // Step 1: Re-fetch latest offer data to prevent race conditions
       const latestOffer = await fetchLatestOffer(false);
       
       if (!latestOffer) {
@@ -439,6 +454,13 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
     return (
       <ScrollArea className="max-h-[60vh] pr-4">
         <div className="space-y-4">
+          {/* KYC Limit Banner */}
+          <KYCLimitBanner compact className="mb-2" />
+          
+          {/* Validation Error */}
+          {validationError && !validationError.allowed && (
+            <KYCLimitError result={validationError} onRetry={() => setValidationError(null)} />
+          )}
           {/* Trader Info */}
           <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
