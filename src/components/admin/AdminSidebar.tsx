@@ -71,6 +71,8 @@ const navSections = [
   {
     title: "System",
     items: [
+      { href: "/admin/controls", icon: Shield, label: "Platform Controls" },
+      { href: "/admin/risk", icon: AlertTriangle, label: "Risk Controls" },
       { href: "/admin/security", icon: Shield, label: "Security & MFA" },
       { href: "/admin/settings", icon: Settings, label: "Settings" },
       { href: "/admin/logs", icon: Shield, label: "Audit Logs" },

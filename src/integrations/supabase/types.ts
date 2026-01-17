@@ -215,6 +215,42 @@ export type Database = {
           },
         ]
       }
+      country_risk_settings: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          min_kyc_tier: Database["public"]["Enums"]["kyc_tier"]
+          notes: string | null
+          risk_level: string
+          trading_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          min_kyc_tier?: Database["public"]["Enums"]["kyc_tier"]
+          notes?: string | null
+          risk_level?: string
+          trading_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          min_kyc_tier?: Database["public"]["Enums"]["kyc_tier"]
+          notes?: string | null
+          risk_level?: string
+          trading_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       deposit_addresses: {
         Row: {
           address: string
@@ -589,6 +625,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_method_restrictions: {
+        Row: {
+          country_code: string
+          created_at: string
+          id: string
+          is_allowed: boolean
+          min_kyc_tier: Database["public"]["Enums"]["kyc_tier"]
+          notes: string | null
+          payment_method: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          id?: string
+          is_allowed?: boolean
+          min_kyc_tier?: Database["public"]["Enums"]["kyc_tier"]
+          notes?: string | null
+          payment_method: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_allowed?: boolean
+          min_kyc_tier?: Database["public"]["Enums"]["kyc_tier"]
+          notes?: string | null
+          payment_method?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           created_at: string
@@ -652,6 +724,33 @@ export type Database = {
           min_amount?: number | null
           percentage?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
         }
         Relationships: []
       }
@@ -835,6 +934,45 @@ export type Database = {
           max_attempts?: number
           max_cooldown_seconds?: number
           window_seconds?: number
+        }
+        Relationships: []
+      }
+      risk_flags: {
+        Row: {
+          action: string
+          condition: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          flag_type: string
+          id: string
+          is_active: boolean
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          condition: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          flag_type: string
+          id?: string
+          is_active?: boolean
+          severity?: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          condition?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          flag_type?: string
+          id?: string
+          is_active?: boolean
+          severity?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1458,6 +1596,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_disable_offer: {
+        Args: { p_offer_id: string; p_reason?: string }
+        Returns: Json
+      }
       assign_dispute_moderator: {
         Args: {
           p_moderator_id: string
@@ -1468,12 +1610,27 @@ export type Database = {
         Returns: string
       }
       cancel_expired_trades: { Args: never; Returns: Json }
+      check_country_trading: {
+        Args: {
+          p_country_code: string
+          p_user_kyc_tier: Database["public"]["Enums"]["kyc_tier"]
+        }
+        Returns: Json
+      }
       check_kyc_trade_limits: {
         Args: {
           p_action: string
           p_amount: number
           p_payment_method?: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      check_payment_method_allowed: {
+        Args: {
+          p_country_code: string
+          p_payment_method: string
+          p_user_kyc_tier: Database["public"]["Enums"]["kyc_tier"]
         }
         Returns: Json
       }
@@ -1538,6 +1695,10 @@ export type Database = {
         }
         Returns: Json
       }
+      freeze_user: {
+        Args: { p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
       generate_otp_code: {
         Args: {
           p_action_type: string
@@ -1576,6 +1737,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_asset_transfer_disabled: {
+        Args: { p_crypto_type: string }
+        Returns: boolean
+      }
+      is_platform_enabled: { Args: { p_setting_id: string }; Returns: boolean }
+      is_user_frozen: { Args: { p_user_id: string }; Returns: boolean }
       lock_escrow: {
         Args: {
           p_amount: number
@@ -1652,6 +1819,11 @@ export type Database = {
         Args: { p_reason: string; p_transfer_id: string }
         Returns: Json
       }
+      toggle_platform_setting: {
+        Args: { p_enabled: boolean; p_setting_id: string }
+        Returns: Json
+      }
+      unfreeze_user: { Args: { p_user_id: string }; Returns: Json }
       update_last_seen: { Args: never; Returns: undefined }
       update_trading_stats: {
         Args: { p_amount: number; p_user_id: string }
