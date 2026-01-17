@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Globe } from "lucide-react";
+import { Globe, TrendingUp, Users } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -23,6 +23,7 @@ import { isUserOnline } from "@/hooks/useOnlineStatus";
 import { useSettings } from "@/hooks/useSettings";
 import { useProfile } from "@/hooks/useProfile";
 import { useCurrencyConversion, useCountries } from "@/hooks/useCountries";
+import { calculateTraderTier, TraderTier, TRADER_TIERS } from "@/lib/traderTiers";
 
 const Marketplace = () => {
   const { user } = useAuth();
@@ -31,19 +32,15 @@ const Marketplace = () => {
   const { convert } = useCurrencyConversion();
   const { countries, getCountryByCode } = useCountries();
 
-  // Get user's country and preferred currency
   const userCountry = profile?.country || profile?.kyc_country || null;
   const preferredCurrency = settings?.preferred_currency || "USD";
   
-  // Get country's currency code
   const countryData = userCountry ? getCountryByCode(userCountry) : null;
   const countryCurrency = countryData?.currency_code || null;
 
-  // Toggle to show all offers globally
   const [showGlobalOffers, setShowGlobalOffers] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
 
-  // Get unique currencies from countries for the dropdown
   const regionOptions = useMemo(() => {
     const uniqueCurrencies = new Map<string, { code: string; name: string; flag: string | null }>();
     countries.forEach((c) => {
@@ -68,12 +65,13 @@ const Marketplace = () => {
     minPrice: "",
     maxPrice: "",
     sortBy: "margin_asc",
+    minTierLevel: null as TraderTier | null,
+    minCompletionRate: 0,
   });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<OfferWithProfile | null>(null);
 
-  // Determine fiat currency filter
   const fiatCurrencyFilter = useMemo(() => {
     if (!showGlobalOffers) {
       return countryCurrency || undefined;
@@ -90,34 +88,27 @@ const Marketplace = () => {
     fiat_currency: fiatCurrencyFilter,
   });
 
-  // Filter and sort offers based on all criteria
   const filteredOffers = useMemo(() => {
     let result = offers.filter((offer) => {
-      // Don't show user's own offers
       if (offer.user_id === user?.id) return false;
 
-      // Payment method filter
       if (filters.paymentMethod !== "All") {
         if (!offer.payment_methods.includes(filters.paymentMethod)) return false;
       }
 
-      // Amount filter
       if (filters.amount) {
         const amount = parseFloat(filters.amount);
         if (amount < offer.min_amount || amount > offer.max_amount) return false;
       }
 
-      // Minimum rating filter
       if (filters.minRating > 0) {
         if ((offer.trader_rating || 0) < filters.minRating) return false;
       }
 
-      // Online only filter
       if (filters.onlineOnly) {
         if (!isUserOnline(offer.trader_last_seen || null)) return false;
       }
 
-      // Price range filter
       if (filters.minPrice) {
         const minPrice = parseFloat(filters.minPrice);
         if (offer.price_per_unit < minPrice) return false;
@@ -125,6 +116,26 @@ const Marketplace = () => {
       if (filters.maxPrice) {
         const maxPrice = parseFloat(filters.maxPrice);
         if (offer.price_per_unit > maxPrice) return false;
+      }
+
+      // Filter by trader tier
+      if (filters.minTierLevel) {
+        const traderTier = calculateTraderTier(
+          offer.trader_trades || 0, 
+          offer.trader_successful_trades ?? offer.trader_trades ?? 0
+        );
+        const tierOrder: TraderTier[] = ["bronze", "silver", "gold", "pro"];
+        const minTierIndex = tierOrder.indexOf(filters.minTierLevel);
+        const traderTierIndex = tierOrder.indexOf(traderTier.tier);
+        if (traderTierIndex < minTierIndex) return false;
+      }
+
+      // Filter by completion rate
+      if (filters.minCompletionRate > 0) {
+        const successfulTrades = offer.trader_successful_trades ?? offer.trader_trades ?? 0;
+        const totalTrades = offer.trader_trades || 1;
+        const completionRate = (successfulTrades / totalTrades) * 100;
+        if (completionRate < filters.minCompletionRate) return false;
       }
 
       return true;
@@ -144,6 +155,13 @@ const Marketplace = () => {
       case "trades_desc":
         result.sort((a, b) => (b.trader_trades || 0) - (a.trader_trades || 0));
         break;
+      case "completion_desc":
+        result.sort((a, b) => {
+          const aRate = (a.trader_successful_trades ?? a.trader_trades ?? 0) / (a.trader_trades || 1);
+          const bRate = (b.trader_successful_trades ?? b.trader_trades ?? 0) / (b.trader_trades || 1);
+          return bRate - aRate;
+        });
+        break;
     }
 
     return result;
@@ -151,13 +169,17 @@ const Marketplace = () => {
 
   const handleOfferAction = (offer: OfferWithProfile) => {
     if (!user) {
-      // Redirect to login
       window.location.href = "/login";
       return;
     }
     setSelectedOffer(offer);
     setTradeDialogOpen(true);
   };
+
+  // Stats for the header
+  const onlineTraders = useMemo(() => {
+    return new Set(offers.filter(o => isUserOnline(o.trader_last_seen || null)).map(o => o.user_id)).size;
+  }, [offers]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,36 +188,56 @@ const Marketplace = () => {
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold">
-              <span className="gradient-text">Marketplace</span>
-            </h1>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                  P2P Trading
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Trade crypto directly with verified traders
+                </p>
+              </div>
+              
+              {/* Quick Stats */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-lg">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    <span className="font-medium">{filteredOffers.length}</span>
+                    <span className="text-muted-foreground">offers</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-lg">
+                    <Users className="w-4 h-4 text-green-500" />
+                    <span className="font-medium">{onlineTraders}</span>
+                    <span className="text-muted-foreground">online</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Filters */}
-          <MarketplaceFilters onFilterChange={setFilters} initialFilters={filters} />
+          <MarketplaceFilters 
+            onFilterChange={(f) => setFilters({ ...filters, ...f })} 
+            initialFilters={filters} 
+          />
 
           {/* Results Info & Global Toggle */}
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <p className="text-sm text-muted-foreground">
-                Showing <span className="text-foreground font-medium">{filteredOffers.length}</span> offers
                 {!showGlobalOffers && countryCurrency && (
-                  <span className="ml-1">in {countryCurrency}</span>
+                  <span>Trading in <span className="text-foreground font-medium">{countryCurrency}</span></span>
                 )}
                 {showGlobalOffers && (
-                  <span className="ml-1 text-primary">globally</span>
+                  <span className="text-primary font-medium">Global marketplace</span>
                 )}
               </p>
-              {preferredCurrency && (
-                <span className="text-xs text-muted-foreground/70">
-                  (prices in {preferredCurrency})
-                </span>
-              )}
             </div>
             
             {/* Global Offers Toggle */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/30 rounded-lg">
                 <Globe className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Global</span>
                 <Switch 
@@ -204,13 +246,13 @@ const Marketplace = () => {
                     setShowGlobalOffers(checked);
                     if (!checked) setSelectedRegion("all");
                   }}
+                  className="scale-90"
                 />
               </div>
               
-              {/* Region Filter - only visible when Global is enabled */}
               {showGlobalOffers && (
                 <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-                  <SelectTrigger className="w-[160px] h-8 text-xs">
+                  <SelectTrigger className="w-[140px] h-8 text-xs bg-secondary/30">
                     <SelectValue placeholder="All Regions" />
                   </SelectTrigger>
                   <SelectContent>
@@ -230,15 +272,14 @@ const Marketplace = () => {
           {/* Offers Grid */}
           <ErrorBoundary>
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-64 rounded-xl" />
+                  <Skeleton key={i} className="h-72 rounded-xl" />
                 ))}
               </div>
             ) : filteredOffers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOffers.map((offer) => {
-                  // Convert price to user's preferred currency
                   const offerCurrency = offer?.fiat_currency || "KES";
                   const isOutsideRegion = showGlobalOffers && countryCurrency && offerCurrency !== countryCurrency;
                   const convertedPrice = preferredCurrency !== offerCurrency 
@@ -282,6 +323,7 @@ const Marketplace = () => {
                             verified: offer?.trader_verified ?? false,
                             positiveCount: offer?.trader_positive_count ?? 0,
                             lastSeen: offer?.trader_last_seen,
+                            successfulTrades: offer?.trader_successful_trades,
                           },
                           timeLimit: offer?.time_limit ?? 30,
                           priceMargin: offer?.price_margin,
@@ -293,8 +335,14 @@ const Marketplace = () => {
                 })}
               </div>
             ) : (
-              <div className="text-center py-16">
-                <p className="text-muted-foreground mb-4">No offers found matching your criteria</p>
+              <div className="text-center py-16 bg-card border border-border rounded-xl">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/50 flex items-center justify-center">
+                  <TrendingUp className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No offers found</h3>
+                <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
+                  Try adjusting your filters or check back later for new trading opportunities.
+                </p>
                 <Button variant="outline" onClick={() => setFilters({
                   type: null,
                   crypto: "All",
@@ -305,14 +353,17 @@ const Marketplace = () => {
                   minPrice: "",
                   maxPrice: "",
                   sortBy: "margin_asc",
+                  minTierLevel: null,
+                  minCompletionRate: 0,
                 })}>
-                  Clear Filters
+                  Clear All Filters
                 </Button>
               </div>
             )}
           </ErrorBoundary>
         </div>
       </main>
+      
       {/* Dialogs */}
       <CreateOfferDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
       <ErrorBoundary>
