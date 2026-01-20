@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface PlatformSetting {
   id: string;
@@ -357,7 +358,7 @@ export const useRiskFlags = () => {
         .from("risk_flags")
         .insert({
           flag_type: flag.flag_type,
-          condition: flag.condition as Record<string, unknown>,
+          condition: flag.condition as Json,
           action: flag.action,
           severity: flag.severity,
           is_active: flag.is_active,
