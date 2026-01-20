@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -17,17 +18,26 @@ import {
   Send,
   AlertTriangle,
   MessageSquare,
+  FileImage,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrades, useTradeMessages, Trade } from "@/hooks/useTrades";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useTradeRatings } from "@/hooks/useTradeRatings";
+import { useTradeEvidence } from "@/hooks/useTradeEvidence";
+import { useDisputeModerator } from "@/hooks/useDisputeModerator";
 import { RatingDialog } from "@/components/trade/RatingDialog";
 import { TradeHeader } from "@/components/trade/TradeHeader";
+import { DisputeHeader } from "@/components/trade/DisputeHeader";
 import { TradeActions } from "@/components/trade/TradeActions";
 import { ChatMessage } from "@/components/trade/ChatMessage";
 import { TimelineEvent } from "@/components/trade/TimelineEvent";
 import { TradeStatusBanner } from "@/components/trade/TradeStatusBanner";
+import { EvidencePanel } from "@/components/trade/EvidencePanel";
+import { PaymentProofDialog } from "@/components/trade/PaymentProofDialog";
+import { ModeratorMessage } from "@/components/trade/ModeratorMessage";
+import { ResolutionCard } from "@/components/trade/ResolutionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -57,7 +67,24 @@ const TradePage = () => {
   const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
+  const [paymentProofDialogOpen, setPaymentProofDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chat" | "evidence">("chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Evidence and moderator hooks
+  const { 
+    buyerEvidence, 
+    sellerEvidence, 
+    paymentProofs,
+    uploading, 
+    uploadEvidence, 
+    lockEvidence 
+  } = useTradeEvidence(id || "");
+  
+  const { moderator, assignment } = useDisputeModerator(
+    id || "", 
+    trade?.assigned_moderator_id
+  );
 
   const isBuyer = trade?.buyer_id === user?.id;
   const isSeller = trade?.seller_id === user?.id;
@@ -131,9 +158,18 @@ const TradePage = () => {
   };
 
   const handlePaymentSent = async () => {
-    if (!trade) return;
-    setActionLoading(true);
+    // Payment proof is now required - open dialog instead
+    setPaymentProofDialogOpen(true);
+  };
 
+  const handlePaymentProofSubmit = async (file: File, description?: string): Promise<boolean> => {
+    if (!trade) return false;
+    
+    // Upload payment proof
+    const result = await uploadEvidence(file, "payment_proof", "buyer", description);
+    if (!result.success) return false;
+    
+    // Update trade status
     const { error } = await updateTrade(trade.id, {
       status: "payment_sent",
       payment_confirmed_at: new Date().toISOString(),
@@ -141,11 +177,13 @@ const TradePage = () => {
 
     if (error) {
       toast.error("Failed to update trade");
-    } else {
-      toast.success("Payment marked as sent");
-      refetchTrades();
+      return false;
     }
-    setActionLoading(false);
+    
+    toast.success("Payment proof submitted");
+    refetchTrades();
+    setPaymentProofDialogOpen(false);
+    return true;
   };
 
   const handleReleaseEscrow = async () => {
