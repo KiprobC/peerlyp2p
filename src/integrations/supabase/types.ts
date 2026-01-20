@@ -1148,6 +1148,62 @@ export type Database = {
           },
         ]
       }
+      trade_evidence: {
+        Row: {
+          created_at: string
+          description: string | null
+          evidence_type: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          is_locked: boolean
+          locked_at: string | null
+          trade_id: string
+          uploader_id: string
+          uploader_role: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          evidence_type: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          trade_id: string
+          uploader_id: string
+          uploader_role: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          evidence_type?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          is_locked?: boolean
+          locked_at?: string | null
+          trade_id?: string
+          uploader_id?: string
+          uploader_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_evidence_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_messages: {
         Row: {
           created_at: string
@@ -1226,6 +1282,7 @@ export type Database = {
       }
       trades: {
         Row: {
+          assigned_moderator_id: string | null
           buyer_id: string
           buyer_rating: number | null
           cancelled_at: string | null
@@ -1235,6 +1292,7 @@ export type Database = {
           crypto_amount: number
           crypto_type: string
           dispute_reason: string | null
+          dispute_resolution_summary: string | null
           disputed_at: string | null
           disputed_by: string | null
           escrow_locked: boolean | null
@@ -1246,12 +1304,14 @@ export type Database = {
           offer_id: string
           payment_confirmed_at: string | null
           payment_method: string
+          resolution_type: string | null
           seller_id: string
           seller_rating: number | null
           status: Database["public"]["Enums"]["trade_status"] | null
           updated_at: string
         }
         Insert: {
+          assigned_moderator_id?: string | null
           buyer_id: string
           buyer_rating?: number | null
           cancelled_at?: string | null
@@ -1261,6 +1321,7 @@ export type Database = {
           crypto_amount: number
           crypto_type: string
           dispute_reason?: string | null
+          dispute_resolution_summary?: string | null
           disputed_at?: string | null
           disputed_by?: string | null
           escrow_locked?: boolean | null
@@ -1272,12 +1333,14 @@ export type Database = {
           offer_id: string
           payment_confirmed_at?: string | null
           payment_method: string
+          resolution_type?: string | null
           seller_id: string
           seller_rating?: number | null
           status?: Database["public"]["Enums"]["trade_status"] | null
           updated_at?: string
         }
         Update: {
+          assigned_moderator_id?: string | null
           buyer_id?: string
           buyer_rating?: number | null
           cancelled_at?: string | null
@@ -1287,6 +1350,7 @@ export type Database = {
           crypto_amount?: number
           crypto_type?: string
           dispute_reason?: string | null
+          dispute_resolution_summary?: string | null
           disputed_at?: string | null
           disputed_by?: string | null
           escrow_locked?: boolean | null
@@ -1298,6 +1362,7 @@ export type Database = {
           offer_id?: string
           payment_confirmed_at?: string | null
           payment_method?: string
+          resolution_type?: string | null
           seller_id?: string
           seller_rating?: number | null
           status?: Database["public"]["Enums"]["trade_status"] | null
@@ -1752,6 +1817,10 @@ export type Database = {
         }
         Returns: Json
       }
+      lock_trade_evidence: {
+        Args: { p_trade_id: string; p_uploader_role: string }
+        Returns: boolean
+      }
       log_abuse_flag: {
         Args: {
           p_action_type: string
@@ -1792,6 +1861,10 @@ export type Database = {
           p_status: string
           p_user_agent?: string
         }
+        Returns: string
+      }
+      moderator_post_message: {
+        Args: { p_is_system?: boolean; p_message: string; p_trade_id: string }
         Returns: string
       }
       reset_trading_stats_if_needed: {
