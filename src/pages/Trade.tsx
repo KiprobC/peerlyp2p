@@ -31,6 +31,7 @@ import { useEscrow } from "@/hooks/useEscrow";
 import { useTradeRatings } from "@/hooks/useTradeRatings";
 import { useTradeEvidence } from "@/hooks/useTradeEvidence";
 import { useDisputeModerator } from "@/hooks/useDisputeModerator";
+import { useModeratorRole } from "@/hooks/useModeratorRole";
 import { RatingDialog } from "@/components/trade/RatingDialog";
 import { TradeHeader } from "@/components/trade/TradeHeader";
 import { DisputeHeader } from "@/components/trade/DisputeHeader";
@@ -41,6 +42,7 @@ import { TradeStatusBanner } from "@/components/trade/TradeStatusBanner";
 import { EvidencePanel } from "@/components/trade/EvidencePanel";
 import { PaymentProofDialog } from "@/components/trade/PaymentProofDialog";
 import { ModeratorMessage } from "@/components/trade/ModeratorMessage";
+import { ModeratorActionsPanel } from "@/components/trade/ModeratorActionsPanel";
 import { ResolutionCard } from "@/components/trade/ResolutionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -93,6 +95,10 @@ const TradePage = () => {
     id || "", 
     trade?.assigned_moderator_id
   );
+  
+  const { isModerator, isAdmin } = useModeratorRole();
+  const isModeratorOrAdmin = isModerator || isAdmin;
+  const isAssignedModerator = moderator?.id === user?.id;
 
   const isBuyer = trade?.buyer_id === user?.id;
   const isSeller = trade?.seller_id === user?.id;
@@ -409,6 +415,17 @@ const TradePage = () => {
             {/* Tabbed Layout for Disputes */}
             {isDisputed && !isDisputeResolved ? (
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "evidence")} className="flex-1 flex flex-col">
+                {/* Moderator Actions Panel - only for assigned moderator/admin */}
+                {isAssignedModerator && trade && (
+                  <ModeratorActionsPanel
+                    tradeId={trade.id}
+                    buyerId={trade.buyer_id}
+                    sellerId={trade.seller_id}
+                    moderatorId={user?.id || ""}
+                    onResolved={refetchTrades}
+                  />
+                )}
+                
                 <TabsList className="mx-3 mt-3 grid grid-cols-2 h-9">
                   <TabsTrigger value="chat" className="text-xs gap-1.5">
                     <MessageCircle className="w-3.5 h-3.5" />

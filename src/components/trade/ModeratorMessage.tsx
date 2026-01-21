@@ -1,6 +1,7 @@
-import { Shield, Scale, Info, AlertTriangle } from "lucide-react";
+import { Shield, Scale, Info, AlertTriangle, MessageSquare } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ModeratorMessageProps {
   message: string;
@@ -13,47 +14,76 @@ interface ModeratorMessageProps {
 const getMessageConfig = (message: string, isResolution: boolean) => {
   const lowerMessage = message.toLowerCase();
   
-  if (isResolution || lowerMessage.includes("resolved") || lowerMessage.includes("decision")) {
+  // Resolution messages - purple/violet theme
+  if (isResolution || lowerMessage.includes("resolved") || lowerMessage.includes("decision") || lowerMessage.includes("🏛️")) {
     return {
       icon: Scale,
-      bgColor: "bg-purple-500/10",
-      borderColor: "border-purple-500/30",
-      iconColor: "text-purple-500",
-      labelColor: "text-purple-500",
+      bgColor: "bg-violet-500/15",
+      borderColor: "border-violet-500/40",
+      iconColor: "text-violet-500",
+      labelColor: "text-violet-500",
+      headerBg: "bg-violet-500/20",
       label: "Resolution",
     };
   }
   
-  if (lowerMessage.includes("request") || lowerMessage.includes("provide") || lowerMessage.includes("need")) {
+  // Request for information - amber theme
+  if (lowerMessage.includes("request") || lowerMessage.includes("provide") || lowerMessage.includes("need") || lowerMessage.includes("[moderator request]")) {
     return {
       icon: AlertTriangle,
-      bgColor: "bg-amber-500/10",
-      borderColor: "border-amber-500/30",
+      bgColor: "bg-amber-500/15",
+      borderColor: "border-amber-500/40",
       iconColor: "text-amber-500",
       labelColor: "text-amber-500",
+      headerBg: "bg-amber-500/20",
       label: "Action Required",
     };
   }
   
-  if (lowerMessage.includes("assigned") || lowerMessage.includes("reviewing")) {
+  // Assignment/review messages - primary/blue theme
+  if (lowerMessage.includes("assigned") || lowerMessage.includes("reviewing") || lowerMessage.includes("dispute has been opened")) {
     return {
       icon: Shield,
-      bgColor: "bg-primary/10",
-      borderColor: "border-primary/30",
+      bgColor: "bg-primary/15",
+      borderColor: "border-primary/40",
       iconColor: "text-primary",
       labelColor: "text-primary",
-      label: "Moderator",
+      headerBg: "bg-primary/20",
+      label: "Moderator Assigned",
     };
   }
   
+  // General moderator message - violet theme (distinct from user messages)
+  if (lowerMessage.includes("[moderator]")) {
+    return {
+      icon: MessageSquare,
+      bgColor: "bg-violet-500/15",
+      borderColor: "border-violet-500/40",
+      iconColor: "text-violet-500",
+      labelColor: "text-violet-500",
+      headerBg: "bg-violet-500/20",
+      label: "Official Message",
+    };
+  }
+  
+  // Default moderator style
   return {
     icon: Info,
-    bgColor: "bg-secondary",
-    borderColor: "border-border",
-    iconColor: "text-muted-foreground",
-    labelColor: "text-muted-foreground",
+    bgColor: "bg-violet-500/10",
+    borderColor: "border-violet-500/30",
+    iconColor: "text-violet-500",
+    labelColor: "text-violet-500",
+    headerBg: "bg-violet-500/15",
     label: "Moderator",
   };
+};
+
+// Strip prefixes like [MODERATOR] or [MODERATOR REQUEST] from display
+const cleanMessage = (message: string): string => {
+  return message
+    .replace(/^\[MODERATOR REQUEST\]\s*/i, "")
+    .replace(/^\[MODERATOR\]\s*/i, "")
+    .replace(/^🏛️\s*DISPUTE RESOLVED:\s*/i, "");
 };
 
 export const ModeratorMessage = ({
@@ -65,35 +95,45 @@ export const ModeratorMessage = ({
 }: ModeratorMessageProps) => {
   const config = getMessageConfig(message, isResolution);
   const Icon = config.icon;
+  const displayMessage = cleanMessage(message);
 
   return (
-    <div className="flex justify-center py-2">
+    <div className="flex justify-center py-3">
       <div
         className={cn(
-          "max-w-[90%] rounded-lg border px-4 py-3",
+          "max-w-[95%] sm:max-w-[85%] rounded-xl border-2 overflow-hidden shadow-sm",
           config.bgColor,
           config.borderColor
         )}
       >
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-2">
-          <div className={cn("p-1 rounded", config.bgColor)}>
-            <Icon className={cn("w-3.5 h-3.5", config.iconColor)} />
+        {/* Header with icon and label */}
+        <div className={cn("flex items-center gap-2 px-4 py-2", config.headerBg)}>
+          <div className={cn("p-1.5 rounded-full", config.bgColor)}>
+            <Icon className={cn("w-4 h-4", config.iconColor)} />
           </div>
-          <span className={cn("text-[10px] font-semibold uppercase tracking-wide", config.labelColor)}>
+          <span className={cn("text-xs font-bold uppercase tracking-wider", config.labelColor)}>
             {config.label}
           </span>
-          <span className="text-[10px] text-muted-foreground">•</span>
-          <span className="text-[10px] text-muted-foreground">{senderName}</span>
         </div>
 
-        {/* Message */}
-        <p className="text-sm leading-relaxed">{message}</p>
+        {/* Message body */}
+        <div className="px-4 py-3">
+          <p className="text-sm leading-relaxed font-medium">{displayMessage}</p>
+        </div>
 
-        {/* Timestamp */}
-        <p className="text-[10px] text-muted-foreground mt-2">
-          {formatDistanceToNow(new Date(timestamp), { addSuffix: true })}
-        </p>
+        {/* Footer with sender and timestamp */}
+        <div className="flex items-center gap-2 px-4 py-2 border-t border-border/50 bg-background/30">
+          <Avatar className="w-5 h-5">
+            <AvatarImage src={avatarUrl || undefined} />
+            <AvatarFallback className="text-[10px] bg-violet-500/20 text-violet-600">
+              {senderName?.charAt(0)?.toUpperCase() || "M"}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-xs text-muted-foreground">{senderName}</span>
+          <span className="text-[10px] text-muted-foreground ml-auto">
+            {formatDistanceToNow(new Date(timestamp), { addSuffix: true })}
+          </span>
+        </div>
       </div>
     </div>
   );
