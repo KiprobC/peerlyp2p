@@ -26,6 +26,9 @@ export interface Trade {
   dispute_reason: string | null;
   disputed_at: string | null;
   disputed_by: string | null;
+  assigned_moderator_id: string | null;
+  resolution_type: string | null;
+  dispute_resolution_summary: string | null;
   buyer_rating: number | null;
   seller_rating: number | null;
   created_at: string;

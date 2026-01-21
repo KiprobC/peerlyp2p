@@ -284,119 +284,164 @@ const TradePage = () => {
     );
   }
 
-  const isTradeActive = !["completed", "cancelled", "disputed"].includes(trade.status);
+  const isTradeActive = !["completed", "cancelled"].includes(trade.status);
+  const isDisputed = trade.status === "disputed";
+  const isDisputeResolved = trade.resolution_type !== null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Compact Sticky Header */}
-      <TradeHeader
-        tradeId={trade.id}
-        cryptoAmount={trade.crypto_amount}
-        cryptoType={trade.crypto_type}
-        fiatAmount={trade.fiat_amount}
-        fiatCurrency={trade.fiat_currency}
-        status={trade.status}
-        expiresAt={trade.expires_at}
-        counterpartyUsername={counterparty?.username}
-        counterpartyVerified={counterparty?.is_verified || false}
-        escrowLocked={trade.escrow_locked}
-        escrowReleased={trade.escrow_released}
-        onBack={() => navigate("/trades")}
-        onExpired={refetchTrades}
-      />
+      {/* Compact Sticky Header - show dispute header if disputed */}
+      {isDisputed || isDisputeResolved ? (
+        <DisputeHeader
+          tradeId={trade.id}
+          cryptoAmount={trade.crypto_amount}
+          cryptoType={trade.crypto_type}
+          fiatAmount={trade.fiat_amount}
+          fiatCurrency={trade.fiat_currency || "USD"}
+          status={trade.status}
+          escrowLocked={trade.escrow_locked || false}
+          moderator={moderator}
+          assignment={assignment}
+          onBack={() => navigate("/trades")}
+        />
+      ) : (
+        <TradeHeader
+          tradeId={trade.id}
+          cryptoAmount={trade.crypto_amount}
+          cryptoType={trade.crypto_type}
+          fiatAmount={trade.fiat_amount}
+          fiatCurrency={trade.fiat_currency}
+          status={trade.status}
+          expiresAt={trade.expires_at}
+          counterpartyUsername={counterparty?.username}
+          counterpartyVerified={counterparty?.is_verified || false}
+          escrowLocked={trade.escrow_locked}
+          escrowReleased={trade.escrow_released}
+          onBack={() => navigate("/trades")}
+          onExpired={refetchTrades}
+        />
+      )}
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col pt-12 ${["pending", "confirmed"].includes(trade.status) && trade.expires_at ? 'pt-[88px]' : 'pt-12'}`}>
+      <main className={`flex-1 flex flex-col ${isDisputed ? 'pt-[120px]' : ["pending", "confirmed"].includes(trade.status) && trade.expires_at ? 'pt-[88px]' : 'pt-12'}`}>
         <div className="container mx-auto px-0 sm:px-4 max-w-4xl flex-1 flex flex-col">
           <div className="flex-1 flex flex-col bg-card sm:border-x sm:border-t border-border sm:rounded-t-xl overflow-hidden">
             
-            {/* Chat Messages Area */}
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-              {messagesLoading ? (
-                <div className="flex flex-col gap-3 pt-4">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton 
-                      key={i} 
-                      className={`h-12 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2 ml-auto'}`} 
-                    />
-                  ))}
-                </div>
-              ) : messages.length > 0 ? (
-                <>
-                  {messages.map((message, index) => {
-                    const isOwn = message.sender_id === user?.id;
-                    const showAvatar = index === 0 || messages[index - 1].sender_id !== message.sender_id;
-                    
-                    // System message: show as timeline event
-                    if (message.is_system) {
-                      // Filter role-specific messages
-                      const lowerMsg = message.message.toLowerCase();
-                      if (isSeller && lowerMsg.includes('buying')) return null;
-                      if (isBuyer && lowerMsg.includes('selling')) return null;
-                      
-                      return (
-                        <TimelineEvent 
-                          key={message.id} 
-                          message={message.message} 
-                        />
-                      );
-                    }
-                    
-                    // User message
-                    return (
-                      <ChatMessage
-                        key={message.id}
-                        message={message.message}
-                        isOwn={isOwn}
-                        senderName={isOwn ? "You" : (counterparty?.username || "User")}
-                        avatarUrl={isOwn ? null : counterparty?.avatar_url}
-                        timestamp={message.created_at}
-                        showAvatar={showAvatar}
-                      />
-                    );
-                  })}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                  <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mb-3">
-                    <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground text-sm">No messages yet</p>
-                  <p className="text-xs text-muted-foreground/70">Start the conversation</p>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+            {/* Resolution Card - show when dispute is resolved */}
+            {isDisputeResolved && (trade.resolution_type === "buyer_wins" || trade.resolution_type === "seller_wins" || trade.resolution_type === "split" || trade.resolution_type === "cancelled") && (
+              <div className="p-3">
+                <ResolutionCard
+                  resolutionType={trade.resolution_type}
+                  resolutionSummary={trade.dispute_resolution_summary || "Dispute has been resolved."}
+                  resolvedAt={trade.completed_at || trade.cancelled_at || new Date().toISOString()}
+                  moderatorName={moderator?.username || undefined}
+                  cryptoAmount={trade.crypto_amount}
+                  cryptoType={trade.crypto_type}
+                />
+              </div>
+            )}
 
-            {/* Trade Status Banner (for completed/cancelled/disputed) */}
-            <TradeStatusBanner
-              status={trade.status}
-              hasRated={hasRated}
-              onRate={() => setRatingDialogOpen(true)}
-            />
+            {/* Tabbed Layout for Disputes */}
+            {isDisputed && !isDisputeResolved ? (
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "evidence")} className="flex-1 flex flex-col">
+                <TabsList className="mx-3 mt-3 grid grid-cols-2 h-9">
+                  <TabsTrigger value="chat" className="text-xs gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Chat
+                  </TabsTrigger>
+                  <TabsTrigger value="evidence" className="text-xs gap-1.5">
+                    <FileImage className="w-3.5 h-3.5" />
+                    Evidence
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
+                  <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+                    {renderMessages()}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="evidence" className="flex-1 overflow-y-auto mt-0 px-3 py-3 space-y-4">
+                  <EvidencePanel
+                    title="Buyer Evidence"
+                    role="buyer"
+                    evidence={buyerEvidence}
+                    isOwn={isBuyer}
+                    canUpload={isBuyer}
+                    uploading={uploading}
+                    onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "buyer", desc); }}
+                    onLock={async () => { await lockEvidence("buyer"); }}
+                  />
+                  <EvidencePanel
+                    title="Seller Evidence"
+                    role="seller"
+                    evidence={sellerEvidence}
+                    isOwn={isSeller}
+                    canUpload={isSeller}
+                    uploading={uploading}
+                    onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "seller", desc); }}
+                    onLock={async () => { await lockEvidence("seller"); }}
+                  />
+                  {paymentProofs.length > 0 && (
+                    <div className="pt-2">
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Payment Proofs</h4>
+                      <div className="grid gap-2">
+                        {paymentProofs.map(proof => (
+                          <div key={proof.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 text-xs">
+                            <FileImage className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate flex-1">{proof.file_name}</span>
+                            <span className="text-muted-foreground">
+                              {new Date(proof.created_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            ) : (
+              /* Normal Chat Layout */
+              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+                {renderMessages()}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+
+            {/* Trade Status Banner (for completed/cancelled) */}
+            {["completed", "cancelled"].includes(trade.status) && (
+              <TradeStatusBanner
+                status={trade.status}
+                hasRated={hasRated}
+                onRate={() => setRatingDialogOpen(true)}
+              />
+            )}
 
             {/* Input & Actions Area */}
             {isTradeActive && (
               <div className="border-t border-border bg-card/95 backdrop-blur-sm p-3 safe-area-bottom">
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <TradeActions
-                    status={trade.status}
-                    isBuyer={isBuyer}
-                    isSeller={isSeller}
-                    actionLoading={actionLoading}
-                    onConfirmTrade={handleConfirmTrade}
-                    onPaymentSent={handlePaymentSent}
-                    onReleaseEscrow={handleReleaseEscrow}
-                    onCancelTrade={handleCancelTrade}
-                    onDispute={() => setDisputeDialogOpen(true)}
-                  />
-                </div>
+                {/* Action Buttons - hide during dispute unless showing evidence tab */}
+                {!isDisputed && (
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <TradeActions
+                      status={trade.status}
+                      isBuyer={isBuyer}
+                      isSeller={isSeller}
+                      actionLoading={actionLoading}
+                      onConfirmTrade={handleConfirmTrade}
+                      onPaymentSent={handlePaymentSent}
+                      onReleaseEscrow={handleReleaseEscrow}
+                      onCancelTrade={handleCancelTrade}
+                      onDispute={() => setDisputeDialogOpen(true)}
+                    />
+                  </div>
+                )}
                 
                 {/* Message Input */}
                 <div className="flex items-center gap-2">
                   <Input
-                    placeholder="Type a message..."
+                    placeholder={isDisputed ? "Message moderator..." : "Type a message..."}
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => {
@@ -423,6 +468,16 @@ const TradePage = () => {
         </div>
       </main>
 
+      {/* Payment Proof Dialog */}
+      <PaymentProofDialog
+        open={paymentProofDialogOpen}
+        onClose={() => setPaymentProofDialogOpen(false)}
+        onSubmit={handlePaymentProofSubmit}
+        paymentMethod={trade.payment_method}
+        fiatAmount={trade.fiat_amount}
+        fiatCurrency={trade.fiat_currency || "USD"}
+      />
+
       {/* Dispute Dialog */}
       <Dialog open={disputeDialogOpen} onOpenChange={setDisputeDialogOpen}>
         <DialogContent className="mx-4 sm:mx-auto max-w-md">
@@ -432,7 +487,7 @@ const TradePage = () => {
               Report Issue
             </DialogTitle>
             <DialogDescription>
-              Describe the problem. An admin will review your case.
+              Describe the problem. A moderator will be assigned to review your case.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -475,6 +530,78 @@ const TradePage = () => {
       />
     </div>
   );
+
+  // Helper function to render messages
+  function renderMessages() {
+    if (messagesLoading) {
+      return (
+        <div className="flex flex-col gap-3 pt-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton 
+              key={i} 
+              className={`h-12 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2 ml-auto'}`} 
+            />
+          ))}
+        </div>
+      );
+    }
+    
+    if (messages.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mb-3">
+            <MessageSquare className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <p className="text-muted-foreground text-sm">No messages yet</p>
+          <p className="text-xs text-muted-foreground/70">Start the conversation</p>
+        </div>
+      );
+    }
+    
+    return messages.map((message, index) => {
+      const isOwn = message.sender_id === user?.id;
+      const showAvatar = index === 0 || messages[index - 1].sender_id !== message.sender_id;
+      
+      // System message: show as timeline event
+      if (message.is_system) {
+        const lowerMsg = message.message.toLowerCase();
+        if (isSeller && lowerMsg.includes('buying')) return null;
+        if (isBuyer && lowerMsg.includes('selling')) return null;
+        
+        // Check if it's a moderator message
+        if (lowerMsg.includes('moderator') || lowerMsg.includes('dispute')) {
+          return (
+            <ModeratorMessage
+              key={message.id}
+              message={message.message}
+              senderName={moderator?.username || "Moderator"}
+              timestamp={message.created_at}
+            />
+          );
+        }
+        
+        return (
+          <TimelineEvent 
+            key={message.id} 
+            message={message.message} 
+          />
+        );
+      }
+      
+      // User message
+      return (
+        <ChatMessage
+          key={message.id}
+          message={message.message}
+          isOwn={isOwn}
+          senderName={isOwn ? "You" : (counterparty?.username || "User")}
+          avatarUrl={isOwn ? null : counterparty?.avatar_url}
+          timestamp={message.created_at}
+          showAvatar={showAvatar}
+        />
+      );
+    });
+  }
 };
 
 export default TradePage;
