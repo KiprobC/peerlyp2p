@@ -298,24 +298,47 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
   const insufficientAvailable = !isBuyOffer && availableCrypto <= 0;
 
   const handleTrade = async () => {
-    if (!user || !offer || !offerId) return;
-
-    if (!fiatAmount || !selectedPayment) {
-      toast.error("Please fill in all fields");
+    // Guard: Missing user - require login
+    if (!user) {
+      toast.error("Please log in to initiate a trade");
+      return;
+    }
+    
+    // Guard: Missing offer - should not happen but handle gracefully
+    if (!offer || !offerId) {
+      toast.error("Offer data is unavailable. Please try again.");
+      fetchLatestOffer();
       return;
     }
 
+    // Guard: Missing required fields
+    if (!fiatAmount || !selectedPayment) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Guard: Invalid amount
     if (!isValidAmount) {
       toast.error(`Amount must be between ${fiatCurrency} ${minAmount.toLocaleString()} and ${fiatCurrency} ${dynamicMaxAmount.toLocaleString()}`);
       return;
     }
 
+    // Clear previous errors and set loading
     setLoading(true);
     setValidationError(null);
+    setPartialFillInfo(null);
 
     try {
       // Step 0: Validate KYC limits and rate limits server-side
-      const validation = await validateAction("initiate_trade", parsedFiatAmount, selectedPayment);
+      let validation: ValidationResult;
+      try {
+        validation = await validateAction("initiate_trade", parsedFiatAmount, selectedPayment);
+      } catch (validationErr: any) {
+        console.error("Validation error:", validationErr);
+        toast.error("Unable to validate trade. Please try again.");
+        setLoading(false);
+        return;
+      }
       
       if (!validation.allowed) {
         setValidationError(validation);
@@ -324,10 +347,18 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
       }
 
       // Step 1: Re-fetch latest offer data to prevent race conditions
-      const latestOffer = await fetchLatestOffer(false);
+      let latestOffer: OfferWithProfile | null;
+      try {
+        latestOffer = await fetchLatestOffer(false);
+      } catch (fetchErr: any) {
+        console.error("Fetch offer error:", fetchErr);
+        toast.error("Unable to verify offer availability. Please try again.");
+        setLoading(false);
+        return;
+      }
       
       if (!latestOffer) {
-        toast.error("This offer is no longer available.");
+        toast.error("This offer is no longer available. Please choose another offer.");
         setLoading(false);
         return;
       }
@@ -336,8 +367,9 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
       const latestAvailable = Math.max(0, (latestOffer.crypto_amount ?? 0) - (latestOffer.reserved_amount ?? 0));
       const calculatedCryptoAmount = parsedFiatAmount / (latestOffer.price_per_unit ?? pricePerUnit);
       
+      // Check for partial fill scenario
       if (!isBuyOffer && calculatedCryptoAmount > latestAvailable) {
-        // Show partial fill notice instead of generic error
+        // Show partial fill notice with option to adjust
         setPartialFillInfo({
           requestedCrypto: calculatedCryptoAmount,
           availableCrypto: latestAvailable,
@@ -351,48 +383,80 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
       const buyer_id = isBuyOffer ? latestOffer.user_id : user.id;
       const seller_id = isBuyOffer ? user.id : latestOffer.user_id;
 
-      // Step 1: Create the trade FIRST to get a real UUID
-      const { error, data: tradeData } = await createTrade({
-        offer_id: offerId,
-        buyer_id,
-        seller_id,
-        crypto_type: cryptoType || "BTC",
-        crypto_amount: calculatedCryptoAmount,
-        fiat_amount: parsedFiatAmount,
-        fiat_currency: fiatCurrency,
-        payment_method: selectedPayment,
-      });
+      // Step 2: Create the trade to get a real UUID
+      let tradeData: any;
+      try {
+        const { error, data } = await createTrade({
+          offer_id: offerId,
+          buyer_id,
+          seller_id,
+          crypto_type: cryptoType || "BTC",
+          crypto_amount: calculatedCryptoAmount,
+          fiat_amount: parsedFiatAmount,
+          fiat_currency: fiatCurrency,
+          payment_method: selectedPayment,
+        });
 
-      if (error || !tradeData) {
-        // Check for duplicate trade error (race condition)
-        if (error?.message?.includes("duplicate") || error?.message?.includes("unique")) {
-          toast.error("You already have an active trade for this offer.");
-        } else {
-          throw error || new Error("Failed to create trade");
+        if (error || !data) {
+          // Check for duplicate trade error (race condition)
+          if (error?.message?.includes("duplicate") || error?.message?.includes("unique")) {
+            toast.error("You already have an active trade for this offer.");
+          } else {
+            toast.error(error?.message || "Failed to create trade. Please try again.");
+          }
+          setLoading(false);
+          return;
         }
+        tradeData = data;
+      } catch (createErr: any) {
+        console.error("Create trade error:", createErr);
+        toast.error(createErr?.message || "Failed to create trade. Please try again.");
         setLoading(false);
         return;
       }
 
-      // Step 2: Lock escrow using the real trade UUID
-      const escrowResult = await lockEscrow(
-        seller_id,
-        cryptoType || "BTC",
-        calculatedCryptoAmount,
-        tradeData.id // Use real trade UUID
-      );
+      // Step 3: Lock escrow using the real trade UUID
+      let escrowResult: { success: boolean; error?: string };
+      try {
+        escrowResult = await lockEscrow(
+          seller_id,
+          cryptoType || "BTC",
+          calculatedCryptoAmount,
+          tradeData.id
+        );
+      } catch (escrowErr: any) {
+        console.error("Escrow error:", escrowErr);
+        // Cancel the trade since escrow failed
+        try {
+          await updateTrade(tradeData.id, {
+            status: "cancelled",
+            cancelled_at: new Date().toISOString(),
+            cancelled_by: user.id,
+          });
+        } catch (cancelErr) {
+          console.error("Failed to cancel trade after escrow error:", cancelErr);
+        }
+        toast.error("Failed to lock escrow. Please try again.");
+        await fetchLatestOffer(false);
+        setLoading(false);
+        return;
+      }
 
       if (!escrowResult.success) {
         // Escrow failed - cancel the trade
-        await updateTrade(tradeData.id, {
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-          cancelled_by: user.id,
-        });
+        try {
+          await updateTrade(tradeData.id, {
+            status: "cancelled",
+            cancelled_at: new Date().toISOString(),
+            cancelled_by: user.id,
+          });
+        } catch (cancelErr) {
+          console.error("Failed to cancel trade after escrow failure:", cancelErr);
+        }
         
-        // Provide actionable error message with partial fill notice
+        // Check if it's a balance issue - show partial fill notice
         if (escrowResult.error?.includes("insufficient") || escrowResult.error?.includes("balance")) {
-          // Re-fetch latest offer data
+          // Re-fetch latest offer data to show current availability
           const refreshedOffer = await fetchLatestOffer(false);
           const refreshedAvailable = refreshedOffer 
             ? Math.max(0, (refreshedOffer.crypto_amount ?? 0) - (refreshedOffer.reserved_amount ?? 0))
@@ -404,29 +468,35 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
           });
         } else {
           toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
-          // Refresh offer data
-          fetchLatestOffer(false);
+          await fetchLatestOffer(false);
         }
         
         setLoading(false);
         return;
       }
 
-      // Step 3: Update trade to mark escrow as locked and confirmed
-      await updateTrade(tradeData.id, {
-        escrow_locked: true,
-        status: "confirmed",
-      });
+      // Step 4: Update trade to mark escrow as locked and confirmed
+      try {
+        await updateTrade(tradeData.id, {
+          escrow_locked: true,
+          status: "confirmed",
+        });
+      } catch (updateErr: any) {
+        console.error("Failed to confirm trade:", updateErr);
+        // Trade was created and escrow locked - navigate anyway
+        toast.warning("Trade created but confirmation update failed. Proceeding...");
+      }
 
       toast.success("Trade initiated! Crypto is now locked in escrow.");
       onOpenChange(false);
       navigate(`/trade/${tradeData.id}`);
     } catch (error: any) {
       console.error("Trade initiation error:", error);
-      toast.error(error?.message || "Failed to initiate trade");
+      toast.error(error?.message || "Failed to initiate trade. Please try again.");
       // Refresh offer on error
-      fetchLatestOffer(false);
+      await fetchLatestOffer(false);
     } finally {
+      // CRITICAL: Always reset loading state
       setLoading(false);
     }
   };
