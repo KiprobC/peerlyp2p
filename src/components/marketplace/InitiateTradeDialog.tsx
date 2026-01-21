@@ -454,22 +454,34 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
           console.error("Failed to cancel trade after escrow failure:", cancelErr);
         }
         
-        // Check if it's a balance issue - show partial fill notice (case-insensitive check)
         const errorLower = (escrowResult.error || "").toLowerCase();
+        
+        // Check if it's a balance issue
         if (errorLower.includes("insufficient") || errorLower.includes("balance") || errorLower.includes("available")) {
-          // Re-fetch latest offer data to show current availability
+          // Re-fetch latest offer data to check if it was partial fill or seller wallet issue
           const refreshedOffer = await fetchLatestOffer(false);
           const refreshedAvailable = refreshedOffer 
             ? Math.max(0, (refreshedOffer.crypto_amount ?? 0) - (refreshedOffer.reserved_amount ?? 0))
             : 0;
           
-          setPartialFillInfo({
-            requestedCrypto: calculatedCryptoAmount,
-            availableCrypto: refreshedAvailable,
-          });
-          toast.warning("Offer balance changed. Please adjust your amount.");
+          // Compare with what we calculated - if offer's available didn't change much, 
+          // it's a seller wallet issue, not a partial fill
+          const offerAvailableChanged = Math.abs(refreshedAvailable - latestAvailable) > 0.000001;
+          
+          if (offerAvailableChanged && refreshedAvailable < calculatedCryptoAmount) {
+            // Offer was partially filled by another buyer
+            setPartialFillInfo({
+              requestedCrypto: calculatedCryptoAmount,
+              availableCrypto: refreshedAvailable,
+            });
+            toast.warning("Another buyer filled part of this offer. Please adjust your amount.");
+          } else {
+            // Seller's wallet has insufficient funds (not a partial fill)
+            toast.error("Seller currently has insufficient funds to complete this trade. Please try a smaller amount or another offer.");
+            await fetchLatestOffer(false);
+          }
         } else {
-          toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
+          toast.error(escrowResult.error || "Failed to lock escrow for this trade.");
           await fetchLatestOffer(false);
         }
         
