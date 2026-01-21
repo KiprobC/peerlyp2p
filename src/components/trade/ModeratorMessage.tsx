@@ -5,8 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ModeratorMessageProps {
   message: string;
-  senderName: string;
-  avatarUrl?: string | null;
   timestamp: string;
   isResolution?: boolean;
 }
@@ -88,8 +86,6 @@ const cleanMessage = (message: string): string => {
 
 export const ModeratorMessage = ({
   message,
-  senderName,
-  avatarUrl,
   timestamp,
   isResolution = false,
 }: ModeratorMessageProps) => {
@@ -121,15 +117,14 @@ export const ModeratorMessage = ({
           <p className="text-sm leading-relaxed font-medium">{displayMessage}</p>
         </div>
 
-        {/* Footer with sender and timestamp */}
+        {/* Footer with timestamp - moderator identity hidden for fairness */}
         <div className="flex items-center gap-2 px-4 py-2 border-t border-border/50 bg-background/30">
           <Avatar className="w-5 h-5">
-            <AvatarImage src={avatarUrl || undefined} />
             <AvatarFallback className="text-[10px] bg-violet-500/20 text-violet-600">
-              {senderName?.charAt(0)?.toUpperCase() || "M"}
+              M
             </AvatarFallback>
           </Avatar>
-          <span className="text-xs text-muted-foreground">{senderName}</span>
+          <span className="text-xs text-muted-foreground">Moderator</span>
           <span className="text-[10px] text-muted-foreground ml-auto">
             {formatDistanceToNow(new Date(timestamp), { addSuffix: true })}
           </span>

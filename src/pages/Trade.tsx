@@ -405,7 +405,6 @@ const TradePage = () => {
                   resolutionType={trade.resolution_type}
                   resolutionSummary={trade.dispute_resolution_summary || "Dispute has been resolved."}
                   resolvedAt={trade.completed_at || trade.cancelled_at || new Date().toISOString()}
-                  moderatorName={moderator?.username || undefined}
                   cryptoAmount={trade.crypto_amount}
                   cryptoType={trade.crypto_type}
                 />
@@ -729,7 +728,6 @@ const TradePage = () => {
             <ModeratorMessage
               key={message.id}
               message={message.message}
-              senderName={moderator?.username || "Moderator"}
               timestamp={message.created_at}
             />
           );
