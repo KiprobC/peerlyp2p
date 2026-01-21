@@ -454,8 +454,9 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
           console.error("Failed to cancel trade after escrow failure:", cancelErr);
         }
         
-        // Check if it's a balance issue - show partial fill notice
-        if (escrowResult.error?.includes("insufficient") || escrowResult.error?.includes("balance")) {
+        // Check if it's a balance issue - show partial fill notice (case-insensitive check)
+        const errorLower = (escrowResult.error || "").toLowerCase();
+        if (errorLower.includes("insufficient") || errorLower.includes("balance") || errorLower.includes("available")) {
           // Re-fetch latest offer data to show current availability
           const refreshedOffer = await fetchLatestOffer(false);
           const refreshedAvailable = refreshedOffer 
@@ -466,6 +467,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
             requestedCrypto: calculatedCryptoAmount,
             availableCrypto: refreshedAvailable,
           });
+          toast.warning("Offer balance changed. Please adjust your amount.");
         } else {
           toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
           await fetchLatestOffer(false);
@@ -512,7 +514,16 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
   
   // Handler for adjusting to max available when partial fill occurs
   const handleAdjustToMax = () => {
-    if (!partialFillInfo || partialFillInfo.availableCrypto <= 0) return;
+    if (!partialFillInfo) {
+      toast.error("No adjustment information available.");
+      return;
+    }
+    
+    if (partialFillInfo.availableCrypto <= 0) {
+      toast.error("No balance available for this offer.");
+      setPartialFillInfo(null);
+      return;
+    }
     
     const maxFiat = partialFillInfo.availableCrypto * pricePerUnit;
     // Ensure we don't exceed the offer's max amount
@@ -523,7 +534,8 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
       setPartialFillInfo(null);
       toast.success(`Amount adjusted to ${fiatCurrency} ${adjustedFiat.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
     } else {
-      toast.error("Available balance is below the minimum trade amount.");
+      toast.error("Available balance is below the minimum trade amount. Please try another offer.");
+      setPartialFillInfo(null);
     }
   };
   
@@ -719,29 +731,31 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
             </div>
           )}
 
-          {/* Action Button */}
-          <Button
-            className="w-full"
-            onClick={() => {
-              if (isOutsideRegion) {
-                setShowRegionWarning(true);
-              } else {
-                handleTrade();
-              }
-            }}
-            disabled={loading || !isValidAmount || !selectedPayment || exceedsAvailableBalance || insufficientAvailable}
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : insufficientAvailable ? (
-              "No Available Balance"
-            ) : (
-              `${isBuyOffer ? "Sell" : "Buy"} ${cryptoType || "CRYPTO"}`
-            )}
-          </Button>
+          {/* Action Button - Hidden when partial fill notice is showing */}
+          {!partialFillInfo && (
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (isOutsideRegion) {
+                  setShowRegionWarning(true);
+                } else {
+                  handleTrade();
+                }
+              }}
+              disabled={loading || !isValidAmount || !selectedPayment || exceedsAvailableBalance || insufficientAvailable}
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : insufficientAvailable ? (
+                "No Available Balance"
+              ) : (
+                `${isBuyOffer ? "Sell" : "Buy"} ${cryptoType || "CRYPTO"}`
+              )}
+            </Button>
+          )}
         </div>
       </ScrollArea>
     );
