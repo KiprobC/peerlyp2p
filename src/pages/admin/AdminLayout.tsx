@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { AdminSidebar, MobileAdminSidebar } from "@/components/admin/AdminSidebar";
+import { ModeratorNotificationBell } from "@/components/moderator/ModeratorNotificationBell";
 import { useAdminRole } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { Shield, AlertTriangle } from "lucide-react";
@@ -81,13 +82,21 @@ export const AdminLayout = () => {
       <main className="flex-1 overflow-auto w-full">
         {/* Mobile Header */}
         <header className="sticky top-0 z-40 lg:hidden bg-card/95 backdrop-blur-sm border-b border-border px-4 py-3">
-          <div className="flex items-center gap-3">
-            <MobileAdminSidebar />
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              <span className="font-semibold">Admin Panel</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MobileAdminSidebar />
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                <span className="font-semibold">Admin Panel</span>
+              </div>
             </div>
+            <ModeratorNotificationBell />
           </div>
+        </header>
+        
+        {/* Desktop Header with Notification Bell */}
+        <header className="hidden lg:flex sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 justify-end">
+          <ModeratorNotificationBell />
         </header>
         <div className="p-4 sm:p-6 lg:p-8">
           <Outlet />
