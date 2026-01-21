@@ -8,7 +8,7 @@ export interface TradeEvidence {
   trade_id: string;
   uploader_id: string;
   uploader_role: "buyer" | "seller" | "moderator";
-  evidence_type: "payment_proof" | "dispute_evidence" | "additional_info";
+  evidence_type: "payment_proof" | "dispute_evidence" | "additional_info" | "chat_attachment";
   file_url: string;
   file_name: string;
   file_type: string | null;
@@ -78,7 +78,7 @@ export const useTradeEvidence = (tradeId: string) => {
     evidenceType: TradeEvidence["evidence_type"],
     uploaderRole: "buyer" | "seller",
     description?: string
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; fileUrl?: string }> => {
     if (!user || !tradeId) {
       return { success: false, error: "Not authenticated" };
     }
@@ -121,9 +121,10 @@ export const useTradeEvidence = (tradeId: string) => {
 
       if (insertError) throw insertError;
 
-      toast.success("Evidence uploaded successfully");
+      const successMsg = evidenceType === "chat_attachment" ? "File attached" : "Evidence uploaded successfully";
+      toast.success(successMsg);
       await fetchEvidence();
-      return { success: true };
+      return { success: true, fileUrl: urlData.publicUrl };
     } catch (error: any) {
       console.error("Error uploading evidence:", error);
       toast.error("Failed to upload evidence");

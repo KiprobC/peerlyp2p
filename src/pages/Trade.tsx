@@ -20,6 +20,10 @@ import {
   MessageSquare,
   FileImage,
   MessageCircle,
+  Paperclip,
+  Image,
+  X,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrades, useTradeMessages, Trade } from "@/hooks/useTrades";
@@ -69,7 +73,11 @@ const TradePage = () => {
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [paymentProofDialogOpen, setPaymentProofDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"chat" | "evidence">("chat");
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Evidence and moderator hooks
   const { 
@@ -127,16 +135,70 @@ const TradePage = () => {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() && !attachmentFile) return;
     setSending(true);
 
-    const { error } = await sendMessage(newMessage.trim());
-    if (error) {
-      toast.error("Failed to send message");
+    // If there's an attachment, upload it first
+    if (attachmentFile) {
+      setUploadingAttachment(true);
+      const result = await uploadEvidence(
+        attachmentFile, 
+        "chat_attachment", 
+        isBuyer ? "buyer" : "seller", 
+        newMessage.trim() || undefined
+      );
+      setUploadingAttachment(false);
+      
+      if (result.success) {
+        // Send message with attachment reference
+        const attachmentMsg = newMessage.trim() 
+          ? `${newMessage.trim()} [Attachment: ${attachmentFile.name}]`
+          : `[Attachment: ${attachmentFile.name}]`;
+        await sendMessage(attachmentMsg);
+        setNewMessage("");
+        clearAttachment();
+      } else {
+        toast.error("Failed to upload attachment");
+      }
     } else {
-      setNewMessage("");
+      const { error } = await sendMessage(newMessage.trim());
+      if (error) {
+        toast.error("Failed to send message");
+      } else {
+        setNewMessage("");
+      }
     }
     setSending(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be under 10MB");
+      return;
+    }
+
+    setAttachmentFile(file);
+    
+    // Create preview for images
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (e) => setAttachmentPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setAttachmentPreview(null);
+    }
+  };
+
+  const clearAttachment = () => {
+    setAttachmentFile(null);
+    setAttachmentPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleConfirmTrade = async () => {
@@ -284,6 +346,9 @@ const TradePage = () => {
     );
   }
 
+  // Chat input visible states: awaiting_payment, escrow_locked, payment_sent, dispute_opened, confirmed, pending
+  const chatVisibleStates = ["pending", "confirmed", "awaiting_payment", "escrow_locked", "payment_sent", "disputed"];
+  const isChatActive = chatVisibleStates.includes(trade.status);
   const isTradeActive = !["completed", "cancelled"].includes(trade.status);
   const isDisputed = trade.status === "disputed";
   const isDisputeResolved = trade.resolution_type !== null;
@@ -356,7 +421,7 @@ const TradePage = () => {
                 </TabsList>
                 
                 <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
-                  <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+                  <div className="flex-1 overflow-y-auto px-3 py-3 pb-32 space-y-2">
                     {renderMessages()}
                     <div ref={messagesEndRef} />
                   </div>
@@ -402,10 +467,41 @@ const TradePage = () => {
                 </TabsContent>
               </Tabs>
             ) : (
-              /* Normal Chat Layout */
-              <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-                {renderMessages()}
-                <div ref={messagesEndRef} />
+              /* Normal Chat Layout with Evidence Section */
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Evidence Upload Section - show for confirmed/payment_sent states */}
+                {["confirmed", "payment_sent"].includes(trade.status) && (
+                  <div className="px-3 py-2 border-b border-border bg-secondary/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <FileImage className="w-3.5 h-3.5" />
+                        <span>Evidence: {isBuyer ? "Upload payment proof" : "Review buyer proof"}</span>
+                      </div>
+                      {isBuyer && paymentProofs.length === 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1.5"
+                          onClick={() => setPaymentProofDialogOpen(true)}
+                        >
+                          <Image className="w-3 h-3" />
+                          Add Proof
+                        </Button>
+                      )}
+                      {paymentProofs.length > 0 && (
+                        <span className="text-xs text-green-500 flex items-center gap-1">
+                          ✓ {paymentProofs.length} uploaded
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Chat Messages - add bottom padding to prevent overlap with fixed action bar */}
+                <div className="flex-1 overflow-y-auto px-3 py-3 pb-32 space-y-2">
+                  {renderMessages()}
+                  <div ref={messagesEndRef} />
+                </div>
               </div>
             )}
 
@@ -418,49 +514,91 @@ const TradePage = () => {
               />
             )}
 
-            {/* Input & Actions Area */}
-            {isTradeActive && (
-              <div className="border-t border-border bg-card/95 backdrop-blur-sm p-3 safe-area-bottom">
-                {/* Action Buttons - hide during dispute unless showing evidence tab */}
-                {!isDisputed && (
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <TradeActions
-                      status={trade.status}
-                      isBuyer={isBuyer}
-                      isSeller={isSeller}
-                      actionLoading={actionLoading}
-                      onConfirmTrade={handleConfirmTrade}
-                      onPaymentSent={handlePaymentSent}
-                      onReleaseEscrow={handleReleaseEscrow}
-                      onCancelTrade={handleCancelTrade}
-                      onDispute={() => setDisputeDialogOpen(true)}
+            {/* Input & Actions Area - Fixed at bottom, visible for active chat states */}
+            {isChatActive && (
+              <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-sm safe-area-bottom">
+                <div className="container mx-auto px-3 max-w-4xl">
+                  {/* Action Buttons - show above input for non-disputed trades */}
+                  {!isDisputed && (
+                    <div className="flex items-center justify-between gap-2 pt-3 pb-2">
+                      <TradeActions
+                        status={trade.status}
+                        isBuyer={isBuyer}
+                        isSeller={isSeller}
+                        actionLoading={actionLoading}
+                        onConfirmTrade={handleConfirmTrade}
+                        onPaymentSent={handlePaymentSent}
+                        onReleaseEscrow={handleReleaseEscrow}
+                        onCancelTrade={handleCancelTrade}
+                        onDispute={() => setDisputeDialogOpen(true)}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Attachment Preview */}
+                  {attachmentFile && (
+                    <div className="flex items-center gap-2 px-1 pb-2">
+                      <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-secondary/80 text-xs max-w-[200px]">
+                        {attachmentPreview ? (
+                          <img src={attachmentPreview} alt="Preview" className="w-6 h-6 rounded object-cover" />
+                        ) : (
+                          <FileImage className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <span className="truncate flex-1">{attachmentFile.name}</span>
+                        <button 
+                          onClick={clearAttachment}
+                          className="p-0.5 hover:bg-muted rounded"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Message Input with Attachment */}
+                  <div className="flex items-center gap-2 pb-3">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx"
+                      onChange={handleFileSelect}
+                      className="hidden"
                     />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={sending || uploadingAttachment}
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </Button>
+                    <Input
+                      placeholder={isDisputed ? "Message moderator..." : "Type a message..."}
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      disabled={sending || uploadingAttachment}
+                      className="flex-1 h-9 text-sm bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
+                    />
+                    <Button 
+                      onClick={handleSendMessage} 
+                      disabled={sending || uploadingAttachment || (!newMessage.trim() && !attachmentFile)}
+                      size="icon"
+                      className="h-9 w-9 rounded-lg shrink-0"
+                    >
+                      {(sending || uploadingAttachment) ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
+                    </Button>
                   </div>
-                )}
-                
-                {/* Message Input */}
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder={isDisputed ? "Message moderator..." : "Type a message..."}
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    disabled={sending}
-                    className="flex-1 h-9 text-sm bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
-                  />
-                  <Button 
-                    onClick={handleSendMessage} 
-                    disabled={sending || !newMessage.trim()}
-                    size="icon"
-                    className="h-9 w-9 rounded-lg shrink-0"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
                 </div>
               </div>
             )}
