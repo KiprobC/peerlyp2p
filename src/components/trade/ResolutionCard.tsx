@@ -15,7 +15,6 @@ interface ResolutionCardProps {
   resolutionType: "buyer_wins" | "seller_wins" | "split" | "cancelled";
   resolutionSummary: string;
   resolvedAt: string;
-  moderatorName?: string;
   cryptoAmount: number;
   cryptoType: string;
 }
@@ -59,7 +58,6 @@ export const ResolutionCard = ({
   resolutionType,
   resolutionSummary,
   resolvedAt,
-  moderatorName,
   cryptoAmount,
   cryptoType,
 }: ResolutionCardProps) => {
@@ -111,15 +109,13 @@ export const ResolutionCard = ({
           <p className="text-sm leading-relaxed">{resolutionSummary}</p>
         </div>
 
-        {/* Moderator */}
-        {moderatorName && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-            <CheckCircle className="w-3.5 h-3.5 text-green-500" />
-            <span className="text-xs text-muted-foreground">
-              Resolved by <span className="font-medium text-foreground">{moderatorName}</span>
-            </span>
-          </div>
-        )}
+        {/* Moderator - identity hidden for fairness */}
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+          <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+          <span className="text-xs text-muted-foreground">
+            Resolved by <span className="font-medium text-foreground">Moderator</span>
+          </span>
+        </div>
       </CardContent>
     </Card>
   );

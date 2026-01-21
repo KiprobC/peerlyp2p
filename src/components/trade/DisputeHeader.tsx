@@ -128,19 +128,16 @@ export const DisputeHeader = ({
         {status === "disputed" && moderator && (
           <div className="flex items-center justify-between py-2 border-t border-border/50">
             <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={moderator.avatar_url || undefined} />
-                <AvatarFallback className="text-[10px] bg-purple-500/20 text-purple-500">
-                  {moderator.username?.charAt(0).toUpperCase() || "M"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-purple-500" />
-                <span className="text-xs font-medium">
-                  {moderator.full_name || moderator.username || "Moderator"}
-                </span>
-                <span className="text-[10px] text-muted-foreground">assigned</span>
-              </div>
+            <Avatar className="h-6 w-6">
+              <AvatarFallback className="text-[10px] bg-purple-500/20 text-purple-500">
+                M
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex items-center gap-1.5">
+              <Shield className="w-3 h-3 text-purple-500" />
+              <span className="text-xs font-medium">Moderator</span>
+              <span className="text-[10px] text-muted-foreground">assigned</span>
+            </div>
             </div>
             
             {/* Online indicator */}
