@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { validateAction, ValidationResult } from "@/hooks/useKYCLimits";
 import { KYCLimitError } from "@/components/kyc/KYCLimitError";
 import { KYCLimitBanner } from "@/components/kyc/KYCLimitBanner";
+import { PartialFillNotice } from "./PartialFillNotice";
 
 interface InitiateTradeDialogProps {
   open: boolean;
@@ -135,6 +136,12 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
   const [showRegionWarning, setShowRegionWarning] = useState(false);
   const [validationError, setValidationError] = useState<ValidationResult | null>(null);
   
+  // Partial fill state
+  const [partialFillInfo, setPartialFillInfo] = useState<{
+    requestedCrypto: number;
+    availableCrypto: number;
+  } | null>(null);
+  
   // Real-time offer state
   const [liveOffer, setLiveOffer] = useState<OfferWithProfile | null>(null);
   const [offerLoading, setOfferLoading] = useState(false);
@@ -213,6 +220,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
       setOfferUpdated(false);
       setLiveOffer(null);
       setValidationError(null);
+      setPartialFillInfo(null);
       initialOfferVersionRef.current = initialOffer.updated_at;
       
       // Fetch fresh offer data
@@ -329,11 +337,11 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
       const calculatedCryptoAmount = parsedFiatAmount / (latestOffer.price_per_unit ?? pricePerUnit);
       
       if (!isBuyOffer && calculatedCryptoAmount > latestAvailable) {
-        toast.error(
-          latestAvailable > 0 
-            ? `This offer was partially filled. Only ${latestAvailable.toFixed(6)} ${cryptoType} available now. Please adjust your amount.`
-            : "This offer has been fully filled. Please try another offer."
-        );
+        // Show partial fill notice instead of generic error
+        setPartialFillInfo({
+          requestedCrypto: calculatedCryptoAmount,
+          availableCrypto: latestAvailable,
+        });
         setLoading(false);
         return;
       }
@@ -382,15 +390,24 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
           cancelled_by: user.id,
         });
         
-        // Provide actionable error message
+        // Provide actionable error message with partial fill notice
         if (escrowResult.error?.includes("insufficient") || escrowResult.error?.includes("balance")) {
-          toast.error("This offer was partially filled just now. Please refresh and try a lower amount.");
+          // Re-fetch latest offer data
+          const refreshedOffer = await fetchLatestOffer(false);
+          const refreshedAvailable = refreshedOffer 
+            ? Math.max(0, (refreshedOffer.crypto_amount ?? 0) - (refreshedOffer.reserved_amount ?? 0))
+            : 0;
+          
+          setPartialFillInfo({
+            requestedCrypto: calculatedCryptoAmount,
+            availableCrypto: refreshedAvailable,
+          });
         } else {
           toast.error(escrowResult.error || "Seller has insufficient balance for escrow");
+          // Refresh offer data
+          fetchLatestOffer(false);
         }
         
-        // Refresh offer data
-        fetchLatestOffer(false);
         setLoading(false);
         return;
       }
@@ -421,6 +438,29 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
   const handleReviewChanges = () => {
     setOfferUpdated(false);
     initialOfferVersionRef.current = offer?.updated_at || null;
+  };
+  
+  // Handler for adjusting to max available when partial fill occurs
+  const handleAdjustToMax = () => {
+    if (!partialFillInfo || partialFillInfo.availableCrypto <= 0) return;
+    
+    const maxFiat = partialFillInfo.availableCrypto * pricePerUnit;
+    // Ensure we don't exceed the offer's max amount
+    const adjustedFiat = Math.min(maxFiat, maxAmount);
+    // Ensure we meet the minimum
+    if (adjustedFiat >= minAmount) {
+      setFiatAmount(adjustedFiat.toFixed(2));
+      setPartialFillInfo(null);
+      toast.success(`Amount adjusted to ${fiatCurrency} ${adjustedFiat.toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+    } else {
+      toast.error("Available balance is below the minimum trade amount.");
+    }
+  };
+  
+  // Handler for dismissing partial fill notice
+  const handleDismissPartialFill = () => {
+    setPartialFillInfo(null);
+    handleClose();
   };
 
   // Render dialog with proper states
@@ -454,6 +494,19 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
     return (
       <ScrollArea className="max-h-[60vh] pr-4">
         <div className="space-y-4">
+          {/* Partial Fill Notice */}
+          {partialFillInfo && (
+            <PartialFillNotice
+              requestedCrypto={partialFillInfo.requestedCrypto}
+              availableCrypto={partialFillInfo.availableCrypto}
+              cryptoType={cryptoType || "BTC"}
+              fiatCurrency={fiatCurrency}
+              pricePerUnit={pricePerUnit}
+              onAdjustToMax={handleAdjustToMax}
+              onDismiss={handleDismissPartialFill}
+            />
+          )}
+          
           {/* KYC Limit Banner */}
           <KYCLimitBanner compact className="mb-2" />
           
