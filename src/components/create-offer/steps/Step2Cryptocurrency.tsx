@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,10 +15,15 @@ const CRYPTO_OPTIONS = [
   { symbol: "USDT", name: "Tether", icon: "$", color: "text-green-500", bgColor: "bg-green-500/10" },
 ];
 
+type InputMode = "crypto" | "fiat";
+
 export const Step2Cryptocurrency = ({ formData, updateFormData, onNext, onBack }: StepProps) => {
   const { getAvailableBalance, getBalanceDetails, refetch: refetchBalance, loading: balanceLoading } = useAvailableBalance();
   const { prices, loading: pricesLoading, refetch: refetchPrices } = useCryptoPrices("USD");
   const { convert, formatCurrency } = useCurrencyConversion();
+
+  const [inputMode, setInputMode] = useState<InputMode>("crypto");
+  const [fiatAmount, setFiatAmount] = useState("");
 
   const isSellOffer = formData.type === "sell";
   const availableBalance = getAvailableBalance(formData.crypto_type);
@@ -34,6 +40,36 @@ export const Step2Cryptocurrency = ({ formData, updateFormData, onNext, onBack }
   const handleUseMax = () => {
     if (availableBalance > 0) {
       updateFormData({ crypto_amount: availableBalance.toString() });
+      if (inputMode === "fiat") {
+        setFiatAmount((availableBalance * marketPriceLocal).toFixed(2));
+      }
+    }
+  };
+
+  const handleCryptoAmountChange = (value: string) => {
+    updateFormData({ crypto_amount: value });
+    if (value && marketPriceLocal > 0) {
+      setFiatAmount((parseFloat(value) * marketPriceLocal).toFixed(2));
+    } else {
+      setFiatAmount("");
+    }
+  };
+
+  const handleFiatAmountChange = (value: string) => {
+    setFiatAmount(value);
+    if (value && marketPriceLocal > 0) {
+      const cryptoValue = parseFloat(value) / marketPriceLocal;
+      updateFormData({ crypto_amount: cryptoValue.toFixed(8) });
+    } else {
+      updateFormData({ crypto_amount: "" });
+    }
+  };
+
+  const handleModeSwitch = (mode: InputMode) => {
+    setInputMode(mode);
+    // Sync values when switching
+    if (mode === "fiat" && formData.crypto_amount && marketPriceLocal > 0) {
+      setFiatAmount((parseFloat(formData.crypto_amount) * marketPriceLocal).toFixed(2));
     }
   };
 
@@ -56,7 +92,10 @@ export const Step2Cryptocurrency = ({ formData, updateFormData, onNext, onBack }
               <button
                 key={crypto.symbol}
                 type="button"
-                onClick={() => updateFormData({ crypto_type: crypto.symbol, crypto_amount: "" })}
+                onClick={() => {
+                  updateFormData({ crypto_type: crypto.symbol, crypto_amount: "" });
+                  setFiatAmount("");
+                }}
                 className={cn(
                   "p-4 rounded-xl border-2 transition-all text-center",
                   "hover:scale-[1.02] active:scale-[0.98]",
@@ -162,11 +201,44 @@ export const Step2Cryptocurrency = ({ formData, updateFormData, onNext, onBack }
         </div>
       )}
 
+      {/* Input Mode Toggle */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+          <button
+            type="button"
+            onClick={() => handleModeSwitch("crypto")}
+            className={cn(
+              "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all",
+              inputMode === "crypto"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Enter {formData.crypto_type}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeSwitch("fiat")}
+            className={cn(
+              "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all",
+              inputMode === "fiat"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Enter {formData.fiat_currency}
+          </button>
+        </div>
+      </div>
+
       {/* Amount Input */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">
-            Amount to {formData.type} ({formData.crypto_type})
+            {inputMode === "crypto" 
+              ? `Amount to ${formData.type} (${formData.crypto_type})`
+              : `Amount in ${formData.fiat_currency}`
+            }
           </Label>
           {isSellOffer && availableBalance > 0 && (
             <Button
@@ -180,27 +252,52 @@ export const Step2Cryptocurrency = ({ formData, updateFormData, onNext, onBack }
             </Button>
           )}
         </div>
-        <Input
-          type="number"
-          step="any"
-          placeholder="0.00000000"
-          value={formData.crypto_amount}
-          onChange={(e) => updateFormData({ crypto_amount: e.target.value })}
-          className={cn(
-            "h-12 text-lg font-mono",
-            hasInsufficientBalance && "border-destructive focus-visible:ring-destructive"
-          )}
-        />
+
+        {inputMode === "crypto" ? (
+          <Input
+            type="number"
+            step="any"
+            placeholder="0.00000000"
+            value={formData.crypto_amount}
+            onChange={(e) => handleCryptoAmountChange(e.target.value)}
+            className={cn(
+              "h-12 text-lg font-mono",
+              hasInsufficientBalance && "border-destructive focus-visible:ring-destructive"
+            )}
+          />
+        ) : (
+          <Input
+            type="number"
+            step="any"
+            placeholder="0.00"
+            value={fiatAmount}
+            onChange={(e) => handleFiatAmountChange(e.target.value)}
+            className={cn(
+              "h-12 text-lg font-mono",
+              hasInsufficientBalance && "border-destructive focus-visible:ring-destructive"
+            )}
+          />
+        )}
+
         {hasInsufficientBalance && (
           <p className="text-sm text-destructive flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
             Amount exceeds available balance
           </p>
         )}
+
+        {/* Conversion display */}
         {formData.crypto_amount && !hasInsufficientBalance && (
-          <p className="text-sm text-muted-foreground">
-            ≈ {formatCurrency(parseFloat(formData.crypto_amount) * marketPriceLocal, formData.fiat_currency)} at current market price
-          </p>
+          <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Crypto Amount:</span>
+              <span className="font-mono font-medium">{parseFloat(formData.crypto_amount).toFixed(8)} {formData.crypto_type}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Fiat Value:</span>
+              <span className="font-mono font-medium">{formatCurrency(parseFloat(formData.crypto_amount) * marketPriceLocal, formData.fiat_currency)}</span>
+            </div>
+          </div>
         )}
       </div>
 
