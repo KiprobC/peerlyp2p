@@ -1,7 +1,6 @@
 import { ArrowLeft, Shield, Lock, CheckCircle, AlertTriangle, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TradeTimer } from "./TradeTimer";
 import { cn } from "@/lib/utils";
 
 interface TradeHeaderProps {
@@ -46,11 +45,10 @@ export const TradeHeader = ({
 }: TradeHeaderProps) => {
   const statusInfo = statusConfig[status] || statusConfig.pending;
   const StatusIcon = statusInfo.icon;
-  const showTimer = ["pending", "confirmed"].includes(status);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-      <div className="container mx-auto px-3 max-w-4xl">
+      <div className="container mx-auto px-3 max-w-5xl">
         {/* Main header row */}
         <div className="flex items-center justify-between h-12 gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -91,17 +89,6 @@ export const TradeHeader = ({
             </Badge>
           </div>
         </div>
-        
-        {/* Timer row - only show when relevant */}
-        {showTimer && expiresAt && (
-          <div className="pb-2">
-            <TradeTimer 
-              expiresAt={expiresAt} 
-              tradeStatus={status}
-              onExpired={onExpired}
-            />
-          </div>
-        )}
       </div>
     </header>
   );

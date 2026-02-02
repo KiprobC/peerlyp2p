@@ -35,7 +35,10 @@ import { useModeratorRole } from "@/hooks/useModeratorRole";
 import { RatingDialog } from "@/components/trade/RatingDialog";
 import { TradeHeader } from "@/components/trade/TradeHeader";
 import { DisputeHeader } from "@/components/trade/DisputeHeader";
-import { TradeActions } from "@/components/trade/TradeActions";
+import { TradeActionsPanel } from "@/components/trade/TradeActionsPanel";
+import { MobileTradeActions } from "@/components/trade/MobileTradeActions";
+import { TradeStatusBannerInline } from "@/components/trade/TradeStatusBannerInline";
+import { PaymentWindowTimer } from "@/components/trade/PaymentWindowTimer";
 import { ChatMessage } from "@/components/trade/ChatMessage";
 import { TimelineEvent } from "@/components/trade/TimelineEvent";
 import { TradeStatusBanner } from "@/components/trade/TradeStatusBanner";
@@ -328,6 +331,12 @@ const TradePage = () => {
     setActionLoading(false);
   };
 
+  const handleRequestModerator = () => {
+    // Opens the dispute dialog with pre-filled context
+    setDisputeReason("Seller has not released crypto after 60 minutes since payment was marked as sent.");
+    setDisputeDialogOpen(true);
+  };
+
   // Loading state
   if (!trade) {
     return (
@@ -394,232 +403,275 @@ const TradePage = () => {
       )}
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col ${isDisputed ? 'pt-[120px]' : ["pending", "confirmed"].includes(trade.status) && trade.expires_at ? 'pt-[88px]' : 'pt-12'}`}>
-        <div className="container mx-auto px-0 sm:px-4 max-w-4xl flex-1 flex flex-col">
-          <div className="flex-1 flex flex-col bg-card sm:border-x sm:border-t border-border sm:rounded-t-xl overflow-hidden">
+      <main className={`flex-1 flex flex-col ${isDisputed ? 'pt-[120px]' : 'pt-12'}`}>
+        <div className="container mx-auto px-0 sm:px-4 max-w-5xl flex-1 flex flex-col">
+          <div className="flex-1 flex bg-card sm:border-x sm:border-t border-border sm:rounded-t-xl overflow-hidden">
             
-            {/* Resolution Card - show when dispute is resolved */}
-            {isDisputeResolved && (trade.resolution_type === "buyer_wins" || trade.resolution_type === "seller_wins" || trade.resolution_type === "split" || trade.resolution_type === "cancelled") && (
-              <div className="p-3">
-                <ResolutionCard
-                  resolutionType={trade.resolution_type}
-                  resolutionSummary={trade.dispute_resolution_summary || "Dispute has been resolved."}
-                  resolvedAt={trade.completed_at || trade.cancelled_at || new Date().toISOString()}
-                  cryptoAmount={trade.crypto_amount}
-                  cryptoType={trade.crypto_type}
-                />
-              </div>
+            {/* Left Actions Panel - Desktop only */}
+            {!isDisputed && !isDisputeResolved && (
+              <TradeActionsPanel
+                status={trade.status}
+                isBuyer={isBuyer}
+                isSeller={isSeller}
+                actionLoading={actionLoading}
+                paymentSentAt={trade.payment_confirmed_at}
+                onConfirmTrade={handleConfirmTrade}
+                onPaymentSent={handlePaymentSent}
+                onReleaseEscrow={handleReleaseEscrow}
+                onCancelTrade={handleCancelTrade}
+                onDispute={() => setDisputeDialogOpen(true)}
+                onRequestModerator={handleRequestModerator}
+              />
             )}
-
-            {/* Tabbed Layout for Disputes */}
-            {isDisputed && !isDisputeResolved ? (
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "evidence")} className="flex-1 flex flex-col">
-                {/* Moderator Actions Panel - only for assigned moderator/admin */}
-                {isAssignedModerator && trade && (
-                  <ModeratorActionsPanel
-                    tradeId={trade.id}
-                    buyerId={trade.buyer_id}
-                    sellerId={trade.seller_id}
-                    moderatorId={user?.id || ""}
-                    onResolved={refetchTrades}
+            
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Status Banner */}
+              {!isDisputed && !isDisputeResolved && !["completed", "cancelled"].includes(trade.status) && (
+                <TradeStatusBannerInline
+                  status={trade.status}
+                  isBuyer={isBuyer}
+                  isSeller={isSeller}
+                  escrowLocked={trade.escrow_locked || false}
+                />
+              )}
+              
+              {/* Payment Window Timer - only for pending/confirmed */}
+              {["pending", "confirmed"].includes(trade.status) && trade.expires_at && (
+                <div className="px-3 py-2 border-b border-border bg-secondary/30">
+                  <PaymentWindowTimer
+                    expiresAt={trade.expires_at}
+                    tradeStatus={trade.status}
+                    onExpired={refetchTrades}
                   />
-                )}
-                
-                <TabsList className="mx-3 mt-3 grid grid-cols-2 h-9">
-                  <TabsTrigger value="chat" className="text-xs gap-1.5">
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    Chat
-                  </TabsTrigger>
-                  <TabsTrigger value="evidence" className="text-xs gap-1.5">
-                    <FileImage className="w-3.5 h-3.5" />
-                    Evidence
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
+                </div>
+              )}
+              
+              {/* Resolution Card - show when dispute is resolved */}
+              {isDisputeResolved && (trade.resolution_type === "buyer_wins" || trade.resolution_type === "seller_wins" || trade.resolution_type === "split" || trade.resolution_type === "cancelled") && (
+                <div className="p-3">
+                  <ResolutionCard
+                    resolutionType={trade.resolution_type}
+                    resolutionSummary={trade.dispute_resolution_summary || "Dispute has been resolved."}
+                    resolvedAt={trade.completed_at || trade.cancelled_at || new Date().toISOString()}
+                    cryptoAmount={trade.crypto_amount}
+                    cryptoType={trade.crypto_type}
+                  />
+                </div>
+              )}
+
+              {/* Tabbed Layout for Disputes */}
+              {isDisputed && !isDisputeResolved ? (
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "evidence")} className="flex-1 flex flex-col">
+                  {/* Moderator Actions Panel - only for assigned moderator/admin */}
+                  {isAssignedModerator && trade && (
+                    <ModeratorActionsPanel
+                      tradeId={trade.id}
+                      buyerId={trade.buyer_id}
+                      sellerId={trade.seller_id}
+                      moderatorId={user?.id || ""}
+                      onResolved={refetchTrades}
+                    />
+                  )}
+                  
+                  <TabsList className="mx-3 mt-3 grid grid-cols-2 h-9">
+                    <TabsTrigger value="chat" className="text-xs gap-1.5">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Chat
+                    </TabsTrigger>
+                    <TabsTrigger value="evidence" className="text-xs gap-1.5">
+                      <FileImage className="w-3.5 h-3.5" />
+                      Evidence
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto px-3 py-3 pb-32 space-y-2">
+                      {renderMessages()}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="evidence" className="flex-1 overflow-y-auto mt-0 px-3 py-3 space-y-4">
+                    <EvidencePanel
+                      title="Buyer Evidence"
+                      role="buyer"
+                      evidence={buyerEvidence}
+                      isOwn={isBuyer}
+                      canUpload={isBuyer}
+                      uploading={uploading}
+                      onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "buyer", desc); }}
+                      onLock={async () => { await lockEvidence("buyer"); }}
+                    />
+                    <EvidencePanel
+                      title="Seller Evidence"
+                      role="seller"
+                      evidence={sellerEvidence}
+                      isOwn={isSeller}
+                      canUpload={isSeller}
+                      uploading={uploading}
+                      onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "seller", desc); }}
+                      onLock={async () => { await lockEvidence("seller"); }}
+                    />
+                    {paymentProofs.length > 0 && (
+                      <div className="pt-2">
+                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Payment Proofs</h4>
+                        <div className="grid gap-2">
+                          {paymentProofs.map(proof => (
+                            <div key={proof.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 text-xs">
+                              <FileImage className="w-4 h-4 text-muted-foreground" />
+                              <span className="truncate flex-1">{proof.file_name}</span>
+                              <span className="text-muted-foreground">
+                                {new Date(proof.created_at).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                /* Normal Chat Layout with Evidence Section */
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  {/* Evidence Upload Section - show for confirmed/payment_sent states */}
+                  {["confirmed", "payment_sent"].includes(trade.status) && (
+                    <div className="px-3 py-2 border-b border-border bg-secondary/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <FileImage className="w-3.5 h-3.5" />
+                          <span>Evidence: {isBuyer ? "Upload payment proof" : "Review buyer proof"}</span>
+                        </div>
+                        {isBuyer && paymentProofs.length === 0 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1.5"
+                            onClick={() => setPaymentProofDialogOpen(true)}
+                          >
+                            <Image className="w-3 h-3" />
+                            Add Proof
+                          </Button>
+                        )}
+                        {paymentProofs.length > 0 && (
+                          <span className="text-xs text-green-500 flex items-center gap-1">
+                            ✓ {paymentProofs.length} uploaded
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Chat Messages - add bottom padding to prevent overlap with fixed action bar */}
                   <div className="flex-1 overflow-y-auto px-3 py-3 pb-32 space-y-2">
                     {renderMessages()}
                     <div ref={messagesEndRef} />
                   </div>
-                </TabsContent>
-                
-                <TabsContent value="evidence" className="flex-1 overflow-y-auto mt-0 px-3 py-3 space-y-4">
-                  <EvidencePanel
-                    title="Buyer Evidence"
-                    role="buyer"
-                    evidence={buyerEvidence}
-                    isOwn={isBuyer}
-                    canUpload={isBuyer}
-                    uploading={uploading}
-                    onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "buyer", desc); }}
-                    onLock={async () => { await lockEvidence("buyer"); }}
-                  />
-                  <EvidencePanel
-                    title="Seller Evidence"
-                    role="seller"
-                    evidence={sellerEvidence}
-                    isOwn={isSeller}
-                    canUpload={isSeller}
-                    uploading={uploading}
-                    onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "seller", desc); }}
-                    onLock={async () => { await lockEvidence("seller"); }}
-                  />
-                  {paymentProofs.length > 0 && (
-                    <div className="pt-2">
-                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Payment Proofs</h4>
-                      <div className="grid gap-2">
-                        {paymentProofs.map(proof => (
-                          <div key={proof.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 text-xs">
-                            <FileImage className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate flex-1">{proof.file_name}</span>
-                            <span className="text-muted-foreground">
-                              {new Date(proof.created_at).toLocaleTimeString()}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            ) : (
-              /* Normal Chat Layout with Evidence Section */
-              <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Evidence Upload Section - show for confirmed/payment_sent states */}
-                {["confirmed", "payment_sent"].includes(trade.status) && (
-                  <div className="px-3 py-2 border-b border-border bg-secondary/30">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <FileImage className="w-3.5 h-3.5" />
-                        <span>Evidence: {isBuyer ? "Upload payment proof" : "Review buyer proof"}</span>
-                      </div>
-                      {isBuyer && paymentProofs.length === 0 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs gap-1.5"
-                          onClick={() => setPaymentProofDialogOpen(true)}
-                        >
-                          <Image className="w-3 h-3" />
-                          Add Proof
-                        </Button>
-                      )}
-                      {paymentProofs.length > 0 && (
-                        <span className="text-xs text-green-500 flex items-center gap-1">
-                          ✓ {paymentProofs.length} uploaded
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Chat Messages - add bottom padding to prevent overlap with fixed action bar */}
-                <div className="flex-1 overflow-y-auto px-3 py-3 pb-32 space-y-2">
-                  {renderMessages()}
-                  <div ref={messagesEndRef} />
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Trade Status Banner (for completed/cancelled) */}
-            {["completed", "cancelled"].includes(trade.status) && (
-              <TradeStatusBanner
-                status={trade.status}
-                hasRated={hasRated}
-                onRate={() => setRatingDialogOpen(true)}
-              />
-            )}
-
-            {/* Input & Actions Area - Fixed at bottom, visible for active chat states */}
-            {isChatActive && (
-              <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-sm safe-area-bottom">
-                <div className="container mx-auto px-3 max-w-4xl">
-                  {/* Action Buttons - show above input for non-disputed trades */}
-                  {!isDisputed && (
-                    <div className="flex items-center justify-between gap-2 pt-3 pb-2">
-                      <TradeActions
-                        status={trade.status}
-                        isBuyer={isBuyer}
-                        isSeller={isSeller}
-                        actionLoading={actionLoading}
-                        onConfirmTrade={handleConfirmTrade}
-                        onPaymentSent={handlePaymentSent}
-                        onReleaseEscrow={handleReleaseEscrow}
-                        onCancelTrade={handleCancelTrade}
-                        onDispute={() => setDisputeDialogOpen(true)}
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Attachment Preview */}
-                  {attachmentFile && (
-                    <div className="flex items-center gap-2 px-1 pb-2">
-                      <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-secondary/80 text-xs max-w-[200px]">
-                        {attachmentPreview ? (
-                          <img src={attachmentPreview} alt="Preview" className="w-6 h-6 rounded object-cover" />
-                        ) : (
-                          <FileImage className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <span className="truncate flex-1">{attachmentFile.name}</span>
-                        <button 
-                          onClick={clearAttachment}
-                          className="p-0.5 hover:bg-muted rounded"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Message Input with Attachment */}
-                  <div className="flex items-center gap-2 pb-3">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*,.pdf,.doc,.docx"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 shrink-0"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={sending || uploadingAttachment}
-                    >
-                      <Paperclip className="w-4 h-4" />
-                    </Button>
-                    <Input
-                      placeholder={isDisputed ? "Message moderator..." : "Type a message..."}
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      disabled={sending || uploadingAttachment}
-                      className="flex-1 h-9 text-sm bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
-                    />
-                    <Button 
-                      onClick={handleSendMessage} 
-                      disabled={sending || uploadingAttachment || (!newMessage.trim() && !attachmentFile)}
-                      size="icon"
-                      className="h-9 w-9 rounded-lg shrink-0"
-                    >
-                      {(sending || uploadingAttachment) ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Send className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
+              {/* Trade Status Banner (for completed/cancelled) */}
+              {["completed", "cancelled"].includes(trade.status) && (
+                <TradeStatusBanner
+                  status={trade.status}
+                  hasRated={hasRated}
+                  onRate={() => setRatingDialogOpen(true)}
+                />
+              )}
+            </div>
           </div>
         </div>
+        
+        {/* Input & Actions Area - Fixed at bottom, visible for active chat states */}
+        {isChatActive && (
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-sm safe-area-bottom">
+            <div className="container mx-auto px-3 max-w-5xl">
+              {/* Mobile Action Buttons - show above input for non-disputed trades on mobile */}
+              {!isDisputed && (
+                <div className="lg:hidden">
+                  <MobileTradeActions
+                    status={trade.status}
+                    isBuyer={isBuyer}
+                    isSeller={isSeller}
+                    actionLoading={actionLoading}
+                    paymentSentAt={trade.payment_confirmed_at}
+                    onConfirmTrade={handleConfirmTrade}
+                    onPaymentSent={handlePaymentSent}
+                    onReleaseEscrow={handleReleaseEscrow}
+                    onCancelTrade={handleCancelTrade}
+                    onDispute={() => setDisputeDialogOpen(true)}
+                    onRequestModerator={handleRequestModerator}
+                  />
+                </div>
+              )}
+              
+              {/* Attachment Preview */}
+              {attachmentFile && (
+                <div className="flex items-center gap-2 px-1 pb-2">
+                  <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-secondary/80 text-xs max-w-[200px]">
+                    {attachmentPreview ? (
+                      <img src={attachmentPreview} alt="Preview" className="w-6 h-6 rounded object-cover" />
+                    ) : (
+                      <FileImage className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <span className="truncate flex-1">{attachmentFile.name}</span>
+                    <button 
+                      onClick={clearAttachment}
+                      className="p-0.5 hover:bg-muted rounded"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Message Input with Attachment */}
+              <div className="flex items-center gap-2 pb-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={sending || uploadingAttachment}
+                >
+                  <Paperclip className="w-4 h-4" />
+                </Button>
+                <Input
+                  placeholder={isDisputed ? "Message moderator..." : "Type a message..."}
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  disabled={sending || uploadingAttachment}
+                  className="flex-1 h-9 text-sm bg-secondary/50 border-0 focus-visible:ring-1 focus-visible:ring-primary/50 rounded-lg"
+                />
+                <Button 
+                  onClick={handleSendMessage} 
+                  disabled={sending || uploadingAttachment || (!newMessage.trim() && !attachmentFile)}
+                  size="icon"
+                  className="h-9 w-9 rounded-lg shrink-0"
+                >
+                  {(sending || uploadingAttachment) ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Payment Proof Dialog */}
