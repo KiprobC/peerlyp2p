@@ -99,10 +99,14 @@ export const useTradeEvidence = (tradeId: string) => {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
+      // Get signed URL for private bucket (1 year expiry)
+      const { data: urlData, error: urlError } = await supabase.storage
         .from("trade-evidence")
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365);
+
+      if (urlError || !urlData?.signedUrl) {
+        throw new Error("Failed to generate file URL");
+      }
 
       // Insert evidence record
       const { error: insertError } = await supabase
@@ -112,7 +116,7 @@ export const useTradeEvidence = (tradeId: string) => {
           uploader_id: user.id,
           uploader_role: uploaderRole,
           evidence_type: evidenceType,
-          file_url: urlData.publicUrl,
+          file_url: urlData.signedUrl,
           file_name: file.name,
           file_type: file.type,
           file_size: file.size,
@@ -124,7 +128,7 @@ export const useTradeEvidence = (tradeId: string) => {
       const successMsg = evidenceType === "chat_attachment" ? "File attached" : "Evidence uploaded successfully";
       toast.success(successMsg);
       await fetchEvidence();
-      return { success: true, fileUrl: urlData.publicUrl };
+      return { success: true, fileUrl: urlData.signedUrl };
     } catch (error: any) {
       console.error("Error uploading evidence:", error);
       toast.error("Failed to upload evidence");
