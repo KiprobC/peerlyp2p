@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute, PublicRoute } from "@/components/auth";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { useThemeInit } from "@/hooks/useThemeInit";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -51,30 +52,13 @@ import AdminSecurity from "./pages/admin/AdminSecurity";
 import AdminPaymentMethods from "./pages/admin/AdminPaymentMethods";
 import { AdminRoles } from "./pages/admin/AdminRoles";
 import AdminSupport from "./pages/admin/AdminSupport";
+import AdminPlatformControls from "./pages/admin/AdminPlatformControls";
+import AdminRiskControls from "./pages/admin/AdminRiskControls";
 import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
 
 const queryClient = new QueryClient();
-
-// Protected route wrapper
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return <>{children}</>;
-};
 
 const AppRoutes = () => {
   useThemeInit();
@@ -83,13 +67,39 @@ const AppRoutes = () => {
   
   return (
     <Routes>
-      <Route path="/" element={<Index />} />
+      {/* Public routes - redirect authenticated users to dashboard */}
+      <Route 
+        path="/" 
+        element={
+          <PublicRoute redirectAuthenticated>
+            <Index />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/login" 
+        element={
+          <PublicRoute redirectAuthenticated>
+            <Login />
+          </PublicRoute>
+        } 
+      />
+      <Route 
+        path="/signup" 
+        element={
+          <PublicRoute redirectAuthenticated>
+            <Signup />
+          </PublicRoute>
+        } 
+      />
+      
+      {/* Public pages - no redirect needed */}
       <Route path="/marketplace" element={<Marketplace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
+      
+      {/* Protected routes */}
       <Route
         path="/wallet/deposit"
         element={
@@ -202,6 +212,8 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      
+      {/* Admin routes - AdminLayout handles role check internally */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminOverview />} />
         <Route path="users" element={<AdminUsers />} />
@@ -224,11 +236,16 @@ const AppRoutes = () => {
         <Route path="payment-methods" element={<AdminPaymentMethods />} />
         <Route path="roles" element={<AdminRoles />} />
         <Route path="support" element={<AdminSupport />} />
+        <Route path="platform-controls" element={<AdminPlatformControls />} />
+        <Route path="risk-controls" element={<AdminRiskControls />} />
       </Route>
+      
+      {/* Moderator routes - ModeratorLayout handles role check internally */}
       <Route path="/moderator" element={<ModeratorLayout />}>
         <Route index element={<ModeratorDashboard />} />
         <Route path="disputes" element={<ModeratorDisputes />} />
       </Route>
+      
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

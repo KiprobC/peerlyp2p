@@ -32,6 +32,8 @@ import { useTradeRatings } from "@/hooks/useTradeRatings";
 import { useTradeEvidence } from "@/hooks/useTradeEvidence";
 import { useDisputeModerator } from "@/hooks/useDisputeModerator";
 import { useModeratorRole } from "@/hooks/useModeratorRole";
+import { useTradeAuthorization } from "@/hooks/useTradeAuthorization";
+import { TradeGuard } from "@/components/auth/TradeGuard";
 import { RatingDialog } from "@/components/trade/RatingDialog";
 import { TradeHeader } from "@/components/trade/TradeHeader";
 import { DisputeHeader } from "@/components/trade/DisputeHeader";
@@ -59,7 +61,7 @@ interface TraderProfile {
   is_verified: boolean | null;
 }
 
-const TradePage = () => {
+const TradePageContent = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -67,7 +69,7 @@ const TradePage = () => {
   const { messages, sendMessage, loading: messagesLoading } = useTradeMessages(id || "");
   const { releaseEscrow } = useEscrow();
   const { hasRated, refetch: refetchRatings } = useTradeRatings(id);
-  
+
   const [trade, setTrade] = useState<Trade | null>(null);
   const [counterparty, setCounterparty] = useState<TraderProfile | null>(null);
   const [newMessage, setNewMessage] = useState("");
@@ -807,6 +809,17 @@ const TradePage = () => {
       );
     });
   }
+};
+
+// Wrapper component with trade authorization
+const TradePage = () => {
+  const { id } = useParams<{ id: string }>();
+  
+  return (
+    <TradeGuard tradeId={id}>
+      <TradePageContent />
+    </TradeGuard>
+  );
 };
 
 export default TradePage;

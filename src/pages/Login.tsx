@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import peerlyLogo from "@/assets/peerly-logo.png";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, user } = useAuth();
+  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,12 +18,15 @@ const Login = () => {
   const [mfaError, setMfaError] = useState("");
   const [attempts, setAttempts] = useState(0);
 
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user && !mfaChallenge) {
-      navigate("/dashboard");
+  // Get redirect destination from session storage
+  const getRedirectPath = () => {
+    const redirectPath = sessionStorage.getItem("redirectAfterLogin");
+    if (redirectPath) {
+      sessionStorage.removeItem("redirectAfterLogin");
+      return redirectPath;
     }
-  }, [user, mfaChallenge, navigate]);
+    return "/dashboard";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +47,7 @@ const Login = () => {
     }
 
     toast.success("Welcome back!");
-    navigate("/dashboard");
+    navigate(getRedirectPath());
     setIsLoading(false);
   };
 
@@ -72,7 +75,7 @@ const Login = () => {
     }
 
     toast.success("Welcome back!");
-    navigate("/dashboard");
+    navigate(getRedirectPath());
     setIsLoading(false);
   };
 
