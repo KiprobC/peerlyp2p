@@ -1,11 +1,8 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Zap, Users } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
 const HeroSection = () => {
-  const { user } = useAuth();
-  
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Background Effects */}
@@ -46,21 +43,12 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-            {user ? (
-              <Link to="/dashboard">
-                <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                  Go to Dashboard
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-            ) : (
-              <Link to="/signup">
-                <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                  Start Trading
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
-            )}
+            <Link to="/signup">
+              <Button variant="hero" size="xl" className="w-full sm:w-auto">
+                Start Trading
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
             <Link to="/marketplace">
               <Button variant="glass" size="xl" className="w-full sm:w-auto">
                 Browse Offers
