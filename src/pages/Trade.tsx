@@ -477,7 +477,7 @@ const TradePageContent = () => {
                     />
                   )}
                   
-                  <TabsList className="mx-3 mt-3 grid grid-cols-2 h-9">
+                  <TabsList className="mx-3 mt-0 grid grid-cols-2 h-9">
                     <TabsTrigger value="chat" className="text-xs gap-1.5">
                       <MessageCircle className="w-3.5 h-3.5" />
                       Chat
