@@ -38,15 +38,8 @@ export interface Trade {
   seller_profile?: TradeProfile;
 }
 
-export interface TradeMessage {
-  id: string;
-  trade_id: string;
-  sender_id: string;
-  message: string;
-  is_system: boolean;
-  read_at: string | null;
-  created_at: string;
-}
+// TradeMessage type moved to useTradeMessages.ts hook
+export type { TradeMessage } from "./useTradeMessages";
 
 // Simple notification sound using Web Audio API
 const playNotificationSound = () => {
@@ -255,72 +248,6 @@ export const useTrades = () => {
   };
 };
 
-export const useTradeMessages = (tradeId: string) => {
-  const { user } = useAuth();
-  const [messages, setMessages] = useState<TradeMessage[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchMessages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("trade_messages")
-        .select("*")
-        .eq("trade_id", tradeId)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      setMessages((data as TradeMessage[]) || []);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sendMessage = async (message: string) => {
-    if (!user) return { error: new Error("Not authenticated") };
-
-    try {
-      const { error } = await supabase.from("trade_messages").insert({
-        trade_id: tradeId,
-        sender_id: user.id,
-        message,
-      });
-
-      if (error) throw error;
-      await fetchMessages();
-      return { error: null };
-    } catch (error: any) {
-      return { error };
-    }
-  };
-
-  useEffect(() => {
-    fetchMessages();
-  }, [tradeId]);
-
-  // Real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel(`trade-messages-${tradeId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "trade_messages",
-          filter: `trade_id=eq.${tradeId}`,
-        },
-        (payload) => {
-          setMessages(prev => [...prev, payload.new as TradeMessage]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [tradeId]);
-
-  return { messages, loading, sendMessage, refetch: fetchMessages };
-};
+// useTradeMessages hook has been extracted to a separate file for better maintainability
+// and to fix message deduplication issues
+export { useTradeMessages } from "./useTradeMessages";
