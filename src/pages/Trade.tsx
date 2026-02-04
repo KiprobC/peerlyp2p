@@ -26,7 +26,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTrades, useTradeMessages, Trade } from "@/hooks/useTrades";
+import { useTrades, Trade } from "@/hooks/useTrades";
+import { useTradeMessages } from "@/hooks/useTradeMessages";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useTradeRatings } from "@/hooks/useTradeRatings";
 import { useTradeEvidence } from "@/hooks/useTradeEvidence";
@@ -488,7 +489,8 @@ const TradePageContent = () => {
                   </TabsList>
                   
                   <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
-                    <div className="flex-1 overflow-y-auto px-3 py-3 pb-32 space-y-2">
+                    {/* Chat scroll area with bottom padding for fixed input */}
+                    <div className="flex-1 overflow-y-auto px-3 py-3 pb-40 lg:pb-32 space-y-2">
                       {renderMessages()}
                       <div ref={messagesEndRef} />
                     </div>
@@ -564,8 +566,8 @@ const TradePageContent = () => {
                     </div>
                   )}
                   
-                  {/* Chat Messages - add bottom padding to prevent overlap with fixed action bar */}
-                  <div className="flex-1 overflow-y-auto px-3 py-3 pb-32 space-y-2">
+                  {/* Chat Messages - increased bottom padding on mobile to prevent overlap with fixed action bar */}
+                  <div className="flex-1 overflow-y-auto px-3 py-3 pb-44 lg:pb-32 space-y-2">
                     {renderMessages()}
                     <div ref={messagesEndRef} />
                   </div>
@@ -584,13 +586,13 @@ const TradePageContent = () => {
           </div>
         </div>
         
-        {/* Input & Actions Area - Fixed at bottom, visible for active chat states */}
+        {/* Input & Actions Area - Fixed at bottom with proper mobile safe area */}
         {isChatActive && (
-          <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-sm safe-area-bottom">
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md">
             <div className="container mx-auto px-3 max-w-5xl">
-              {/* Mobile Action Buttons - show above input for non-disputed trades on mobile */}
+              {/* Mobile Action Buttons - sticky action bar with gradient separator */}
               {!isDisputed && (
-                <div className="lg:hidden">
+                <div className="lg:hidden border-b border-border/50 bg-gradient-to-t from-card/50 to-transparent">
                   <MobileTradeActions
                     status={trade.status}
                     isBuyer={isBuyer}
@@ -609,7 +611,7 @@ const TradePageContent = () => {
               
               {/* Attachment Preview */}
               {attachmentFile && (
-                <div className="flex items-center gap-2 px-1 pb-2">
+                <div className="flex items-center gap-2 px-1 pt-2">
                   <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-secondary/80 text-xs max-w-[200px]">
                     {attachmentPreview ? (
                       <img src={attachmentPreview} alt="Preview" className="w-6 h-6 rounded object-cover" />
@@ -627,8 +629,8 @@ const TradePageContent = () => {
                 </div>
               )}
               
-              {/* Message Input with Attachment */}
-              <div className="flex items-center gap-2 pb-3">
+              {/* Message Input with Attachment - proper bottom padding for iOS */}
+              <div className="flex items-center gap-2 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <input
                   ref={fileInputRef}
                   type="file"
