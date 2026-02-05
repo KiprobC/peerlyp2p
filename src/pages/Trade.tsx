@@ -51,6 +51,9 @@ import { ModeratorMessage } from "@/components/trade/ModeratorMessage";
 import { ModeratorActionsPanel } from "@/components/trade/ModeratorActionsPanel";
 import { ResolutionCard } from "@/components/trade/ResolutionCard";
 import { PaymentSentMessage } from "@/components/trade/PaymentSentMessage";
+ import { CancelTradeDialog } from "@/components/trade/CancelTradeDialog";
+ import { ReleaseCryptoDialog } from "@/components/trade/ReleaseCryptoDialog";
+ import { DisputeConfirmDialog } from "@/components/trade/DisputeConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -85,6 +88,8 @@ const TradePageContent = () => {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+   const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -261,40 +266,11 @@ const TradePageContent = () => {
     return true;
   };
 
-  const handleReleaseEscrow = async () => {
-    if (!trade) return;
-    setActionLoading(true);
-
-    const escrowResult = await releaseEscrow(
-      trade.seller_id,
-      trade.buyer_id,
-      trade.crypto_type,
-      trade.crypto_amount,
-      trade.id
-    );
-
-    if (!escrowResult.success) {
-      toast.error(escrowResult.error || "Failed to release escrow");
-      setActionLoading(false);
-      return;
-    }
-
-    const { error } = await updateTrade(trade.id, {
-      status: "completed",
-      escrow_released: true,
-      completed_at: new Date().toISOString(),
-    });
-
-    if (error) {
-      toast.error("Failed to update trade status");
-    } else {
-      toast.success("Crypto released successfully!");
-      refetchTrades();
-    }
-    setActionLoading(false);
-  };
-
-  const handleCancelTrade = async () => {
+   const handleOpenCancelDialog = () => {
+     setCancelDialogOpen(true);
+   };
+ 
+   const handleConfirmCancelTrade = async () => {
     if (!trade) return;
     setActionLoading(true);
 
@@ -313,13 +289,54 @@ const TradePageContent = () => {
     setActionLoading(false);
   };
 
-  const handleDispute = async () => {
-    if (!trade || !disputeReason.trim()) return;
+   const handleOpenReleaseDialog = () => {
+     setReleaseDialogOpen(true);
+   };
+ 
+   const handleConfirmReleaseCrypto = async () => {
+     if (!trade) return;
+     setActionLoading(true);
+ 
+     const escrowResult = await releaseEscrow(
+       trade.seller_id,
+       trade.buyer_id,
+       trade.crypto_type,
+       trade.crypto_amount,
+       trade.id
+     );
+ 
+     if (!escrowResult.success) {
+       toast.error(escrowResult.error || "Failed to release escrow");
+       setActionLoading(false);
+       return;
+     }
+ 
+     const { error } = await updateTrade(trade.id, {
+       status: "completed",
+       escrow_released: true,
+       completed_at: new Date().toISOString(),
+     });
+ 
+     if (error) {
+       toast.error("Failed to update trade status");
+     } else {
+       toast.success("Crypto released successfully!");
+       refetchTrades();
+     }
+     setActionLoading(false);
+   };
+ 
+   const handleOpenDisputeDialog = () => {
+     setDisputeDialogOpen(true);
+   };
+ 
+   const handleConfirmDispute = async (reason: string) => {
+     if (!trade) return;
     setActionLoading(true);
 
     const { error } = await updateTrade(trade.id, {
       status: "disputed",
-      dispute_reason: disputeReason.trim(),
+       dispute_reason: reason,
       disputed_at: new Date().toISOString(),
       disputed_by: user?.id,
     });
@@ -421,9 +438,9 @@ const TradePageContent = () => {
                 paymentSentAt={trade.payment_confirmed_at}
                 onConfirmTrade={handleConfirmTrade}
                 onPaymentSent={handlePaymentSent}
-                onReleaseEscrow={handleReleaseEscrow}
-                onCancelTrade={handleCancelTrade}
-                onDispute={() => setDisputeDialogOpen(true)}
+               onReleaseEscrow={handleOpenReleaseDialog}
+               onCancelTrade={handleOpenCancelDialog}
+               onDispute={handleOpenDisputeDialog}
                 onRequestModerator={handleRequestModerator}
               />
             )}
@@ -602,9 +619,9 @@ const TradePageContent = () => {
                     paymentSentAt={trade.payment_confirmed_at}
                     onConfirmTrade={handleConfirmTrade}
                     onPaymentSent={handlePaymentSent}
-                    onReleaseEscrow={handleReleaseEscrow}
-                    onCancelTrade={handleCancelTrade}
-                    onDispute={() => setDisputeDialogOpen(true)}
+                   onReleaseEscrow={handleOpenReleaseDialog}
+                   onCancelTrade={handleOpenCancelDialog}
+                   onDispute={handleOpenDisputeDialog}
                     onRequestModerator={handleRequestModerator}
                   />
                 </div>
@@ -689,43 +706,38 @@ const TradePageContent = () => {
         fiatCurrency={trade.fiat_currency || "USD"}
       />
 
-      {/* Dispute Dialog */}
-      <Dialog open={disputeDialogOpen} onOpenChange={setDisputeDialogOpen}>
-        <DialogContent className="mx-4 sm:mx-auto max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              Report Issue
-            </DialogTitle>
-            <DialogDescription>
-              Describe the problem. A moderator will be assigned to review your case.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            placeholder="What went wrong?"
-            value={disputeReason}
-            onChange={(e) => setDisputeReason(e.target.value)}
-            className="min-h-[100px] text-sm"
-          />
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setDisputeDialogOpen(false)} 
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDispute}
-              disabled={!disputeReason.trim() || actionLoading}
-              className="w-full sm:w-auto"
-            >
-              Submit Report
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+       {/* Cancel Trade Dialog */}
+       <CancelTradeDialog
+         open={cancelDialogOpen}
+         onClose={() => setCancelDialogOpen(false)}
+         onConfirm={handleConfirmCancelTrade}
+         isBuyer={isBuyer}
+         paymentSent={trade.status === "payment_sent"}
+         tradeType={isBuyer ? "buy" : "sell"}
+         cryptoAmount={trade.crypto_amount}
+         cryptoType={trade.crypto_type}
+       />
+ 
+       {/* Release Crypto Dialog */}
+       <ReleaseCryptoDialog
+         open={releaseDialogOpen}
+         onClose={() => setReleaseDialogOpen(false)}
+         onConfirm={handleConfirmReleaseCrypto}
+         buyerUsername={counterparty?.username || null}
+         cryptoAmount={trade.crypto_amount}
+         cryptoType={trade.crypto_type}
+       />
+ 
+       {/* Dispute Dialog */}
+       <DisputeConfirmDialog
+         open={disputeDialogOpen}
+         onClose={() => {
+           setDisputeDialogOpen(false);
+           setDisputeReason("");
+         }}
+         onConfirm={handleConfirmDispute}
+         initialReason={disputeReason}
+       />
 
       {/* Rating Dialog */}
       <RatingDialog
