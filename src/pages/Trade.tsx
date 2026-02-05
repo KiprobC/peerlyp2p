@@ -50,6 +50,7 @@ import { PaymentProofDialog } from "@/components/trade/PaymentProofDialog";
 import { ModeratorMessage } from "@/components/trade/ModeratorMessage";
 import { ModeratorActionsPanel } from "@/components/trade/ModeratorActionsPanel";
 import { ResolutionCard } from "@/components/trade/ResolutionCard";
+import { PaymentSentMessage } from "@/components/trade/PaymentSentMessage";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -777,6 +778,18 @@ const TradePageContent = () => {
         const lowerMsg = message.message.toLowerCase();
         if (isSeller && lowerMsg.includes('buying')) return null;
         if (isBuyer && lowerMsg.includes('selling')) return null;
+        
+        // Payment sent message - show with proof viewer for seller
+        if (lowerMsg.includes('payment') && (lowerMsg.includes('sent') || lowerMsg.includes('💸'))) {
+          return (
+            <PaymentSentMessage
+              key={message.id}
+              message={message.message}
+              isSeller={isSeller}
+              paymentProofs={paymentProofs}
+            />
+          );
+        }
         
         // Check if it's a moderator message
         if (lowerMsg.includes('moderator') || lowerMsg.includes('dispute')) {
