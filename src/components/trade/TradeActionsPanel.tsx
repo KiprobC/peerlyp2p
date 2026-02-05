@@ -21,9 +21,9 @@ interface TradeActionsPanelProps {
   paymentSentAt: string | null;
   onConfirmTrade: () => Promise<void>;
   onPaymentSent: () => Promise<void>;
-  onReleaseEscrow: () => Promise<void>;
-  onCancelTrade: () => Promise<void>;
-  onDispute: () => void;
+   onReleaseEscrow: () => void | Promise<void>;
+   onCancelTrade: () => void | Promise<void>;
+   onDispute: () => void | Promise<void>;
   onRequestModerator: () => void;
 }
 
@@ -74,7 +74,7 @@ export const TradeActionsPanel = ({
     return () => clearInterval(interval);
   }, [status, paymentSentAt]);
 
-  const handleAction = async (action: string, callback: () => Promise<void>) => {
+   const handleAction = async (action: string, callback: () => void | Promise<void>) => {
     setLoadingAction(action);
     try {
       await callback();
