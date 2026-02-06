@@ -21,25 +21,27 @@
  import { AlertTriangle, Unlock, Loader2, ShieldAlert } from "lucide-react";
  import { cn } from "@/lib/utils";
  
- interface ReleaseCryptoDialogProps {
-   open: boolean;
-   onClose: () => void;
-   onConfirm: () => Promise<void>;
-   buyerUsername: string | null;
-   cryptoAmount: number;
-   cryptoType: string;
- }
+interface ReleaseCryptoDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  buyerUsername: string | null;
+  cryptoAmount: number;
+  cryptoType: string;
+  isSeller?: boolean;
+}
  
  const DELAY_SECONDS = 3;
  
- export const ReleaseCryptoDialog = ({
-   open,
-   onClose,
-   onConfirm,
-   buyerUsername,
-   cryptoAmount,
-   cryptoType,
- }: ReleaseCryptoDialogProps) => {
+export const ReleaseCryptoDialog = ({
+  open,
+  onClose,
+  onConfirm,
+  buyerUsername,
+  cryptoAmount,
+  cryptoType,
+  isSeller = true,
+}: ReleaseCryptoDialogProps) => {
    const isMobile = useIsMobile();
    const [confirmText, setConfirmText] = useState("");
    const [processing, setProcessing] = useState(false);
@@ -107,19 +109,39 @@
            </div>
          </div>
  
-         {/* Trade Details */}
-         <div className="p-4 bg-secondary/50 rounded-lg space-y-2">
-           <div className="flex justify-between text-sm">
-             <span className="text-muted-foreground">Buyer</span>
-             <span className="font-medium">@{buyerUsername || "Unknown"}</span>
-           </div>
-           <div className="flex justify-between text-sm">
-             <span className="text-muted-foreground">Amount to Release</span>
-             <span className="font-bold text-primary">
-               {cryptoAmount} {cryptoType}
-             </span>
-           </div>
-         </div>
+          {/* Trade Details */}
+          <div className="p-4 bg-secondary/50 rounded-lg space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Buyer</span>
+              <span className="font-medium">@{buyerUsername || "Unknown"}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Escrowed Amount</span>
+              <span className="font-bold text-primary">
+                {cryptoAmount} {cryptoType}
+              </span>
+            </div>
+            {isSeller && (
+              <>
+                <div className="border-t border-border my-1" />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Platform Fee (0.99%)</span>
+                  <span className="font-medium text-amber-500">
+                    -{(cryptoAmount * 0.0099).toFixed(8)} {cryptoType}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Buyer Receives</span>
+                  <span className="font-bold text-green-600">
+                    {(cryptoAmount - cryptoAmount * 0.0099).toFixed(8)} {cryptoType}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Platform escrow fee: 0.99% (deducted on release)
+                </p>
+              </>
+            )}
+          </div>
  
          {/* Confirmation Input */}
          <div className="space-y-2">
