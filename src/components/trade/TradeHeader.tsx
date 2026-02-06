@@ -47,7 +47,7 @@ export const TradeHeader = ({
   const StatusIcon = statusInfo.icon;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-3 max-w-5xl">
         {/* Main header row */}
         <div className="flex items-center justify-between h-12 gap-2">
