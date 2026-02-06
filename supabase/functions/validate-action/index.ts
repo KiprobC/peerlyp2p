@@ -84,11 +84,11 @@ Deno.serve(async (req) => {
 
     console.log(`[validate-action] Result:`, data);
 
-    // Return the validation result
-    const statusCode = data.allowed ? 200 : 403;
+    // Always return 200 for valid validation responses (allowed or denied)
+    // 403 was causing supabase.functions.invoke to treat business logic denials as errors
     return new Response(
       JSON.stringify(data),
-      { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
