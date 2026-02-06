@@ -80,84 +80,46 @@ export const useEscrow = () => {
     }
   };
 
-  // Release escrow to buyer when trade completes
+  // Release escrow to buyer with 0.99% seller fee (atomic server-side)
   const releaseEscrow = async (
     sellerId: string,
     buyerId: string,
     cryptoType: string,
     amount: number,
     tradeId: string
-  ): Promise<EscrowResult> => {
+  ): Promise<EscrowResult & { fee_amount?: number; buyer_amount?: number }> => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-      // Get seller's wallet
-      const { data: sellerWallet, error: sellerError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", sellerId)
-        .eq("crypto_type", normalizedCrypto)
-        .maybeSingle();
-
-      if (sellerError) throw sellerError;
-      if (!sellerWallet) {
-        return { success: false, error: "Seller wallet not found" };
-      }
-
-      // Get or create buyer's wallet (auto-create if doesn't exist)
-      const { walletId: buyerWalletId, error: buyerError } = await getOrCreateWallet(buyerId, normalizedCrypto);
-
-      if (buyerError || !buyerWalletId) {
-        return { success: false, error: buyerError || "Failed to get buyer wallet" };
-      }
-
-      // Verify locked balance
-      if (Number(sellerWallet.locked_balance) < amount) {
-        return { success: false, error: "Insufficient locked balance" };
-      }
-
-      // Deduct from seller (both balance and locked_balance)
-      const { error: sellerUpdateError } = await supabase
-        .from("wallets")
-        .update({
-          balance: Number(sellerWallet.balance) - amount,
-          locked_balance: Number(sellerWallet.locked_balance) - amount,
-        })
-        .eq("id", sellerWallet.id);
-
-      if (sellerUpdateError) throw sellerUpdateError;
-
-      // Credit to buyer using RPC to bypass RLS
-      const { error: buyerUpdateError } = await supabase
-        .rpc("credit_buyer_wallet", {
-          p_wallet_id: buyerWalletId,
-          p_amount: amount,
-        });
-
-      if (buyerUpdateError) throw buyerUpdateError;
-
-      // Log seller transaction
-      await supabase.from("wallet_transactions").insert({
-        wallet_id: sellerWallet.id,
-        user_id: sellerId,
-        type: "escrow_release",
-        amount: -amount,
-        crypto_type: normalizedCrypto,
-        status: "completed",
-        trade_id: tradeId,
-        description: `Escrow released for trade ${tradeId.slice(0, 8)}`,
-      });
-
-      // Log buyer transaction using RPC to bypass RLS
-      await supabase.rpc("log_buyer_transaction", {
-        p_wallet_id: buyerWalletId,
-        p_user_id: buyerId,
-        p_amount: amount,
-        p_crypto_type: normalizedCrypto,
+      const { data, error } = await (supabase.rpc as any)("release_escrow_with_fee", {
         p_trade_id: tradeId,
+        p_seller_id: sellerId,
+        p_buyer_id: buyerId,
+        p_crypto_type: normalizedCrypto,
+        p_escrow_amount: amount,
       });
 
-      return { success: true };
+      if (error) {
+        console.error("Error calling release_escrow_with_fee:", error);
+        return { success: false, error: error.message };
+      }
+
+      const result = data as {
+        success: boolean;
+        error?: string;
+        fee_amount?: number;
+        buyer_amount?: number;
+      };
+
+      if (!result.success) {
+        return { success: false, error: result.error || "Failed to release escrow" };
+      }
+
+      return {
+        success: true,
+        fee_amount: result.fee_amount,
+        buyer_amount: result.buyer_amount,
+      };
     } catch (error: any) {
       console.error("Error releasing escrow:", error);
       return { success: false, error: error.message };

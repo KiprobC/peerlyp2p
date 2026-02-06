@@ -311,18 +311,11 @@ const TradePageContent = () => {
        return;
      }
  
-     const { error } = await updateTrade(trade.id, {
-       status: "completed",
-       escrow_released: true,
-       completed_at: new Date().toISOString(),
-     });
- 
-     if (error) {
-       toast.error("Failed to update trade status");
-     } else {
-       toast.success("Crypto released successfully!");
-       refetchTrades();
-     }
+     // Trade is already marked completed by the RPC function
+     toast.success(
+       `Crypto released! Fee: ${escrowResult.fee_amount?.toFixed(8) || '0'} ${trade.crypto_type}`
+     );
+     refetchTrades();
      setActionLoading(false);
    };
  
@@ -726,6 +719,7 @@ const TradePageContent = () => {
          buyerUsername={counterparty?.username || null}
          cryptoAmount={trade.crypto_amount}
          cryptoType={trade.crypto_type}
+         isSeller={isSeller}
        />
  
        {/* Dispute Dialog */}

@@ -1850,6 +1850,16 @@ export type Database = {
         Args: { p_is_system?: boolean; p_message: string; p_trade_id: string }
         Returns: string
       }
+      release_escrow_with_fee: {
+        Args: {
+          p_buyer_id: string
+          p_crypto_type: string
+          p_escrow_amount: number
+          p_seller_id: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
       reset_trading_stats_if_needed: {
         Args: { p_user_id: string }
         Returns: undefined
