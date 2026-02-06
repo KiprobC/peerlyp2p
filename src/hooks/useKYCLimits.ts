@@ -134,6 +134,11 @@ export async function validateAction(
       body: { action, amount, payment_method: paymentMethod },
     });
 
+    // If we got data back, use it even if there's an "error" (non-2xx status)
+    if (response.data && typeof response.data === "object" && "allowed" in response.data) {
+      return response.data as ValidationResult;
+    }
+
     if (response.error) {
       console.error("Validation error:", response.error);
       return {
