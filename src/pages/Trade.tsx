@@ -361,8 +361,8 @@ const TradePageContent = () => {
   // Loading state
   if (!trade) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
           <div className="container mx-auto px-3 max-w-4xl">
             <div className="flex items-center h-12 gap-2">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
@@ -372,8 +372,8 @@ const TradePageContent = () => {
             </div>
           </div>
         </header>
-        <main className="pt-16 pb-20">
-          <div className="container mx-auto px-3 max-w-4xl space-y-3">
+        <main className="flex-1 pb-20">
+          <div className="container mx-auto px-3 max-w-4xl space-y-3 py-4">
             <Skeleton className="h-20" />
             <Skeleton className="h-64" />
           </div>
@@ -424,7 +424,7 @@ const TradePageContent = () => {
       )}
 
       {/* Main Content */}
-      <main className={`flex-1 flex flex-col ${isDisputed ? 'pt-[120px]' : 'pt-12'}`}>
+      <main className="flex-1 flex flex-col">
         <div className="container mx-auto px-0 sm:px-4 max-w-5xl flex-1 flex flex-col">
           <div className="flex-1 flex bg-card sm:border-x sm:border-t border-border sm:rounded-t-xl overflow-hidden">
             
