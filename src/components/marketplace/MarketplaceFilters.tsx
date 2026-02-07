@@ -132,17 +132,17 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters }: MarketplaceFilte
   ].filter(Boolean).length;
 
   return (
-    <div className="bg-card/50 border border-border/50 rounded-lg mb-3 overflow-hidden">
+    <div className="bg-card border border-border rounded-lg mb-3 overflow-hidden shadow-[var(--shadow-card)]">
       {/* Compact Control Bar */}
       <div className="px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Buy/Sell Pill Toggle - Compact */}
-          <div className="flex gap-0.5 p-0.5 bg-secondary/60 rounded-md">
+          {/* Buy/Sell Segmented Control */}
+          <div className="flex p-0.5 bg-secondary rounded-lg border border-border/50">
             <button
               className={cn(
-                "px-3 py-1 text-xs font-semibold rounded transition-all",
+                "px-4 py-1.5 text-xs font-bold rounded-md transition-all",
                 type === "sell" 
-                  ? "bg-green-500 text-white" 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
                   : "text-muted-foreground hover:text-foreground"
               )}
               onClick={() => setType(type === "sell" ? null : "sell")}
@@ -151,9 +151,9 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters }: MarketplaceFilte
             </button>
             <button
               className={cn(
-                "px-3 py-1 text-xs font-semibold rounded transition-all",
+                "px-4 py-1.5 text-xs font-bold rounded-md transition-all",
                 type === "buy" 
-                  ? "bg-destructive text-destructive-foreground" 
+                  ? "bg-destructive text-destructive-foreground shadow-sm" 
                   : "text-muted-foreground hover:text-foreground"
               )}
               onClick={() => setType(type === "buy" ? null : "buy")}

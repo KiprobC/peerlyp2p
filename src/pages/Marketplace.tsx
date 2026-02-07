@@ -253,13 +253,13 @@ const Marketplace = () => {
           {/* Offers Grid */}
           <ErrorBoundary>
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-72 rounded-xl" />
+                  <Skeleton key={i} className="h-44 rounded-lg" />
                 ))}
               </div>
             ) : filteredOffers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
                 {filteredOffers.map((offer) => {
                   const offerCurrency = offer?.fiat_currency || "KES";
                   const isOutsideRegion = showGlobalOffers && countryCurrency && offerCurrency !== countryCurrency;
