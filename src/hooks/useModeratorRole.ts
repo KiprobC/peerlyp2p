@@ -206,12 +206,19 @@ export const useModeratorDisputes = () => {
     if (!user) return { error: new Error("Not authenticated") };
 
     try {
+      const updateData: Record<string, any> = {
+        status,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Record first response when moderator takes action
+      if (status === "in_review") {
+        updateData.first_response_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from("dispute_assignments")
-        .update({
-          status,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("trade_id", tradeId)
         .eq("assigned_to", user.id);
 
@@ -246,7 +253,7 @@ export const useModeratorDisputes = () => {
   }, [fetchDisputes]);
 
   const pendingDisputes = disputes.filter(
-    (d) => d.status === "assigned" || d.status === "in_review"
+    (d) => d.status === "assigned" || d.status === "in_review" || d.status === "pending"
   );
   const resolvedDisputes = disputes.filter((d) => d.status === "resolved");
 

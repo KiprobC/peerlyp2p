@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SLATimer } from "@/components/moderator/SLATimer";
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -16,7 +17,8 @@ import {
   MessageSquare, 
   User, 
   Star,
-  TrendingUp
+  TrendingUp,
+  Timer
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -205,15 +207,25 @@ export const ModeratorDisputes = () => {
             pendingDisputes.map((dispute) => (
               <Card key={dispute.id}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-lg">
-                      <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
                       Trade #{dispute.trade_id.slice(0, 8)}
                     </CardTitle>
                     <div className="flex items-center gap-2">
+                      <SLATimer
+                        slaDeadline={(dispute as any).sla_deadline}
+                        firstResponseAt={(dispute as any).first_response_at}
+                        slaBreached={(dispute as any).sla_breached || false}
+                        escalated={(dispute as any).escalated || false}
+                        compact
+                      />
                       <Badge variant={getPriorityColor(dispute.priority) as any}>
                         {dispute.priority}
                       </Badge>
+                      {(dispute as any).escalated && (
+                        <Badge variant="destructive">Escalated</Badge>
+                      )}
                       <Badge variant={dispute.status === "in_review" ? "default" : "secondary"}>
                         {dispute.status}
                       </Badge>

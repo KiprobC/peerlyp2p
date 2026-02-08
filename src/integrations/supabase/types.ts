@@ -307,12 +307,19 @@ export type Database = {
           assigned_by: string
           assigned_to: string
           created_at: string
+          escalated: boolean
+          escalated_at: string | null
+          escalated_to: string | null
+          escalation_reason: string | null
+          first_response_at: string | null
           id: string
           notes: string | null
           priority: string
           resolution_notes: string | null
           resolution_type: string | null
           resolved_at: string | null
+          sla_breached: boolean
+          sla_deadline: string | null
           status: string
           trade_id: string
           updated_at: string
@@ -321,12 +328,19 @@ export type Database = {
           assigned_by: string
           assigned_to: string
           created_at?: string
+          escalated?: boolean
+          escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          first_response_at?: string | null
           id?: string
           notes?: string | null
           priority?: string
           resolution_notes?: string | null
           resolution_type?: string | null
           resolved_at?: string | null
+          sla_breached?: boolean
+          sla_deadline?: string | null
           status?: string
           trade_id: string
           updated_at?: string
@@ -335,12 +349,19 @@ export type Database = {
           assigned_by?: string
           assigned_to?: string
           created_at?: string
+          escalated?: boolean
+          escalated_at?: string | null
+          escalated_to?: string | null
+          escalation_reason?: string | null
+          first_response_at?: string | null
           id?: string
           notes?: string | null
           priority?: string
           resolution_notes?: string | null
           resolution_type?: string | null
           resolved_at?: string | null
+          sla_breached?: boolean
+          sla_deadline?: string | null
           status?: string
           trade_id?: string
           updated_at?: string
@@ -445,6 +466,39 @@ export type Database = {
           monthly_trade_limit?: number
           tier?: Database["public"]["Enums"]["kyc_tier"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      moderator_availability: {
+        Row: {
+          active_cases_count: number
+          created_at: string
+          id: string
+          last_assigned_at: string | null
+          max_cases: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_cases_count?: number
+          created_at?: string
+          id?: string
+          last_assigned_at?: string | null
+          max_cases?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_cases_count?: number
+          created_at?: string
+          id?: string
+          last_assigned_at?: string | null
+          max_cases?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1674,6 +1728,10 @@ export type Database = {
         }
         Returns: string
       }
+      auto_assign_dispute_moderator: {
+        Args: { p_trade_id: string }
+        Returns: Json
+      }
       cancel_expired_trades: { Args: never; Returns: Json }
       check_country_trading: {
         Args: {
@@ -1735,6 +1793,7 @@ export type Database = {
         Args: { p_amount: number; p_wallet_id: string }
         Returns: undefined
       }
+      escalate_breached_disputes: { Args: never; Returns: Json }
       execute_internal_transfer: {
         Args: {
           p_amount: number
