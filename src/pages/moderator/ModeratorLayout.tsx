@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { ModeratorSidebar, MobileModeratorSidebar } from "@/components/moderator/ModeratorSidebar";
 import { ModeratorNotificationBell } from "@/components/moderator/ModeratorNotificationBell";
+import { ModeratorStatusToggle } from "@/components/moderator/ModeratorStatusToggle";
 import { useModeratorRole } from "@/hooks/useModeratorRole";
+import { useModeratorAvailability } from "@/hooks/useModeratorAvailability";
 import { useAuth } from "@/contexts/AuthContext";
 import { Shield, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,7 @@ const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 export const ModeratorLayout = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { isModerator, isAdmin, loading: roleLoading } = useModeratorRole();
+  const { availability, setStatus } = useModeratorAvailability();
   const navigate = useNavigate();
   const [lastActivity, setLastActivity] = useState(Date.now());
 
@@ -96,7 +99,12 @@ export const ModeratorLayout = () => {
         </header>
         
         {/* Desktop Header with Notification Bell */}
-        <header className="hidden lg:flex sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 justify-end">
+        <header className="hidden lg:flex sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 justify-between items-center">
+          <div className="flex items-center gap-2">
+            {availability && (
+              <ModeratorStatusToggle status={availability.status as any} onStatusChange={setStatus} />
+            )}
+          </div>
           <ModeratorNotificationBell />
         </header>
         <div className="p-4 sm:p-6 lg:p-8">

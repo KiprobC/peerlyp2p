@@ -337,7 +337,7 @@ const TradePageContent = () => {
     if (error) {
       toast.error("Failed to raise dispute");
     } else {
-      toast.success("Dispute raised. An admin will review this trade.");
+      toast.success("Dispute raised. A moderator will be assigned automatically.");
       setDisputeDialogOpen(false);
       setDisputeReason("");
       refetchTrades();

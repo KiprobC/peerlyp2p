@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { DisputeModerator, DisputeAssignment } from "@/hooks/useDisputeModerator";
+import { SLATimer } from "@/components/moderator/SLATimer";
 
 interface DisputeHeaderProps {
   tradeId: string;
@@ -140,17 +141,29 @@ export const DisputeHeader = ({
             </div>
             </div>
             
-            {/* Online indicator */}
-            <div className="flex items-center gap-1.5">
-              <Circle 
-                className={cn(
-                  "w-2 h-2 fill-current",
-                  moderator.is_online ? "text-green-500" : "text-muted-foreground"
-                )} 
-              />
-              <span className="text-[10px] text-muted-foreground">
-                {moderator.is_online ? "Online" : "Offline"}
-              </span>
+            <div className="flex items-center gap-2">
+              {/* SLA Timer */}
+              {assignment && (
+                <SLATimer
+                  slaDeadline={(assignment as any).sla_deadline}
+                  firstResponseAt={(assignment as any).first_response_at}
+                  slaBreached={(assignment as any).sla_breached || false}
+                  escalated={(assignment as any).escalated || false}
+                  compact
+                />
+              )}
+              {/* Online indicator */}
+              <div className="flex items-center gap-1.5">
+                <Circle 
+                  className={cn(
+                    "w-2 h-2 fill-current",
+                    moderator.is_online ? "text-green-500" : "text-muted-foreground"
+                  )} 
+                />
+                <span className="text-[10px] text-muted-foreground">
+                  {moderator.is_online ? "Online" : "Offline"}
+                </span>
+              </div>
             </div>
           </div>
         )}
