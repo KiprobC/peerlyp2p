@@ -1,14 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
-  Clock, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  CheckCircle2,
-  Banknote,
-  Smartphone,
-  Building2,
-  Wallet
+  Clock, ArrowUpRight, ArrowDownLeft, CheckCircle2,
+  Banknote, Smartphone, Building2, Wallet
 } from "lucide-react";
 import { isUserOnline } from "@/hooks/useOnlineStatus";
 import TraderBadge from "./TraderBadge";
@@ -44,15 +38,9 @@ interface OfferCardProps {
 
 const getPaymentIcon = (method: string) => {
   const lowerMethod = method.toLowerCase();
-  if (lowerMethod.includes("mpesa") || lowerMethod.includes("airtel") || lowerMethod.includes("mobile")) {
-    return Smartphone;
-  }
-  if (lowerMethod.includes("bank")) {
-    return Building2;
-  }
-  if (lowerMethod.includes("cash")) {
-    return Banknote;
-  }
+  if (lowerMethod.includes("mpesa") || lowerMethod.includes("airtel") || lowerMethod.includes("mobile")) return Smartphone;
+  if (lowerMethod.includes("bank")) return Building2;
+  if (lowerMethod.includes("cash")) return Banknote;
   return Wallet;
 };
 
@@ -69,12 +57,12 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
     : 0;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-2.5 hover:border-primary/30 transition-all duration-150 group shadow-[var(--shadow-card)]">
-      {/* Row 1: Trader + Type Badge */}
-      <div className="flex items-center justify-between gap-2 mb-1.5">
+    <div className="bg-card rounded-2xl p-3 hover:bg-secondary/30 transition-all duration-150 shadow-[var(--shadow-card)]">
+      {/* Row 1: Trader info */}
+      <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="relative flex-shrink-0">
-            <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-[11px] font-semibold text-foreground overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-semibold text-foreground overflow-hidden">
               {offer.trader.avatar ? (
                 <img src={offer.trader.avatar} alt={offer.trader.name} className="w-full h-full object-cover" />
               ) : (
@@ -82,14 +70,14 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
               )}
             </div>
             <div className={cn(
-              "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-[1.5px] border-card",
+              "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card",
               isOnline ? "bg-green-500" : "bg-muted-foreground/30"
             )} />
           </div>
           
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <span className="font-medium text-xs text-foreground truncate max-w-[100px]">
+              <span className="font-semibold text-sm text-foreground truncate max-w-[120px]">
                 {offer.trader.name}
               </span>
               <TraderBadge 
@@ -98,38 +86,29 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
                 size="sm"
               />
               {offer.trader.verified && (
-                <CheckCircle2 className="w-3 h-3 text-primary flex-shrink-0" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
               )}
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span>{offer.trader.trades} trades</span>
-              <span className="text-border">•</span>
+              <span>•</span>
               <span className={cn(
-                completionRate >= 95 ? "text-green-600 dark:text-green-500" : 
-                completionRate >= 80 ? "text-foreground" : "text-muted-foreground"
+                completionRate >= 95 ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
               )}>
                 {completionRate}%
               </span>
             </div>
           </div>
         </div>
-
-        <Badge 
-          variant={isBuy ? "default" : "destructive"} 
-          className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 font-medium h-5"
-        >
-          {isBuy ? <ArrowDownLeft className="w-2.5 h-2.5" /> : <ArrowUpRight className="w-2.5 h-2.5" />}
-          {isBuy ? "Buy" : "Sell"}
-        </Badge>
       </div>
 
-      {/* Row 2: Price + Available */}
-      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+      {/* Row 2: Price */}
+      <div className="flex items-baseline justify-between gap-2 mb-2">
         <div className="flex items-baseline gap-1">
-          <span className="text-base font-bold text-foreground tracking-tight">
+          <span className="text-lg font-bold text-foreground tracking-tight">
             {offer.fiatCurrency} {offer.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
           </span>
-          <span className="text-[10px] text-muted-foreground">/{offer.crypto}</span>
+          <span className="text-[11px] text-muted-foreground">/{offer.crypto}</span>
         </div>
         <div className="flex items-center gap-1.5 text-[11px]">
           <span className={cn(
@@ -140,42 +119,30 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
           </span>
           {hasPartialFill && (
             <div className="w-8 h-1 bg-secondary rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary/60 rounded-full"
-                style={{ width: `${100 - fillPercentage}%` }}
-              />
+              <div className="h-full bg-primary/50 rounded-full" style={{ width: `${100 - fillPercentage}%` }} />
             </div>
           )}
         </div>
       </div>
 
-      {/* Row 3: Limits + Payment Methods */}
-      <div className="flex items-center justify-between gap-2 mb-1.5">
+      {/* Row 3: Limits + Payment */}
+      <div className="flex items-center justify-between gap-2 mb-2">
         <div className="text-[11px] text-muted-foreground">
-          <span className="text-foreground/80 font-medium">
-            {offer.fiatCurrency} {offer.minAmount.toLocaleString()}
-          </span>
-          <span className="mx-0.5">–</span>
-          <span className="text-foreground/80 font-medium">
-            {offer.maxAmount.toLocaleString()}
-          </span>
+          {offer.fiatCurrency} {offer.minAmount.toLocaleString()} – {offer.maxAmount.toLocaleString()}
         </div>
         
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           {offer.paymentMethods.slice(0, 2).map((method) => {
             const Icon = getPaymentIcon(method);
             return (
-              <div 
-                key={method}
-                className="flex items-center gap-0.5 px-1.5 py-0.5 bg-secondary rounded text-[10px] text-muted-foreground"
-              >
+              <div key={method} className="flex items-center gap-0.5 px-1.5 py-0.5 bg-secondary rounded-full text-[10px] text-muted-foreground">
                 <Icon className="w-2.5 h-2.5" />
                 <span className="truncate max-w-[50px] hidden sm:inline">{method}</span>
               </div>
             );
           })}
           {offer.paymentMethods.length > 2 && (
-            <div className="px-1 py-0.5 bg-secondary rounded text-[10px] text-muted-foreground">
+            <div className="px-1.5 py-0.5 bg-secondary rounded-full text-[10px] text-muted-foreground">
               +{offer.paymentMethods.length - 2}
             </div>
           )}
@@ -183,18 +150,15 @@ const OfferCard = ({ offer, onAction }: OfferCardProps) => {
       </div>
 
       {/* Row 4: Time + CTA */}
-      <div className="flex items-center justify-between pt-1.5 border-t border-border/40">
+      <div className="flex items-center justify-between pt-2 border-t border-border/30">
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <Clock className="w-2.5 h-2.5" />
+          <Clock className="w-3 h-3" />
           <span>{offer.timeLimit}m</span>
         </div>
         <Button
-          variant={isBuy ? "outline" : "default"}
+          variant={isBuy ? "outline" : "buy"}
           size="sm"
-          className={cn(
-            "h-7 px-3 font-semibold text-xs",
-            !isBuy && "shadow-[var(--shadow-button)]"
-          )}
+          className="h-8 px-4 font-semibold text-xs rounded-full"
           onClick={onAction}
           disabled={!isBuy && availableAmount <= 0}
         >

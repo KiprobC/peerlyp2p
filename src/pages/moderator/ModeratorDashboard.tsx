@@ -40,11 +40,11 @@ export const ModeratorDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Moderator Dashboard</h1>
-          <p className="text-muted-foreground">Manage disputes and track SLA performance</p>
+          <h1 className="text-xl font-bold">Moderator</h1>
+          <p className="text-xs text-muted-foreground">Disputes & SLA tracking</p>
         </div>
         {availability && (
           <ModeratorStatusToggle
@@ -55,58 +55,58 @@ export const ModeratorDashboard = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="bg-amber-500/5 border-amber-500/20">
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-full bg-amber-500/10">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
+      <div className="grid grid-cols-2 gap-2">
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-full bg-amber-500/10">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{pendingDisputes.length}</p>
-                <p className="text-xs text-muted-foreground">Active Disputes</p>
+                <p className="text-xl font-bold">{pendingDisputes.length}</p>
+                <p className="text-[10px] text-muted-foreground">Active</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-full bg-primary/10">
-                <Timer className="h-5 w-5 text-primary" />
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Timer className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{pendingSLACount}</p>
-                <p className="text-xs text-muted-foreground">Pending SLA</p>
+                <p className="text-xl font-bold">{pendingSLACount}</p>
+                <p className="text-[10px] text-muted-foreground">Pending SLA</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className={slaBreachedCount > 0 ? "bg-destructive/5 border-destructive/20" : "bg-green-500/5 border-green-500/20"}>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-full ${slaBreachedCount > 0 ? "bg-destructive/10" : "bg-green-500/10"}`}>
-                <Scale className={`h-5 w-5 ${slaBreachedCount > 0 ? "text-destructive" : "text-green-500"}`} />
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className={`p-2 rounded-full ${slaBreachedCount > 0 ? "bg-destructive/10" : "bg-green-500/10"}`}>
+                <Scale className={`h-4 w-4 ${slaBreachedCount > 0 ? "text-destructive" : "text-green-500"}`} />
               </div>
               <div>
-                <p className="text-2xl font-bold">{slaBreachedCount}</p>
-                <p className="text-xs text-muted-foreground">SLA Breached</p>
+                <p className="text-xl font-bold">{slaBreachedCount}</p>
+                <p className="text-[10px] text-muted-foreground">Breached</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-green-500/5 border-green-500/20">
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-full bg-green-500/10">
-                <TrendingUp className="h-5 w-5 text-green-500" />
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-full bg-green-500/10">
+                <TrendingUp className="h-4 w-4 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{avgResolutionHours}h</p>
-                <p className="text-xs text-muted-foreground">Avg Resolution</p>
+                <p className="text-xl font-bold">{avgResolutionHours}h</p>
+                <p className="text-[10px] text-muted-foreground">Avg Resolve</p>
               </div>
             </div>
           </CardContent>
@@ -116,16 +116,15 @@ export const ModeratorDashboard = () => {
       {/* Online Moderators */}
       {allModerators.length > 0 && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Moderator Team
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs flex items-center gap-2">
+              <Users className="h-3.5 w-3.5" /> Team
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {allModerators.map((mod) => (
-                <div key={mod.user_id} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/50 border text-xs">
+                <div key={mod.user_id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/50 text-[11px]">
                   <Circle className={`w-2 h-2 fill-current ${
                     mod.status === "online" ? "text-green-500" : mod.status === "busy" ? "text-amber-500" : "text-muted-foreground"
                   }`} />
@@ -138,57 +137,57 @@ export const ModeratorDashboard = () => {
         </Card>
       )}
 
-      {/* Active Disputes Table */}
+      {/* Active Disputes */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-amber-500" />
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-amber-500" />
             Active Disputes
           </CardTitle>
           <Link to="/moderator/disputes">
-            <Button variant="outline" size="sm">View All</Button>
+            <Button variant="ghost" size="sm" className="text-xs text-primary">View All</Button>
           </Link>
         </CardHeader>
         <CardContent>
           {pendingDisputes.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500/50" />
-              <p>No pending disputes assigned to you</p>
+            <div className="text-center py-6 text-muted-foreground">
+              <CheckCircle className="h-10 w-10 mx-auto mb-2 text-green-500/30" />
+              <p className="text-sm">No pending disputes</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {pendingDisputes.slice(0, 8).map((dispute) => {
                 const da = dispute as any;
                 return (
                   <div
                     key={dispute.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors"
                   >
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs">#{dispute.trade_id.slice(0, 8)}</span>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono text-[11px]">#{dispute.trade_id.slice(0, 8)}</span>
                         <Badge
                           variant={dispute.priority === "critical" || dispute.priority === "high" ? "destructive" : "secondary"}
-                          className="text-[10px]"
+                          className="text-[9px] rounded-full px-1.5"
                         >
                           {dispute.priority}
                         </Badge>
                         {da.escalated && (
-                          <Badge variant="destructive" className="text-[10px]">Escalated</Badge>
+                          <Badge variant="destructive" className="text-[9px] rounded-full px-1.5">Escalated</Badge>
                         )}
                       </div>
                       {dispute.trade && (
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[10px] text-muted-foreground">
                           {dispute.trade.crypto_amount} {dispute.trade.crypto_type} • {dispute.trade.fiat_currency} {dispute.trade.fiat_amount?.toLocaleString()}
                         </p>
                       )}
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         <span>@{dispute.buyer?.username || "?"} vs @{dispute.seller?.username || "?"}</span>
                         <span>•</span>
                         <span>{formatDistanceToNow(new Date(dispute.created_at), { addSuffix: true })}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       <SLATimer
                         slaDeadline={da.sla_deadline}
                         firstResponseAt={da.first_response_at}
@@ -197,7 +196,7 @@ export const ModeratorDashboard = () => {
                         compact
                       />
                       <Link to={`/moderator/disputes?trade=${dispute.trade_id}`}>
-                        <Button size="sm" className="h-7 text-xs">Review</Button>
+                        <Button size="sm" className="h-7 text-[11px] rounded-full px-3">Review</Button>
                       </Link>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { Clock, CheckCircle, AlertTriangle, Loader2, Shield, Lock } from "lucide-react";
+import { Clock, CheckCircle, AlertTriangle, Shield, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TradeStatusBannerInlineProps {
@@ -12,57 +12,43 @@ const statusConfigs: Record<string, {
   buyerLabel: string;
   sellerLabel: string;
   icon: typeof Clock;
-  bgColor: string;
-  textColor: string;
-  borderColor: string;
+  color: string;
 }> = {
   pending: {
     buyerLabel: "Waiting for seller to lock escrow",
     sellerLabel: "Lock escrow to begin trade",
     icon: Clock,
-    bgColor: "bg-amber-500/10",
-    textColor: "text-amber-500",
-    borderColor: "border-amber-500/20",
+    color: "text-amber-500",
   },
   confirmed: {
-    buyerLabel: "Escrow locked. Send payment now",
+    buyerLabel: "Escrow locked — Send payment now",
     sellerLabel: "Waiting for buyer payment",
     icon: Lock,
-    bgColor: "bg-primary/10",
-    textColor: "text-primary",
-    borderColor: "border-primary/20",
+    color: "text-primary",
   },
   payment_sent: {
-    buyerLabel: "Payment sent. Waiting for seller confirmation",
-    sellerLabel: "Buyer marked payment as sent. Verify & release crypto",
+    buyerLabel: "Payment sent — Waiting for confirmation",
+    sellerLabel: "Buyer paid — Verify & release crypto",
     icon: CheckCircle,
-    bgColor: "bg-purple-500/10",
-    textColor: "text-purple-500",
-    borderColor: "border-purple-500/20",
+    color: "text-purple-500",
   },
   disputed: {
-    buyerLabel: "Dispute opened. Moderator reviewing",
-    sellerLabel: "Dispute opened. Moderator reviewing",
+    buyerLabel: "Dispute opened — Moderator reviewing",
+    sellerLabel: "Dispute opened — Moderator reviewing",
     icon: AlertTriangle,
-    bgColor: "bg-destructive/10",
-    textColor: "text-destructive",
-    borderColor: "border-destructive/20",
+    color: "text-destructive",
   },
   completed: {
-    buyerLabel: "Trade completed successfully",
-    sellerLabel: "Trade completed successfully",
+    buyerLabel: "Trade completed",
+    sellerLabel: "Trade completed",
     icon: CheckCircle,
-    bgColor: "bg-green-500/10",
-    textColor: "text-green-500",
-    borderColor: "border-green-500/20",
+    color: "text-green-500",
   },
   cancelled: {
-    buyerLabel: "Trade was cancelled",
-    sellerLabel: "Trade was cancelled",
+    buyerLabel: "Trade cancelled",
+    sellerLabel: "Trade cancelled",
     icon: AlertTriangle,
-    bgColor: "bg-muted",
-    textColor: "text-muted-foreground",
-    borderColor: "border-border",
+    color: "text-muted-foreground",
   },
 };
 
@@ -74,17 +60,12 @@ export const TradeStatusBannerInline = ({
 }: TradeStatusBannerInlineProps) => {
   const config = statusConfigs[status] || statusConfigs.pending;
   const Icon = config.icon;
-  
   const label = isBuyer ? config.buyerLabel : config.sellerLabel;
 
   return (
-    <div className={cn(
-      "flex items-center gap-2 px-4 py-2.5 border-b",
-      config.bgColor,
-      config.borderColor
-    )}>
-      <Icon className={cn("w-4 h-4 shrink-0", config.textColor)} />
-      <span className={cn("text-sm font-medium", config.textColor)}>
+    <div className="flex items-center gap-2 px-4 py-2 bg-secondary/40 border-b border-border/30">
+      <Icon className={cn("w-4 h-4 shrink-0", config.color)} />
+      <span className={cn("text-xs font-medium", config.color)}>
         {label}
       </span>
       {status === "confirmed" && escrowLocked && (
