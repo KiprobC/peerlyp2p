@@ -31,6 +31,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import WalletDeposit from "./pages/WalletDeposit";
 import WalletWithdraw from "./pages/WalletWithdraw";
+import TransactionHistory from "./pages/TransactionHistory";
 import { AdminLayout } from "./pages/admin/AdminLayout";
 import { AdminOverview } from "./pages/admin/AdminOverview";
 import { AdminUsers } from "./pages/admin/AdminUsers";
@@ -92,7 +93,14 @@ const AppRoutes = () => {
           </PublicRoute>
         } 
       />
-      
+      <Route
+        path="/wallet/history"
+        element={
+          <ProtectedRoute>
+            <TransactionHistory />
+          </ProtectedRoute>
+        }
+      />
       {/* Public pages - no redirect needed */}
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/how-it-works" element={<HowItWorks />} />

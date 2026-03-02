@@ -82,8 +82,8 @@ export const MobileTradeActions = ({
     }
   };
 
-  // Hide panel for completed/cancelled/disputed trades
-  if (["completed", "cancelled", "disputed"].includes(status)) {
+  // Hide panel for completed/cancelled trades (NOT disputed — seller can still release)
+  if (["completed", "cancelled"].includes(status)) {
     return null;
   }
 
@@ -97,9 +97,9 @@ export const MobileTradeActions = ({
   // Determine button states
   const canLockEscrow = isSeller && status === "pending";
   const canMarkPaid = isBuyer && status === "confirmed";
-  const canReleaseCrypto = isSeller && status === "payment_sent";
+  const canReleaseCrypto = isSeller && (status === "payment_sent" || status === "disputed");
   const canCancel = isBuyer && ["pending", "confirmed"].includes(status);
-  const isReleaseDisabled = status !== "payment_sent";
+  const isReleaseDisabled = !["payment_sent", "disputed"].includes(status);
 
   return (
     <div className="flex flex-col gap-2 pt-2 pb-2">

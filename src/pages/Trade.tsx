@@ -421,8 +421,8 @@ const TradePageContent = () => {
         <div className="container mx-auto px-0 sm:px-4 max-w-5xl flex-1 flex flex-col">
           <div className="flex-1 flex bg-card sm:border-x sm:border-t border-border sm:rounded-t-xl overflow-hidden">
             
-            {/* Left Actions Panel - Desktop only */}
-            {!isDisputed && !isDisputeResolved && (
+            {/* Left Actions Panel - Desktop only (visible during disputes for seller release) */}
+            {!isDisputeResolved && (
               <TradeActionsPanel
                 status={trade.status}
                 isBuyer={isBuyer}
@@ -601,8 +601,8 @@ const TradePageContent = () => {
         {isChatActive && (
           <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md">
             <div className="container mx-auto px-3 max-w-5xl">
-              {/* Mobile Action Buttons - sticky action bar with gradient separator */}
-              {!isDisputed && (
+              {/* Mobile Action Buttons - show during disputes for seller release */}
+              {(
                 <div className="lg:hidden border-b border-border/50 bg-gradient-to-t from-card/50 to-transparent">
                   <MobileTradeActions
                     status={trade.status}

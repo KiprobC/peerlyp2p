@@ -103,11 +103,10 @@ export const useModeratorDisputes = () => {
 
     setLoading(true);
     try {
-      // Fetch disputes assigned to this moderator
+      // Fetch ALL active disputes (shared queue for all moderators)
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from("dispute_assignments")
         .select("*")
-        .eq("assigned_to", user.id)
         .order("created_at", { ascending: false });
 
       if (assignmentsError) throw assignmentsError;
