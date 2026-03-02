@@ -98,9 +98,9 @@ export const TradeActionsPanel = ({
   // Determine button states
   const canLockEscrow = isSeller && status === "pending";
   const canMarkPaid = isBuyer && status === "confirmed";
-  const canReleaseCrypto = isSeller && status === "payment_sent";
+  const canReleaseCrypto = isSeller && (status === "payment_sent" || status === "disputed");
   const canCancel = isBuyer && ["pending", "confirmed"].includes(status);
-  const isReleaseDisabled = status !== "payment_sent";
+  const isReleaseDisabled = !["payment_sent", "disputed"].includes(status);
 
   return (
     <div className="hidden lg:flex flex-col w-48 shrink-0 border-r border-border bg-card/50 p-3 gap-2">

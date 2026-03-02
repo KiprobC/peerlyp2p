@@ -10,6 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SLATimer } from "@/components/moderator/SLATimer";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -18,7 +20,7 @@ import {
   User, 
   Star,
   TrendingUp,
-  Timer
+  HandMetal,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -77,6 +79,7 @@ const MessageViewer = ({ tradeId }: MessageViewerProps) => {
 };
 
 export const ModeratorDisputes = () => {
+  const { user } = useAuth();
   const { disputes, pendingDisputes, resolvedDisputes, loading, resolveDispute, updateStatus } =
     useModeratorDisputes();
   const [selectedDispute, setSelectedDispute] = useState<any>(null);
@@ -84,6 +87,47 @@ export const ModeratorDisputes = () => {
   const [resolutionType, setResolutionType] = useState("");
   const [notes, setNotes] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [assigning, setAssigning] = useState<string | null>(null);
+
+  const handleSelfAssign = async (dispute: any) => {
+    if (!user) return;
+    setAssigning(dispute.id);
+    try {
+      // Check if already assigned
+      if (dispute.assigned_to && dispute.assigned_to !== "00000000-0000-0000-0000-000000000000") {
+        toast.error("This dispute is already assigned to a moderator");
+        return;
+      }
+      
+      const { error } = await supabase.rpc('assign_dispute_moderator', {
+        p_trade_id: dispute.trade_id,
+        p_moderator_id: user.id,
+        p_priority: dispute.priority || 'normal',
+        p_notes: 'Self-assigned from dispute queue'
+      });
+
+      if (error) throw error;
+      toast.success("Dispute assigned to you");
+    } catch (error: any) {
+      // If dispute already has assignment, try updating it
+      const { error: updateError } = await supabase
+        .from("dispute_assignments")
+        .update({ 
+          assigned_to: user.id, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq("trade_id", dispute.trade_id)
+        .is("assigned_to", null);
+
+      if (updateError) {
+        toast.error("Failed to assign dispute: " + (error.message || "Unknown error"));
+      } else {
+        toast.success("Dispute assigned to you");
+      }
+    } finally {
+      setAssigning(null);
+    }
+  };
 
   const handleResolve = async () => {
     if (!selectedDispute || !resolutionType || !notes.trim()) {
@@ -118,7 +162,7 @@ export const ModeratorDisputes = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -126,7 +170,6 @@ export const ModeratorDisputes = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "critical":
-        return "destructive";
       case "high":
         return "destructive";
       case "normal":
@@ -135,6 +178,9 @@ export const ModeratorDisputes = () => {
         return "secondary";
     }
   };
+
+  const isAssignedToMe = (dispute: any) => dispute.assigned_to === user?.id;
+  const isUnassigned = (dispute: any) => !dispute.assigned_to;
 
   const TraderCard = ({ trader, role }: { trader: any; role: string }) => (
     <div className="p-3 rounded-lg bg-muted/50 border">
@@ -179,15 +225,15 @@ export const ModeratorDisputes = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold">My Disputes</h1>
-        <p className="text-muted-foreground">Review and resolve assigned disputes</p>
+        <h1 className="text-3xl font-bold">Dispute Queue</h1>
+        <p className="text-muted-foreground">All active disputes — pick one to resolve</p>
       </div>
 
       <Tabs defaultValue="pending" className="space-y-4">
         <TabsList>
           <TabsTrigger value="pending" className="gap-2">
             <Clock className="h-4 w-4" />
-            Pending ({pendingDisputes.length})
+            Active ({pendingDisputes.length})
           </TabsTrigger>
           <TabsTrigger value="resolved" className="gap-2">
             <CheckCircle className="h-4 w-4" />
@@ -200,17 +246,23 @@ export const ModeratorDisputes = () => {
             <Card>
               <CardContent className="py-12 text-center">
                 <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500/50" />
-                <p className="text-muted-foreground">No pending disputes</p>
+                <p className="text-muted-foreground">No active disputes</p>
               </CardContent>
             </Card>
           ) : (
             pendingDisputes.map((dispute) => (
-              <Card key={dispute.id}>
+              <Card key={dispute.id} className={isAssignedToMe(dispute) ? "border-primary/50" : ""}>
                 <CardHeader>
-                    <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <AlertTriangle className="h-5 w-5 text-amber-500" />
                       Trade #{dispute.trade_id.slice(0, 8)}
+                      {isAssignedToMe(dispute) && (
+                        <Badge variant="default" className="text-xs">Assigned to you</Badge>
+                      )}
+                      {!isAssignedToMe(dispute) && !isUnassigned(dispute) && (
+                        <Badge variant="secondary" className="text-xs">Assigned to other</Badge>
+                      )}
                     </CardTitle>
                     <div className="flex items-center gap-2">
                       <SLATimer
@@ -275,30 +327,48 @@ export const ModeratorDisputes = () => {
                     <TraderCard trader={dispute.seller} role="Seller" />
                   </div>
 
-                  {/* Messages */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageSquare className="h-4 w-4" />
-                      <span className="font-medium">Trade Chat</span>
+                  {/* Messages - only visible if assigned to me */}
+                  {isAssignedToMe(dispute) && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="h-4 w-4" />
+                        <span className="font-medium">Trade Chat</span>
+                      </div>
+                      <MessageViewer tradeId={dispute.trade_id} />
                     </div>
-                    <MessageViewer tradeId={dispute.trade_id} />
-                  </div>
+                  )}
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-4 border-t">
-                    {dispute.status === "assigned" && (
-                      <Button variant="outline" onClick={() => handleMarkInReview(dispute)}>
-                        Mark In Review
+                  <div className="flex gap-2 pt-4 border-t flex-wrap">
+                    {/* Self-assign button for unassigned or other-assigned disputes */}
+                    {!isAssignedToMe(dispute) && (
+                      <Button 
+                        variant="default" 
+                        onClick={() => handleSelfAssign(dispute)}
+                        disabled={assigning === dispute.id}
+                      >
+                        <HandMetal className="w-4 h-4 mr-2" />
+                        {assigning === dispute.id ? "Assigning..." : "Pick This Dispute"}
                       </Button>
                     )}
-                    <Button
-                      onClick={() => {
-                        setSelectedDispute(dispute);
-                        setResolveDialog(true);
-                      }}
-                    >
-                      Resolve Dispute
-                    </Button>
+                    
+                    {isAssignedToMe(dispute) && (
+                      <>
+                        {dispute.status === "assigned" && (
+                          <Button variant="outline" onClick={() => handleMarkInReview(dispute)}>
+                            Mark In Review
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => {
+                            setSelectedDispute(dispute);
+                            setResolveDialog(true);
+                          }}
+                        >
+                          Resolve Dispute
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

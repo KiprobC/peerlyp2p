@@ -239,6 +239,12 @@ const Dashboard = () => {
                     Withdraw
                   </Button>
                 </Link>
+                <Link to="/wallet/history" className="flex-1 sm:flex-none">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                    <Clock className="w-4 h-4 mr-1" />
+                    History
+                  </Button>
+                </Link>
               </div>
             </div>
 
