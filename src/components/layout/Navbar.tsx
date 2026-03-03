@@ -14,11 +14,20 @@ const Navbar = () => {
   const { user } = useAuth();
   const { isAdmin } = useAdminRole();
 
-  const navLinks = [
+  const publicLinks = [
     { name: "Home", path: "/" },
     { name: "Marketplace", path: "/marketplace" },
     { name: "How It Works", path: "/how-it-works" },
   ];
+
+  const authedLinks = [
+    { name: "Dashboard", path: "/dashboard" },
+    { name: "Marketplace", path: "/marketplace" },
+    { name: "Wallet", path: "/wallet-deposit" },
+    { name: "My Trades", path: "/trades" },
+  ];
+
+  const navLinks = user ? authedLinks : publicLinks;
 
   const isActive = (path: string) => location.pathname === path;
 
