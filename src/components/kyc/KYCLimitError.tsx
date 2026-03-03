@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { AlertTriangle, Shield, Clock, Ban, CreditCard, TrendingUp } from "lucide-react";
+import { AlertTriangle, Shield, Clock, Ban, CreditCard, TrendingUp, Globe, Lock, Power } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ValidationResult, formatLimit, getTierInfo, KYCTier } from "@/hooks/useKYCLimits";
@@ -21,6 +21,7 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
         return {
           icon: Ban,
           title: "Verification Required",
+          description: result.message || "Your current verification level does not allow this action. Please complete KYC verification to continue.",
           variant: "destructive" as const,
           action: (
             <Button asChild size="sm" className="gap-1">
@@ -33,9 +34,11 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
         };
       
       case "PAYMENT_METHOD_NOT_ALLOWED":
+      case "PAYMENT_METHOD_RESTRICTED":
         return {
           icon: CreditCard,
           title: "Payment Method Restricted",
+          description: result.message || "This payment method is not available for your account. Upgrade your verification to unlock more options.",
           variant: "default" as const,
           extra: result.allowed_methods && (
             <p className="text-xs mt-1 text-muted-foreground">
@@ -56,6 +59,7 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
         return {
           icon: TrendingUp,
           title: "Amount Limit Exceeded",
+          description: result.message || "The trade amount exceeds your current limit. Upgrade your verification to increase your limits.",
           variant: "default" as const,
           extra: result.max_allowed && (
             <p className="text-xs mt-1">
@@ -77,6 +81,7 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
         return {
           icon: Clock,
           title: isDaily ? "Daily Limit Reached" : "Monthly Limit Reached",
+          description: result.message || `You've reached your ${isDaily ? "daily" : "monthly"} trading limit. Upgrade your verification for higher limits, or try again ${isDaily ? "tomorrow" : "next month"}.`,
           variant: "default" as const,
           extra: (
             <p className="text-xs mt-1 text-muted-foreground">
@@ -96,14 +101,22 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
         return {
           icon: Clock,
           title: "Daily Trade Count Reached",
+          description: result.message || "You've reached the maximum number of trades allowed today. Please try again tomorrow or upgrade your verification.",
           variant: "default" as const,
-          action: null,
+          action: (
+            <Button asChild size="sm" variant="outline" className="gap-1">
+              <Link to="/kyc-upload">
+                Upgrade for More Trades
+              </Link>
+            </Button>
+          ),
         };
       
       case "MAX_OFFERS_REACHED":
         return {
           icon: Ban,
           title: "Maximum Offers Reached",
+          description: result.message || "You've reached the maximum number of active offers. Deactivate or complete existing offers to create new ones.",
           variant: "default" as const,
           action: (
             <Button asChild size="sm" variant="outline">
@@ -115,7 +128,8 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
       case "RATE_LIMITED":
         return {
           icon: Clock,
-          title: "Please Wait",
+          title: "Too Many Requests",
+          description: result.message || "You're making requests too quickly. Please wait a moment before trying again.",
           variant: "default" as const,
           extra: result.retry_after && (
             <p className="text-xs mt-1 text-muted-foreground">
@@ -128,13 +142,90 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
             </Button>
           ),
         };
+
+      case "KYC_LIMIT_EXCEEDED":
+        return {
+          icon: Shield,
+          title: "Verification Upgrade Required",
+          description: result.message || "Your current verification level does not support this trade amount. Please upgrade your KYC to continue.",
+          variant: "destructive" as const,
+          action: (
+            <Button asChild size="sm" className="gap-1">
+              <Link to="/kyc-upload">
+                <Shield className="w-3 h-3" />
+                Upgrade Verification
+              </Link>
+            </Button>
+          ),
+        };
+
+      case "COUNTRY_RESTRICTED":
+        return {
+          icon: Globe,
+          title: "Region Restricted",
+          description: result.message || "Trading is not available in your region, or your verification level doesn't meet the minimum requirement for your country.",
+          variant: "destructive" as const,
+          action: (
+            <Button asChild size="sm" variant="outline" className="gap-1">
+              <Link to="/kyc-upload">
+                <Shield className="w-3 h-3" />
+                Verify Identity
+              </Link>
+            </Button>
+          ),
+        };
+
+      case "USER_FROZEN":
+        return {
+          icon: Lock,
+          title: "Account Restricted",
+          description: result.message || "Your account has been temporarily restricted. Please contact support for assistance.",
+          variant: "destructive" as const,
+          action: null,
+        };
+
+      case "PLATFORM_DISABLED":
+      case "OFFER_CREATION_DISABLED":
+      case "TRADE_INITIATION_DISABLED":
+      case "ESCROW_DISABLED":
+      case "TRANSFERS_DISABLED":
+        return {
+          icon: Power,
+          title: "Temporarily Unavailable",
+          description: result.message || "This feature is temporarily disabled for maintenance. Please try again later.",
+          variant: "default" as const,
+          action: null,
+        };
+
+      case "VALIDATION_ERROR":
+      case "NETWORK_ERROR":
+      case "SERVER_ERROR":
+        return {
+          icon: AlertTriangle,
+          title: "Something Went Wrong",
+          description: result.message || "We couldn't process your request. Please check your connection and try again.",
+          variant: "destructive" as const,
+          action: onRetry && (
+            <Button size="sm" variant="outline" onClick={onRetry}>
+              Try Again
+            </Button>
+          ),
+        };
       
       default:
         return {
           icon: AlertTriangle,
           title: "Action Not Allowed",
+          description: result.message || "This action cannot be completed right now. Please verify your account or contact support if the issue persists.",
           variant: "destructive" as const,
-          action: null,
+          action: (
+            <Button asChild size="sm" variant="outline" className="gap-1">
+              <Link to="/kyc-upload">
+                <Shield className="w-3 h-3" />
+                Check Verification
+              </Link>
+            </Button>
+          ),
         };
     }
   };
@@ -147,7 +238,7 @@ export function KYCLimitError({ result, className, onRetry }: KYCLimitErrorProps
       <Icon className="h-4 w-4" />
       <AlertTitle>{details.title}</AlertTitle>
       <AlertDescription className="space-y-2">
-        <p>{result.message}</p>
+        <p>{details.description}</p>
         {details.extra}
         {result.required_tier && (
           <p className="text-xs">
