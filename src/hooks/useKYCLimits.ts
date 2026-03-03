@@ -136,7 +136,12 @@ export async function validateAction(
 
     // If we got data back, use it even if there's an "error" (non-2xx status)
     if (response.data && typeof response.data === "object" && "allowed" in response.data) {
-      return response.data as ValidationResult;
+      const result = response.data as ValidationResult;
+      // Backend may return 'reason' instead of 'message'
+      if (!result.message && (response.data as any).reason) {
+        result.message = (response.data as any).reason;
+      }
+      return result;
     }
 
     if (response.error) {
