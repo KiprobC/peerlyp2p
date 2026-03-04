@@ -3,8 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TradeEvidence } from "@/hooks/useTradeEvidence";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +18,7 @@ import {
   AlertTriangle,
   MessageSquare,
   FileImage,
-  MessageCircle,
+  
   Paperclip,
   Image,
   X,
@@ -46,6 +45,7 @@ import { ChatMessage } from "@/components/trade/ChatMessage";
 import { TimelineEvent } from "@/components/trade/TimelineEvent";
 import { TradeStatusBanner } from "@/components/trade/TradeStatusBanner";
 import { EvidencePanel } from "@/components/trade/EvidencePanel";
+import { EvidenceChatMessage } from "@/components/trade/EvidenceChatMessage";
 import { PaymentProofDialog } from "@/components/trade/PaymentProofDialog";
 import { ModeratorMessage } from "@/components/trade/ModeratorMessage";
 import { ModeratorActionsPanel } from "@/components/trade/ModeratorActionsPanel";
@@ -84,7 +84,7 @@ const TradePageContent = () => {
   const [disputeReason, setDisputeReason] = useState("");
   const [ratingDialogOpen, setRatingDialogOpen] = useState(false);
   const [paymentProofDialogOpen, setPaymentProofDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "evidence">("chat");
+  
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
@@ -477,7 +477,7 @@ const TradePageContent = () => {
 
               {/* Tabbed Layout for Disputes */}
               {isDisputed && !isDisputeResolved ? (
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "evidence")} className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col overflow-hidden">
                   {/* Moderator Actions Panel - only for assigned moderator/admin */}
                   {isAssignedModerator && trade && (
                     <ModeratorActionsPanel
@@ -488,65 +488,35 @@ const TradePageContent = () => {
                       onResolved={refetchTrades}
                     />
                   )}
-                  
-                  <TabsList className="mx-3 mt-0 grid grid-cols-2 h-9">
-                    <TabsTrigger value="chat" className="text-xs gap-1.5">
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      Chat
-                    </TabsTrigger>
-                    <TabsTrigger value="evidence" className="text-xs gap-1.5">
-                      <FileImage className="w-3.5 h-3.5" />
-                      Evidence
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="chat" className="flex-1 flex flex-col mt-0 overflow-hidden">
-                    {/* Chat scroll area with bottom padding for fixed input */}
-                    <div className="flex-1 overflow-y-auto px-3 py-3 pb-40 lg:pb-32 space-y-2">
-                      {renderMessages()}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="evidence" className="flex-1 overflow-y-auto mt-0 px-3 py-3 space-y-4">
-                    <EvidencePanel
-                      title="Buyer Evidence"
-                      role="buyer"
-                      evidence={buyerEvidence}
-                      isOwn={isBuyer}
-                      canUpload={isBuyer}
-                      uploading={uploading}
-                      onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "buyer", desc); }}
-                      onLock={async () => { await lockEvidence("buyer"); }}
-                    />
-                    <EvidencePanel
-                      title="Seller Evidence"
-                      role="seller"
-                      evidence={sellerEvidence}
-                      isOwn={isSeller}
-                      canUpload={isSeller}
-                      uploading={uploading}
-                      onUpload={async (file, desc) => { await uploadEvidence(file, "dispute_evidence", "seller", desc); }}
-                      onLock={async () => { await lockEvidence("seller"); }}
-                    />
-                    {paymentProofs.length > 0 && (
-                      <div className="pt-2">
-                        <h4 className="text-xs font-medium text-muted-foreground mb-2">Payment Proofs</h4>
-                        <div className="grid gap-2">
-                          {paymentProofs.map(proof => (
-                            <div key={proof.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 text-xs">
-                              <FileImage className="w-4 h-4 text-muted-foreground" />
-                              <span className="truncate flex-1">{proof.file_name}</span>
-                              <span className="text-muted-foreground">
-                                {new Date(proof.created_at).toLocaleTimeString()}
-                              </span>
-                            </div>
-                          ))}
+
+                  {/* Dispute evidence upload bar */}
+                  {(isBuyer || isSeller) && (
+                    <div className="px-3 py-2 border-b border-border bg-secondary/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <FileImage className="w-3.5 h-3.5" />
+                          <span>Upload dispute evidence</span>
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1.5"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                        >
+                          <Image className="w-3 h-3" />
+                          Add Evidence
+                        </Button>
                       </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
+                    </div>
+                  )}
+
+                  {/* Chat + Evidence merged scroll area */}
+                  <div className="flex-1 overflow-y-auto px-3 py-3 pb-40 lg:pb-32 space-y-2">
+                    {renderMessages()}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </div>
               ) : (
                 /* Normal Chat Layout with Evidence Section */
                 <div className="flex-1 flex flex-col overflow-hidden">
@@ -749,7 +719,7 @@ const TradePageContent = () => {
     </div>
   );
 
-  // Helper function to render messages
+  // Helper function to render messages with inline evidence
   function renderMessages() {
     if (messagesLoading) {
       return (
@@ -764,7 +734,21 @@ const TradePageContent = () => {
       );
     }
     
-    if (messages.length === 0) {
+    // Merge messages and evidence into a single timeline
+    const allEvidence = [...buyerEvidence, ...sellerEvidence];
+    
+    type TimelineItem = 
+      | { type: "message"; data: typeof messages[0]; timestamp: string }
+      | { type: "evidence"; data: TradeEvidence; timestamp: string };
+
+    const timeline: TimelineItem[] = [
+      ...messages.map(m => ({ type: "message" as const, data: m, timestamp: m.created_at })),
+      ...allEvidence
+        .filter(e => e.evidence_type !== "chat_attachment") // chat attachments are already in messages
+        .map(e => ({ type: "evidence" as const, data: e, timestamp: e.created_at })),
+    ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    if (timeline.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center h-full py-8 text-center">
           <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mb-3">
@@ -776,9 +760,35 @@ const TradePageContent = () => {
       );
     }
     
-    return messages.map((message, index) => {
+    return timeline.map((item, index) => {
+      if (item.type === "evidence") {
+        const ev = item.data as TradeEvidence;
+        const isOwnEvidence = ev.uploader_id === user?.id;
+        const prevItem = index > 0 ? timeline[index - 1] : null;
+        const showAvatar = !prevItem || 
+          (prevItem.type === "message" ? prevItem.data.sender_id !== ev.uploader_id : 
+           prevItem.type === "evidence" ? (prevItem.data as TradeEvidence).uploader_id !== ev.uploader_id : true);
+
+        const uploaderName = isOwnEvidence ? "You" : (counterparty?.username || "User");
+        
+        return (
+          <EvidenceChatMessage
+            key={`evidence-${ev.id}`}
+            evidence={ev}
+            isOwn={isOwnEvidence}
+            senderName={uploaderName}
+            avatarUrl={isOwnEvidence ? null : counterparty?.avatar_url}
+            showAvatar={showAvatar}
+          />
+        );
+      }
+
+      const message = item.data as typeof messages[0];
       const isOwn = message.sender_id === user?.id;
-      const showAvatar = index === 0 || messages[index - 1].sender_id !== message.sender_id;
+      const prevItem = index > 0 ? timeline[index - 1] : null;
+      const showAvatar = !prevItem ||
+        (prevItem.type === "message" ? prevItem.data.sender_id !== message.sender_id :
+         prevItem.type === "evidence" ? (prevItem.data as TradeEvidence).uploader_id !== message.sender_id : true);
       
       // System message: show as timeline event
       if (message.is_system) {
