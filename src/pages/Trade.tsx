@@ -399,7 +399,7 @@ const TradePageContent = () => {
           onBack={() => navigate("/trades")}
         />
       ) : (
-        <TradeHeader
+         <TradeHeader
           tradeId={trade.id}
           cryptoAmount={trade.crypto_amount}
           cryptoType={trade.crypto_type}
@@ -409,6 +409,7 @@ const TradePageContent = () => {
           expiresAt={trade.expires_at}
           counterpartyUsername={counterparty?.username}
           counterpartyVerified={counterparty?.is_verified || false}
+          counterpartyId={counterpartyId}
           escrowLocked={trade.escrow_locked}
           escrowReleased={trade.escrow_released}
           onBack={() => navigate("/trades")}

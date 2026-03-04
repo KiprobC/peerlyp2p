@@ -1492,6 +1492,27 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocked_user_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          blocked_user_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          blocked_user_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1617,6 +1638,27 @@ export type Database = {
           frozen_by?: string
           id?: string
           reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_trusts: {
+        Row: {
+          created_at: string
+          id: string
+          trusted_user_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          trusted_user_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          trusted_user_id?: string
           user_id?: string
         }
         Relationships: []
