@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { ArrowLeft, Shield, Lock, CheckCircle, AlertTriangle, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { TraderProfilePanel } from "@/components/trade/TraderProfilePanel";
 
 interface TradeHeaderProps {
   tradeId: string;
@@ -13,6 +15,7 @@ interface TradeHeaderProps {
   expiresAt: string | null;
   counterpartyUsername: string | null;
   counterpartyVerified: boolean;
+  counterpartyId?: string;
   escrowLocked: boolean;
   escrowReleased: boolean;
   onBack: () => void;
@@ -38,54 +41,69 @@ export const TradeHeader = ({
   expiresAt,
   counterpartyUsername,
   counterpartyVerified,
+  counterpartyId,
   escrowLocked,
   escrowReleased,
   onBack,
   onExpired,
 }: TradeHeaderProps) => {
+  const [profileOpen, setProfileOpen] = useState(false);
   const statusInfo = statusConfig[status] || statusConfig.pending;
   const StatusIcon = statusInfo.icon;
 
   return (
-    <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/40">
-      <div className="container mx-auto px-3 max-w-5xl">
-        <div className="flex items-center justify-between h-12 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 shrink-0 rounded-full" 
-              onClick={onBack}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="font-semibold text-sm truncate">@{counterpartyUsername || "User"}</span>
-              {counterpartyVerified && (
-                <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden xs:flex items-center gap-1 text-xs">
-              <span className="font-bold">{cryptoAmount}</span>
-              <span className="text-muted-foreground">{cryptoType}</span>
-              <span className="text-muted-foreground">≈</span>
-              <span className="font-medium">{fiatCurrency} {fiatAmount.toLocaleString()}</span>
+    <>
+      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b border-border/40">
+        <div className="container mx-auto px-3 max-w-5xl">
+          <div className="flex items-center justify-between h-12 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 shrink-0 rounded-full" 
+                onClick={onBack}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <button
+                className="flex items-center gap-1.5 min-w-0 hover:opacity-70 transition-opacity cursor-pointer"
+                onClick={() => counterpartyId && setProfileOpen(true)}
+              >
+                <span className="font-semibold text-sm truncate">@{counterpartyUsername || "User"}</span>
+                {counterpartyVerified && (
+                  <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
+                )}
+              </button>
             </div>
             
-            <Badge 
-              variant="outline" 
-              className={cn("text-[10px] px-2 py-0.5 font-medium border rounded-full", statusInfo.color)}
-            >
-              <StatusIcon className="w-3 h-3 mr-1" />
-              <span className="hidden sm:inline">{statusInfo.label}</span>
-              <span className="sm:hidden">{statusInfo.shortLabel}</span>
-            </Badge>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="hidden xs:flex items-center gap-1 text-xs">
+                <span className="font-bold">{cryptoAmount}</span>
+                <span className="text-muted-foreground">{cryptoType}</span>
+                <span className="text-muted-foreground">≈</span>
+                <span className="font-medium">{fiatCurrency} {fiatAmount.toLocaleString()}</span>
+              </div>
+              
+              <Badge 
+                variant="outline" 
+                className={cn("text-[10px] px-2 py-0.5 font-medium border rounded-full", statusInfo.color)}
+              >
+                <StatusIcon className="w-3 h-3 mr-1" />
+                <span className="hidden sm:inline">{statusInfo.label}</span>
+                <span className="sm:hidden">{statusInfo.shortLabel}</span>
+              </Badge>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {counterpartyId && (
+        <TraderProfilePanel
+          targetUserId={counterpartyId}
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+        />
+      )}
+    </>
   );
 };
