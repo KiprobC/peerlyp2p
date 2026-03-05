@@ -1,17 +1,59 @@
+import { useState, useEffect } from "react";
 import { useModeratorDisputes } from "@/hooks/useModeratorRole";
 import { useModeratorAvailability } from "@/hooks/useModeratorAvailability";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, Clock, Scale, Timer, TrendingUp, Users, Circle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, Scale, Timer, TrendingUp, Users, Circle, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ModeratorStatusToggle } from "@/components/moderator/ModeratorStatusToggle";
 import { SLATimer } from "@/components/moderator/SLATimer";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 export const ModeratorDashboard = () => {
   const { pendingDisputes, resolvedDisputes, disputes, loading } = useModeratorDisputes();
   const { availability, allModerators, setStatus } = useModeratorAvailability();
+
+  // Fetch suspicious traders
+  const [suspiciousTraders, setSuspiciousTraders] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchSuspicious = async () => {
+      const { data: alerts } = await supabase
+        .from("user_risk_alerts" as any)
+        .select("*")
+        .eq("is_resolved", false)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      
+      if (!alerts || alerts.length === 0) { setSuspiciousTraders([]); return; }
+
+      const userIds = [...new Set((alerts as any[]).map((a: any) => a.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username, full_name")
+        .in("user_id", userIds);
+
+      const { data: metrics } = await supabase
+        .from("trader_behavior_metrics" as any)
+        .select("user_id, risk_level, risk_score")
+        .in("user_id", userIds);
+
+      const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+      const metricsMap = new Map((metrics || []).map((m: any) => [m.user_id, m]));
+
+      const grouped = userIds.map(uid => ({
+        user_id: uid,
+        username: (profileMap.get(uid) as any)?.username || "Unknown",
+        risk_level: (metricsMap.get(uid) as any)?.risk_level || "normal",
+        risk_score: (metricsMap.get(uid) as any)?.risk_score || 0,
+        alerts: (alerts as any[]).filter((a: any) => a.user_id === uid),
+      }));
+
+      setSuspiciousTraders(grouped.sort((a, b) => b.risk_score - a.risk_score));
+    };
+    fetchSuspicious();
+  }, []);
 
   const slaBreachedCount = pendingDisputes.filter(
     (d) => (d as any).sla_breached || (d as any).escalated
@@ -206,6 +248,49 @@ export const ModeratorDashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Suspicious Traders */}
+      {suspiciousTraders.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <ShieldAlert className="h-4 w-4 text-destructive" />
+              Suspicious Traders
+            </CardTitle>
+            <Badge variant="destructive" className="text-[10px]">{suspiciousTraders.length}</Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {suspiciousTraders.slice(0, 10).map((trader) => {
+                const riskColors: Record<string, string> = {
+                  trusted: "text-green-500",
+                  normal: "text-yellow-500",
+                  watchlist: "text-orange-500",
+                  high_risk: "text-destructive",
+                };
+                return (
+                  <div key={trader.user_id} className="flex items-center justify-between p-2.5 rounded-xl bg-secondary/30">
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">@{trader.username}</span>
+                        <Badge variant="outline" className={`text-[9px] ${riskColors[trader.risk_level] || ""}`}>
+                          {trader.risk_level?.replace("_", " ")}
+                        </Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {trader.alerts[0]?.description || "Flagged for review"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {trader.alerts.length} active alert{trader.alerts.length !== 1 ? "s" : ""} · Score: {Math.round(trader.risk_score)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

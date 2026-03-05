@@ -1334,6 +1334,51 @@ export type Database = {
           },
         ]
       }
+      trader_behavior_metrics: {
+        Row: {
+          average_release_time_minutes: number | null
+          cancelled_trades: number
+          completed_trades: number
+          disputes_raised_against: number
+          disputes_started_by: number
+          failed_payment_reports: number
+          last_trade_at: string | null
+          risk_level: string
+          risk_score: number
+          total_trades: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_release_time_minutes?: number | null
+          cancelled_trades?: number
+          completed_trades?: number
+          disputes_raised_against?: number
+          disputes_started_by?: number
+          failed_payment_reports?: number
+          last_trade_at?: string | null
+          risk_level?: string
+          risk_score?: number
+          total_trades?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_release_time_minutes?: number | null
+          cancelled_trades?: number
+          completed_trades?: number
+          disputes_raised_against?: number
+          disputes_started_by?: number
+          failed_payment_reports?: number
+          last_trade_at?: string | null
+          risk_level?: string
+          risk_score?: number
+          total_trades?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           assigned_moderator_id: string | null
@@ -1509,6 +1554,87 @@ export type Database = {
           blocked_user_id?: string
           created_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_fingerprints: {
+        Row: {
+          action_type: string
+          browser: string | null
+          created_at: string
+          device_hash: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          operating_system: string | null
+          screen_resolution: string | null
+          timezone: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          browser?: string | null
+          created_at?: string
+          device_hash?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          operating_system?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          browser?: string | null
+          created_at?: string
+          device_hash?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          operating_system?: string | null
+          screen_resolution?: string | null
+          timezone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_risk_alerts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_resolved: boolean
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          risk_type: string
+          severity: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_resolved?: boolean
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_type: string
+          severity?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_resolved?: boolean
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          risk_type?: string
+          severity?: string
           user_id?: string
         }
         Relationships: []
@@ -1950,6 +2076,10 @@ export type Database = {
       moderator_post_message: {
         Args: { p_is_system?: boolean; p_message: string; p_trade_id: string }
         Returns: string
+      }
+      recalculate_trader_risk: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       release_escrow_with_fee: {
         Args: {

@@ -52,6 +52,7 @@ import { ModeratorActionsPanel } from "@/components/trade/ModeratorActionsPanel"
 import { ResolutionCard } from "@/components/trade/ResolutionCard";
  import { PaymentSentMessage } from "@/components/trade/PaymentSentMessage";
  import { TradeLockBanner } from "@/components/trade/TradeLockBanner";
+ import { useTraderRisk } from "@/hooks/useTraderRisk";
  import { CancelTradeDialog } from "@/components/trade/CancelTradeDialog";
  import { ReleaseCryptoDialog } from "@/components/trade/ReleaseCryptoDialog";
  import { DisputeConfirmDialog } from "@/components/trade/DisputeConfirmDialog";
@@ -462,6 +463,9 @@ const TradePageContent = () => {
                 fiatCurrency={trade.fiat_currency || "USD"}
                 paymentMethod={trade.payment_method}
               />
+
+              {/* Risk Warning Banner */}
+              <RiskWarningBanner counterpartyId={counterpartyId} />
               
               {/* Payment Window Timer - only for pending/confirmed */}
               {["pending", "confirmed"].includes(trade.status) && trade.expires_at && (
@@ -853,6 +857,20 @@ const TradePageContent = () => {
       );
     });
   }
+};
+
+// Risk warning banner for counterparty
+const RiskWarningBanner = ({ counterpartyId }: { counterpartyId: string | undefined }) => {
+  const { riskData } = useTraderRisk(counterpartyId);
+  if (!riskData || !["watchlist", "high_risk"].includes(riskData.risk_level)) return null;
+  return (
+    <div className="mx-3 my-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2 text-sm">
+      <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+      <span className="text-destructive font-medium">
+        ⚠ This trader is flagged for suspicious activity. Trade with caution.
+      </span>
+    </div>
+  );
 };
 
 // Wrapper component with trade authorization

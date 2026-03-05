@@ -22,6 +22,26 @@ import { useTraderProfile } from "@/hooks/useTraderProfile";
 import { isUserOnline } from "@/hooks/useOnlineStatus";
 import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useTraderRisk } from "@/hooks/useTraderRisk";
+
+const riskConfig: Record<string, { label: string; color: string; emoji: string }> = {
+  trusted: { label: "Trusted", color: "text-green-500", emoji: "🟢" },
+  normal: { label: "Normal", color: "text-yellow-500", emoji: "🟡" },
+  watchlist: { label: "Watchlist", color: "text-orange-500", emoji: "🟠" },
+  high_risk: { label: "High Risk", color: "text-destructive", emoji: "🔴" },
+};
+
+const RiskBadge = ({ userId }: { userId: string }) => {
+  const { riskData } = useTraderRisk(userId);
+  if (!riskData || riskData.total_trades < 3) return null;
+  const config = riskConfig[riskData.risk_level] || riskConfig.normal;
+  return (
+    <div className={cn("flex items-center gap-1 text-xs font-medium mt-0.5", config.color)}>
+      <span>{config.emoji}</span>
+      <span>{config.label}</span>
+    </div>
+  );
+};
 
 interface TraderProfilePanelProps {
   targetUserId: string;
@@ -85,6 +105,7 @@ export const TraderProfilePanel = ({ targetUserId, open, onOpenChange }: TraderP
             <h3 className="font-semibold text-lg">@{profile.username || "Anonymous"}</h3>
             {profile.is_verified && <Shield className="w-4 h-4 text-primary" />}
           </div>
+          <RiskBadge userId={targetUserId} />
           {profile.full_name && (
             <p className="text-sm text-muted-foreground">{profile.full_name}</p>
           )}

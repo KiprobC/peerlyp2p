@@ -274,6 +274,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Collect fingerprint on login (non-blocking)
+    import("@/lib/fingerprint").then(({ collectFingerprint }) => collectFingerprint("login")).catch(() => {});
+
     return { error: null, mfaRequired: false };
   };
 
