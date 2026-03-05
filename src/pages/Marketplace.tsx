@@ -56,7 +56,7 @@ const Marketplace = () => {
     onlineOnly: false,
     minPrice: "",
     maxPrice: "",
-    sortBy: "margin_asc",
+    sortBy: "smart",
     minTierLevel: null as TraderTier | null,
     minCompletionRate: 0,
   });
@@ -123,25 +123,83 @@ const Marketplace = () => {
       return true;
     });
 
+    // Helper functions for scoring
+    const getCompletionRate = (o: OfferWithProfile) => {
+      const successful = o.trader_successful_trades ?? o.trader_trades ?? 0;
+      const total = o.trader_trades || 1;
+      return successful / total;
+    };
+
+    const isOnline = (o: OfferWithProfile) => isUserOnline(o.trader_last_seen || null);
+
     switch (filters.sortBy) {
-      case "margin_asc":
-        result.sort((a, b) => (a.price_margin || 0) - (b.price_margin || 0));
+      case "smart":
+      default: {
+        // Smart sorting: Price → Completion Rate → Online → Release Speed → Verified
+        result.sort((a, b) => {
+          // 1. Price: lower for buy mode (sell offers), higher for sell mode (buy offers)
+          const priceDir = filters.type === "buy" ? 1 : -1;
+          const priceDiff = ((a.price_per_unit || 0) - (b.price_per_unit || 0)) * priceDir;
+          if (Math.abs(priceDiff) > 0.01) {
+            // Normalize price diff to a score weight
+            const priceScore = priceDiff / Math.max(a.price_per_unit || 1, b.price_per_unit || 1);
+            if (Math.abs(priceScore) > 0.001) return priceScore > 0 ? 1 : -1;
+          }
+
+          // 2. Completion rate (higher is better)
+          const completionDiff = getCompletionRate(b) - getCompletionRate(a);
+          if (Math.abs(completionDiff) > 0.02) return completionDiff > 0 ? 1 : -1;
+
+          // 3. Online status
+          const aOnline = isOnline(a) ? 1 : 0;
+          const bOnline = isOnline(b) ? 1 : 0;
+          if (bOnline !== aOnline) return bOnline - aOnline;
+
+          // 4. Verified badge
+          const aVerified = a.trader_verified ? 1 : 0;
+          const bVerified = b.trader_verified ? 1 : 0;
+          if (bVerified !== aVerified) return bVerified - aVerified;
+
+          // 5. More trades = more trusted
+          return (b.trader_trades || 0) - (a.trader_trades || 0);
+        });
+
+        // Amount compatibility boost: if user entered amount, boost offers that include it
+        if (filters.amount) {
+          const amt = parseFloat(filters.amount);
+          if (!isNaN(amt)) {
+            result.sort((a, b) => {
+              const aFits = amt >= a.min_amount && amt <= a.max_amount;
+              const bFits = amt >= b.min_amount && amt <= b.max_amount;
+              if (aFits && !bFits) return -1;
+              if (!aFits && bFits) return 1;
+              return 0; // preserve existing order
+            });
+          }
+        }
         break;
-      case "margin_desc":
-        result.sort((a, b) => (b.price_margin || 0) - (a.price_margin || 0));
+      }
+      case "price_asc":
+        result.sort((a, b) => (a.price_per_unit || 0) - (b.price_per_unit || 0));
+        break;
+      case "price_desc":
+        result.sort((a, b) => (b.price_per_unit || 0) - (a.price_per_unit || 0));
+        break;
+      case "completion_desc":
+        result.sort((a, b) => getCompletionRate(b) - getCompletionRate(a));
+        break;
+      case "online_first":
+        result.sort((a, b) => {
+          const aOn = isOnline(a) ? 1 : 0;
+          const bOn = isOnline(b) ? 1 : 0;
+          return bOn - aOn;
+        });
         break;
       case "rating_desc":
         result.sort((a, b) => (b.trader_rating || 0) - (a.trader_rating || 0));
         break;
       case "trades_desc":
         result.sort((a, b) => (b.trader_trades || 0) - (a.trader_trades || 0));
-        break;
-      case "completion_desc":
-        result.sort((a, b) => {
-          const aRate = (a.trader_successful_trades ?? a.trader_trades ?? 0) / (a.trader_trades || 1);
-          const bRate = (b.trader_successful_trades ?? b.trader_trades ?? 0) / (b.trader_trades || 1);
-          return bRate - aRate;
-        });
         break;
     }
     return result;
@@ -281,7 +339,7 @@ const Marketplace = () => {
                   onlineOnly: false,
                   minPrice: "",
                   maxPrice: "",
-                  sortBy: "margin_asc",
+                  sortBy: "smart",
                   minTierLevel: null,
                   minCompletionRate: 0,
                 })}>
