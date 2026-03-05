@@ -92,7 +92,7 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
   const [onlineOnly, setOnlineOnly] = useState(initialFilters?.onlineOnly || false);
   const [minPrice, setMinPrice] = useState(initialFilters?.minPrice || "");
   const [maxPrice, setMaxPrice] = useState(initialFilters?.maxPrice || "");
-  const [sortBy, setSortBy] = useState(initialFilters?.sortBy || "margin_asc");
+  const [sortBy, setSortBy] = useState(initialFilters?.sortBy || "smart");
   const [minTierLevel, setMinTierLevel] = useState<TraderTier | null>(initialFilters?.minTierLevel || null);
   const [minCompletionRate, setMinCompletionRate] = useState(initialFilters?.minCompletionRate || 0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -122,7 +122,7 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
     setOnlineOnly(false);
     setMinPrice("");
     setMaxPrice("");
-    setSortBy("margin_asc");
+    setSortBy("smart");
     setMinTierLevel(null);
     setMinCompletionRate(0);
   };
@@ -353,11 +353,13 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      <SelectItem value="margin_asc" className="text-xs rounded-lg">Price ↑</SelectItem>
-                      <SelectItem value="margin_desc" className="text-xs rounded-lg">Price ↓</SelectItem>
-                      <SelectItem value="rating_desc" className="text-xs rounded-lg">Rating ↓</SelectItem>
-                      <SelectItem value="trades_desc" className="text-xs rounded-lg">Trades ↓</SelectItem>
-                      <SelectItem value="completion_desc" className="text-xs rounded-lg">Completion ↓</SelectItem>
+                      <SelectItem value="smart" className="text-xs rounded-lg">⚡ Smart Sort</SelectItem>
+                      <SelectItem value="price_asc" className="text-xs rounded-lg">Best Price ↑</SelectItem>
+                      <SelectItem value="price_desc" className="text-xs rounded-lg">Best Price ↓</SelectItem>
+                      <SelectItem value="completion_desc" className="text-xs rounded-lg">Completion Rate</SelectItem>
+                      <SelectItem value="online_first" className="text-xs rounded-lg">Online Traders</SelectItem>
+                      <SelectItem value="rating_desc" className="text-xs rounded-lg">Highest Rating</SelectItem>
+                      <SelectItem value="trades_desc" className="text-xs rounded-lg">Most Trades</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

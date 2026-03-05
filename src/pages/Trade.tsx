@@ -50,7 +50,8 @@ import { PaymentProofDialog } from "@/components/trade/PaymentProofDialog";
 import { ModeratorMessage } from "@/components/trade/ModeratorMessage";
 import { ModeratorActionsPanel } from "@/components/trade/ModeratorActionsPanel";
 import { ResolutionCard } from "@/components/trade/ResolutionCard";
-import { PaymentSentMessage } from "@/components/trade/PaymentSentMessage";
+ import { PaymentSentMessage } from "@/components/trade/PaymentSentMessage";
+ import { TradeLockBanner } from "@/components/trade/TradeLockBanner";
  import { CancelTradeDialog } from "@/components/trade/CancelTradeDialog";
  import { ReleaseCryptoDialog } from "@/components/trade/ReleaseCryptoDialog";
  import { DisputeConfirmDialog } from "@/components/trade/DisputeConfirmDialog";
@@ -450,6 +451,17 @@ const TradePageContent = () => {
                   escrowLocked={trade.escrow_locked || false}
                 />
               )}
+
+              {/* Trade Lock Indicators */}
+              <TradeLockBanner
+                escrowLocked={trade.escrow_locked || false}
+                status={trade.status}
+                cryptoAmount={trade.crypto_amount}
+                cryptoType={trade.crypto_type}
+                fiatAmount={trade.fiat_amount}
+                fiatCurrency={trade.fiat_currency || "USD"}
+                paymentMethod={trade.payment_method}
+              />
               
               {/* Payment Window Timer - only for pending/confirmed */}
               {["pending", "confirmed"].includes(trade.status) && trade.expires_at && (
