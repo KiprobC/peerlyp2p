@@ -178,9 +178,9 @@ export const useModeratorDisputes = () => {
           resolution_notes: notes,
           resolved_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          assigned_to: user.id,
         })
-        .eq("trade_id", tradeId)
-        .eq("assigned_to", user.id);
+        .eq("trade_id", tradeId);
 
       if (updateError) throw updateError;
 
@@ -219,8 +219,7 @@ export const useModeratorDisputes = () => {
       const { error } = await supabase
         .from("dispute_assignments")
         .update(updateData)
-        .eq("trade_id", tradeId)
-        .eq("assigned_to", user.id);
+        .eq("trade_id", tradeId);
 
       if (error) throw error;
       await fetchDisputes();
