@@ -327,23 +327,20 @@ export const ModeratorDisputes = () => {
                     <TraderCard trader={dispute.seller} role="Seller" />
                   </div>
 
-                  {/* Messages - only visible if assigned to me */}
-                  {isAssignedToMe(dispute) && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <MessageSquare className="h-4 w-4" />
-                        <span className="font-medium">Trade Chat</span>
-                      </div>
-                      <MessageViewer tradeId={dispute.trade_id} />
+                  {/* Messages - visible to any moderator */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="font-medium">Trade Chat</span>
                     </div>
-                  )}
+                    <MessageViewer tradeId={dispute.trade_id} />
+                  </div>
 
-                  {/* Actions */}
+                  {/* Actions - any moderator can act */}
                   <div className="flex gap-2 pt-4 border-t flex-wrap">
-                    {/* Self-assign button for unassigned or other-assigned disputes */}
                     {!isAssignedToMe(dispute) && (
                       <Button 
-                        variant="default" 
+                        variant="outline" 
                         onClick={() => handleSelfAssign(dispute)}
                         disabled={assigning === dispute.id}
                       >
@@ -351,24 +348,19 @@ export const ModeratorDisputes = () => {
                         {assigning === dispute.id ? "Assigning..." : "Pick This Dispute"}
                       </Button>
                     )}
-                    
-                    {isAssignedToMe(dispute) && (
-                      <>
-                        {dispute.status === "assigned" && (
-                          <Button variant="outline" onClick={() => handleMarkInReview(dispute)}>
-                            Mark In Review
-                          </Button>
-                        )}
-                        <Button
-                          onClick={() => {
-                            setSelectedDispute(dispute);
-                            setResolveDialog(true);
-                          }}
-                        >
-                          Resolve Dispute
-                        </Button>
-                      </>
+                    {dispute.status === "assigned" && (
+                      <Button variant="outline" onClick={() => handleMarkInReview(dispute)}>
+                        Mark In Review
+                      </Button>
                     )}
+                    <Button
+                      onClick={() => {
+                        setSelectedDispute(dispute);
+                        setResolveDialog(true);
+                      }}
+                    >
+                      Resolve Dispute
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
