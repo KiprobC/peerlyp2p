@@ -313,8 +313,16 @@ export const ModeratorDisputes = () => {
                         </div>
                       </div>
                       {dispute.trade.dispute_reason && (
-                        <div className="mt-3 pt-3 border-t">
-                          <p className="text-sm text-muted-foreground">Dispute Reason:</p>
+                        <div className="mt-3 pt-3 border-t space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-muted-foreground">Disputed by:</p>
+                            <Badge variant="outline" className="text-xs">
+                              @{dispute.trade.disputed_by === dispute.trade.buyer_id
+                                ? (dispute.buyer?.username || "unknown") + " (Buyer)"
+                                : (dispute.seller?.username || "unknown") + " (Seller)"}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">Reason:</p>
                           <p className="text-sm">{dispute.trade.dispute_reason}</p>
                         </div>
                       )}

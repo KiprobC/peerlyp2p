@@ -73,6 +73,7 @@ export interface AssignedDispute {
     payment_method: string;
     status: string;
     dispute_reason: string | null;
+    disputed_by: string | null;
     created_at: string;
   };
   buyer?: {
