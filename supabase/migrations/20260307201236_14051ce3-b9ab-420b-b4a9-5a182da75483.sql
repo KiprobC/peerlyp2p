@@ -1,0 +1,2 @@
+ALTER TABLE public.trade_audit_trail DROP CONSTRAINT trade_audit_trail_action_type_check;
+ALTER TABLE public.trade_audit_trail ADD CONSTRAINT trade_audit_trail_action_type_check CHECK (action_type = ANY (ARRAY['created','escrow_locked','payment_sent','completed','disputed','cancelled','resolved','escrow_released_with_fee']));
