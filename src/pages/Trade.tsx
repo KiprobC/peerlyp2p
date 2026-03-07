@@ -843,7 +843,23 @@ const TradePageContent = () => {
         );
       }
       
-      // User message
+      // User message - check for attachment
+      const attachmentMatch = message.message.match(/^\[Attachment:\s*(.+?)\]$/);
+      let attachment = null;
+      if (attachmentMatch) {
+        const fileName = attachmentMatch[1];
+        const matchingEvidence = allEvidence.find(
+          e => e.evidence_type === "chat_attachment" && e.file_name === fileName
+        );
+        if (matchingEvidence) {
+          attachment = {
+            fileName: matchingEvidence.file_name,
+            fileUrl: matchingEvidence.file_url,
+            fileType: matchingEvidence.file_type,
+          };
+        }
+      }
+
       return (
         <ChatMessage
           key={message.id}
@@ -853,6 +869,7 @@ const TradePageContent = () => {
           avatarUrl={isOwn ? null : counterparty?.avatar_url}
           timestamp={message.created_at}
           showAvatar={showAvatar}
+          attachment={attachment}
         />
       );
     });
