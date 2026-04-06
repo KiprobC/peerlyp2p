@@ -2000,6 +2000,8 @@ export type Database = {
         Args: { p_crypto_type: string; p_user_id: string }
         Returns: string
       }
+      get_trader_public_stats: { Args: { p_user_id: string }; Returns: Json }
+      get_trader_reviews: { Args: { p_user_id: string }; Returns: Json }
       get_user_by_username: { Args: { p_username: string }; Returns: Json }
       get_user_kyc_tier: {
         Args: { p_user_id: string }
