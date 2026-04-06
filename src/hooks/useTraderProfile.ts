@@ -107,7 +107,7 @@ export const useTraderProfile = () => {
 
       // Reviews from RPC
       if (reviewsRes.data && Array.isArray(reviewsRes.data)) {
-        setReviews(reviewsRes.data.map((r: Record<string, unknown>) => ({
+        setReviews((reviewsRes.data as unknown as Record<string, unknown>[]).map((r) => ({
           id: r.id as string,
           rating: Number(r.rating),
           comment: (r.comment as string) || null,
