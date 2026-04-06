@@ -743,6 +743,31 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
             </div>
           )}
 
+          {/* Inline Validation Hints */}
+          {!partialFillInfo && !loading && (
+            (() => {
+              const issues: string[] = [];
+              if (insufficientAvailable) issues.push("This offer has no available balance");
+              else {
+                if (!fiatAmount || parsedFiatAmount <= 0) issues.push("Enter an amount to continue");
+                else if (parsedFiatAmount < minAmount) issues.push(`Minimum amount is ${fiatCurrency} ${minAmount.toLocaleString()}`);
+                else if (parsedFiatAmount > dynamicMaxAmount) issues.push(`Maximum amount is ${fiatCurrency} ${dynamicMaxAmount.toLocaleString()}`);
+                if (exceedsAvailableBalance) issues.push(`Exceeds available balance (${availableCrypto.toFixed(6)} ${cryptoType})`);
+                if (!selectedPayment) issues.push("Select a payment method");
+              }
+              return issues.length > 0 ? (
+                <div className="p-2.5 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  {issues.map((issue, i) => (
+                    <p key={i} className="text-xs text-destructive flex items-center gap-1.5">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
+                      {issue}
+                    </p>
+                  ))}
+                </div>
+              ) : null;
+            })()
+          )}
+
           {/* Action Button - Hidden when partial fill notice is showing */}
           {!partialFillInfo && (
             <Button
