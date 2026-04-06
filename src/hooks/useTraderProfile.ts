@@ -21,6 +21,8 @@ export interface TraderMetrics {
   avgReleaseTimeMinutes: number | null;
   totalVolume: number;
   volumeCurrency: string;
+  avgRating: number;
+  ratingCount: number;
 }
 
 export interface TraderReview {
@@ -51,22 +53,15 @@ export const useTraderProfile = () => {
     setLoading(true);
 
     try {
-      // Parallel fetches
-      const [profileRes, tradesRes, ratingsRes, trustRes, blockRes, offersRes] = await Promise.all([
+      // Parallel fetches using secure RPC functions for stats/reviews
+      const [profileRes, statsRes, reviewsRes, trustRes, blockRes, offersRes] = await Promise.all([
         supabase
           .from("profiles")
           .select("username, full_name, avatar_url, is_verified, country, created_at, last_seen")
           .eq("user_id", targetUserId)
           .single(),
-        supabase
-          .from("trades")
-          .select("status, fiat_amount, fiat_currency, completed_at, payment_confirmed_at, created_at")
-          .or(`buyer_id.eq.${targetUserId},seller_id.eq.${targetUserId}`),
-        supabase
-          .from("trade_ratings")
-          .select("id, rating, comment, created_at, rater_id")
-          .eq("rated_id", targetUserId)
-          .order("created_at", { ascending: false }),
+        supabase.rpc("get_trader_public_stats", { p_user_id: targetUserId }),
+        supabase.rpc("get_trader_reviews", { p_user_id: targetUserId }),
         user ? supabase
           .from("user_trusts")
           .select("id")
@@ -93,62 +88,31 @@ export const useTraderProfile = () => {
       setIsTrusted(!!trustRes.data);
       setIsBlocked(!!blockRes.data);
 
-      // Metrics
-      const trades = tradesRes.data || [];
-      const totalTrades = trades.length;
-      const completedTrades = trades.filter(t => t.status === "completed").length;
-      const disputedTrades = trades.filter(t => t.status === "disputed").length;
-      const completionRate = totalTrades > 0 ? Math.round((completedTrades / totalTrades) * 100) : 0;
-      const disputeRate = totalTrades > 0 ? Math.round((disputedTrades / totalTrades) * 100) : 0;
-
-      // Volume from completed trades
-      const completedTradesList = trades.filter(t => t.status === "completed");
-      const totalVolume = completedTradesList.reduce((sum, t) => sum + (t.fiat_amount || 0), 0);
-      const volumeCurrency = completedTradesList[0]?.fiat_currency || "KES";
-
-      // Average release time (from payment_confirmed_at to completed_at)
-      let avgReleaseTimeMinutes: number | null = null;
-      const releaseTimes = completedTradesList
-        .filter(t => t.payment_confirmed_at && t.completed_at)
-        .map(t => {
-          const confirmed = new Date(t.payment_confirmed_at!).getTime();
-          const completed = new Date(t.completed_at!).getTime();
-          return (completed - confirmed) / (1000 * 60);
-        })
-        .filter(m => m > 0 && m < 10080); // filter out unreasonable values (>7 days)
-
-      if (releaseTimes.length > 0) {
-        avgReleaseTimeMinutes = Math.round(releaseTimes.reduce((a, b) => a + b, 0) / releaseTimes.length);
+      // Metrics from RPC
+      if (statsRes.data) {
+        const s = statsRes.data as Record<string, unknown>;
+        setMetrics({
+          totalTrades: Number(s.totalTrades) || 0,
+          completedTrades: Number(s.completedTrades) || 0,
+          completionRate: Number(s.completionRate) || 0,
+          disputeCount: Number(s.disputeCount) || 0,
+          disputeRate: Number(s.disputeRate) || 0,
+          avgReleaseTimeMinutes: s.avgReleaseTimeMinutes != null ? Number(s.avgReleaseTimeMinutes) : null,
+          totalVolume: Number(s.totalVolume) || 0,
+          volumeCurrency: (s.volumeCurrency as string) || "KES",
+          avgRating: Number(s.avgRating) || 0,
+          ratingCount: Number(s.ratingCount) || 0,
+        });
       }
 
-      setMetrics({
-        totalTrades,
-        completedTrades,
-        completionRate,
-        disputeCount: disputedTrades,
-        disputeRate,
-        avgReleaseTimeMinutes,
-        totalVolume,
-        volumeCurrency,
-      });
-
-      // Reviews with rater names
-      const ratings = ratingsRes.data || [];
-      if (ratings.length > 0) {
-        const raterIds = [...new Set(ratings.map(r => r.rater_id))];
-        const { data: raterProfiles } = await supabase
-          .from("profiles")
-          .select("user_id, username")
-          .in("user_id", raterIds);
-
-        const raterMap = new Map(raterProfiles?.map(p => [p.user_id, p.username]) || []);
-
-        setReviews(ratings.map(r => ({
-          id: r.id,
-          rating: r.rating,
-          comment: r.comment,
-          created_at: r.created_at,
-          rater_username: raterMap.get(r.rater_id) || null,
+      // Reviews from RPC
+      if (reviewsRes.data && Array.isArray(reviewsRes.data)) {
+        setReviews((reviewsRes.data as unknown as Record<string, unknown>[]).map((r) => ({
+          id: r.id as string,
+          rating: Number(r.rating),
+          comment: (r.comment as string) || null,
+          created_at: r.created_at as string,
+          rater_username: (r.rater_username as string) || null,
         })));
       } else {
         setReviews([]);
@@ -198,7 +162,6 @@ export const useTraderProfile = () => {
       } else {
         await supabase.from("user_blocks").insert({ user_id: user.id, blocked_user_id: targetUserId });
         setIsBlocked(true);
-        // Also remove trust if blocking
         if (isTrusted) {
           await supabase.from("user_trusts").delete().eq("user_id", user.id).eq("trusted_user_id", targetUserId);
           setIsTrusted(false);
