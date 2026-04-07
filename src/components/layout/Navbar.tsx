@@ -46,8 +46,8 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <img src={peerlyLogo} alt="Peerly" className="h-7 w-auto" />
+          <Link to="/" className="flex items-center gap-2 pl-1">
+            <img src={isDark ? peerlyLogoDark : peerlyLogoLight} alt="Peerly" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
