@@ -54,7 +54,7 @@ const Notifications = () => {
         break;
       case "payment":
         if (data?.transfer_id || notification.title?.toLowerCase().includes("transfer")) {
-          navigate("/transaction-history");
+          navigate("/wallet/history");
         } else {
           navigate("/wallet-deposit");
         }

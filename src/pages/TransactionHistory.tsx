@@ -5,6 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import {
   ArrowLeft,
   ArrowUpRight,
   ArrowDownLeft,
@@ -15,11 +22,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
+  Copy,
+  ExternalLink,
+  CheckCircle2,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cryptoInfo } from "@/hooks/useWallets";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 
 const PAGE_SIZE = 20;
 
@@ -48,6 +61,12 @@ const statusColors: Record<string, string> = {
   failed: "bg-red-500/15 text-red-600 border-red-500/30",
 };
 
+const statusIcons: Record<string, typeof CheckCircle2> = {
+  completed: CheckCircle2,
+  pending: Clock,
+  failed: XCircle,
+};
+
 const TransactionHistory = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -57,6 +76,7 @@ const TransactionHistory = () => {
   const [typeFilter, setTypeFilter] = useState<TxType>("all");
   const [statusFilter, setStatusFilter] = useState<TxStatus>("all");
   const [cryptoFilter, setCryptoFilter] = useState<string>("all");
+  const [selectedTx, setSelectedTx] = useState<any | null>(null);
 
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
@@ -100,6 +120,27 @@ const TransactionHistory = () => {
   }, [typeFilter, statusFilter, cryptoFilter]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied", description: "Copied to clipboard" });
+  };
+
+  const DetailRow = ({ label, value, copyable }: { label: string; value: string | React.ReactNode; copyable?: boolean }) => (
+    <div className="flex items-start justify-between gap-3 py-2.5">
+      <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className="text-sm font-medium text-foreground text-right truncate">
+          {value}
+        </span>
+        {copyable && typeof value === "string" && (
+          <button onClick={() => copyToClipboard(value)} className="shrink-0 text-muted-foreground hover:text-foreground">
+            <Copy className="w-3 h-3" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,7 +228,8 @@ const TransactionHistory = () => {
                 return (
                   <div
                     key={tx.id}
-                    className="glass-card p-3 flex items-center gap-3"
+                    className="glass-card p-3 flex items-center gap-3 cursor-pointer hover:bg-secondary/50 transition-colors active:scale-[0.99]"
+                    onClick={() => setSelectedTx(tx)}
                   >
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
@@ -206,21 +248,9 @@ const TransactionHistory = () => {
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-0.5">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{format(new Date(tx.created_at), "MMM d, HH:mm")}</span>
-                          {tx.fee > 0 && (
-                            <span className="text-muted-foreground/70">Fee: {tx.fee}</span>
-                          )}
-                          {tx.trade_id && (
-                            <Link 
-                              to={`/trade/${tx.trade_id}`} 
-                              className="text-primary hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Trade
-                            </Link>
-                          )}
-                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(tx.created_at), "MMM d, HH:mm")}
+                        </span>
                         <Badge 
                           variant="outline" 
                           className={`text-[10px] px-1.5 h-5 ${statusColors[tx.status] || ""}`}
@@ -228,11 +258,6 @@ const TransactionHistory = () => {
                           {tx.status}
                         </Badge>
                       </div>
-                      {tx.reference && (
-                        <p className="text-[10px] text-muted-foreground/60 mt-0.5 truncate font-mono">
-                          Ref: {tx.reference}
-                        </p>
-                      )}
                     </div>
                   </div>
                 );
@@ -270,6 +295,96 @@ const TransactionHistory = () => {
           )}
         </div>
       </main>
+
+      {/* Transaction Detail Sheet */}
+      <Sheet open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
+          {selectedTx && (() => {
+            const info = cryptoInfo[selectedTx.crypto_type] || { name: selectedTx.crypto_type, icon: "?", color: "#888" };
+            const Icon = txTypeIcons[selectedTx.type] || RefreshCw;
+            const StatusIcon = statusIcons[selectedTx.status] || Clock;
+            const isCredit = ["deposit", "escrow_release"].includes(selectedTx.type);
+
+            return (
+              <>
+                <SheetHeader className="pb-4">
+                  <SheetTitle className="sr-only">Transaction Details</SheetTitle>
+                  <div className="flex flex-col items-center gap-3 pt-2">
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: `${info.color}15`, color: info.color }}
+                    >
+                      <Icon className="w-7 h-7" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">
+                        {txTypeLabels[selectedTx.type] || selectedTx.type}
+                      </p>
+                      <p className={`text-2xl font-bold mt-1 ${isCredit ? "text-green-500" : "text-foreground"}`}>
+                        {isCredit ? "+" : "-"}{selectedTx.amount} {selectedTx.crypto_type}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`gap-1.5 ${statusColors[selectedTx.status] || ""}`}
+                    >
+                      <StatusIcon className="w-3 h-3" />
+                      {selectedTx.status?.charAt(0).toUpperCase() + selectedTx.status?.slice(1)}
+                    </Badge>
+                  </div>
+                </SheetHeader>
+
+                <Separator />
+
+                <div className="py-3 space-y-0.5">
+                  <DetailRow label="Type" value={txTypeLabels[selectedTx.type] || selectedTx.type} />
+                  <DetailRow label="Asset" value={`${info.icon} ${info.name} (${selectedTx.crypto_type})`} />
+                  <DetailRow
+                    label="Amount"
+                    value={`${selectedTx.amount} ${selectedTx.crypto_type}`}
+                  />
+                  {selectedTx.fee > 0 && (
+                    <DetailRow label="Fee" value={`${selectedTx.fee} ${selectedTx.crypto_type}`} />
+                  )}
+                  <DetailRow
+                    label="Date"
+                    value={format(new Date(selectedTx.created_at), "MMM d, yyyy 'at' HH:mm:ss")}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="py-3 space-y-0.5">
+                  {selectedTx.description && (
+                    <DetailRow label="Description" value={selectedTx.description} />
+                  )}
+                  {selectedTx.reference && (
+                    <DetailRow label="Reference" value={selectedTx.reference} copyable />
+                  )}
+                  {selectedTx.mpesa_receipt && (
+                    <DetailRow label="M-Pesa Receipt" value={selectedTx.mpesa_receipt} copyable />
+                  )}
+                  <DetailRow label="Transaction ID" value={selectedTx.id?.slice(0, 16) + "..."} copyable />
+                </div>
+
+                {selectedTx.trade_id && (
+                  <>
+                    <Separator />
+                    <div className="py-3">
+                      <Link to={`/trade/${selectedTx.trade_id}`} onClick={() => setSelectedTx(null)}>
+                        <Button variant="outline" className="w-full gap-2 h-10">
+                          <ExternalLink className="w-4 h-4" />
+                          View Related Trade
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
