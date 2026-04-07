@@ -53,7 +53,11 @@ const Notifications = () => {
         }
         break;
       case "payment":
-        navigate("/dashboard");
+        if (data?.transfer_id || notification.title?.toLowerCase().includes("transfer")) {
+          navigate("/transaction-history");
+        } else {
+          navigate("/wallet-deposit");
+        }
         break;
       case "kyc":
         if (data?.status === "rejected" || data?.status === "pending") {
