@@ -10,18 +10,9 @@ import { ProfilePopover } from "./ProfilePopover";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDark, setIsDark] = useState(true);
   const location = useLocation();
   const { user } = useAuth();
   const { isAdmin } = useAdminRole();
-
-  useEffect(() => {
-    const check = () => setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
 
   const publicLinks = [
     { name: "Home", path: "/" },
