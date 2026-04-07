@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Shield } from "lucide-react";
-import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyLogoDark from "@/assets/peerly-logo.png";
+import peerlyLogoLight from "@/assets/peerly-logo-light.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminRole } from "@/hooks/useAdmin";
 import { NotificationPopover } from "./NotificationPopover";
@@ -10,9 +11,18 @@ import { ProfilePopover } from "./ProfilePopover";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   const location = useLocation();
   const { user } = useAuth();
   const { isAdmin } = useAdminRole();
+
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const publicLinks = [
     { name: "Home", path: "/" },
