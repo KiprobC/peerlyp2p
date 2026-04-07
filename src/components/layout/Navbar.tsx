@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Shield } from "lucide-react";
-import peerlyLogoDark from "@/assets/peerly-logo.png";
-import peerlyLogoLight from "@/assets/peerly-logo-light.png";
+import peerlyIcon from "@/assets/peerly-icon.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminRole } from "@/hooks/useAdmin";
 import { NotificationPopover } from "./NotificationPopover";
@@ -11,18 +10,9 @@ import { ProfilePopover } from "./ProfilePopover";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDark, setIsDark] = useState(true);
   const location = useLocation();
   const { user } = useAuth();
   const { isAdmin } = useAdminRole();
-
-  useEffect(() => {
-    const check = () => setIsDark(document.documentElement.classList.contains("dark"));
-    check();
-    const observer = new MutationObserver(check);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
-  }, []);
 
   const publicLinks = [
     { name: "Home", path: "/" },
@@ -46,8 +36,9 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 pl-1">
-            <img src={isDark ? peerlyLogoDark : peerlyLogoLight} alt="Peerly" className="h-8 w-auto" />
+          <Link to="/" className="flex items-center gap-2">
+            <img src={peerlyIcon} alt="Peerly" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
+            <span className="text-lg font-bold text-foreground">Peerly</span>
           </Link>
 
           {/* Desktop Navigation */}

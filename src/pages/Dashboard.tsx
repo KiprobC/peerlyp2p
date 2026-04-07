@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import peerlyLogoDark from "@/assets/peerly-logo.png";
-import peerlyLogoLight from "@/assets/peerly-logo-light.png";
+import peerlyIcon from "@/assets/peerly-icon.png";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -123,11 +122,8 @@ const Dashboard = () => {
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <Link to="/" className="flex items-center gap-2">
-              <img 
-                src={document.documentElement.classList.contains("dark") ? peerlyLogoDark : peerlyLogoLight} 
-                alt="Peerly" 
-                className="h-8 w-auto object-contain"
-              />
+              <img src={peerlyIcon} alt="Peerly" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
+              <span className="text-lg sm:text-xl font-bold text-foreground">Peerly</span>
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
