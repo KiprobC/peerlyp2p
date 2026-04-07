@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import peerlyLogoDark from "@/assets/peerly-logo.png";
+import peerlyLogoLight from "@/assets/peerly-logo-light.png";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,13 +124,10 @@ const Dashboard = () => {
           <div className="flex items-center justify-between h-14 sm:h-16">
             <Link to="/" className="flex items-center gap-2">
               <img 
-                src="/peerly-logo.png" 
+                src={document.documentElement.classList.contains("dark") ? peerlyLogoDark : peerlyLogoLight} 
                 alt="Peerly" 
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-contain"
+                className="h-8 w-auto object-contain"
               />
-              <span className="font-bold text-lg sm:text-xl text-foreground hidden xs:block">
-                Peerly
-              </span>
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
