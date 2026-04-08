@@ -53,23 +53,23 @@ export const useDepositAddresses = () => {
     if (!user) return null;
 
     try {
-      // First check if we already have it cached
-      if (addresses[cryptoType.toUpperCase()]) {
-        return addresses[cryptoType.toUpperCase()].address;
+      const upperCrypto = cryptoType.toUpperCase();
+      
+      // Check cache first
+      if (addresses[upperCrypto]) {
+        return addresses[upperCrypto].address;
       }
 
-      // Call the database function to get or create
-      const { data, error } = await supabase.rpc("get_or_create_deposit_address", {
-        p_user_id: user.id,
-        p_crypto_type: cryptoType,
+      // Call edge function to generate via Tatum
+      const { data, error } = await supabase.functions.invoke("tatum-generate-address", {
+        body: { crypto_type: upperCrypto },
       });
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        // Refresh addresses to update cache
+      if (data?.address) {
         await fetchAddresses();
-        return data[0].address;
+        return data.address;
       }
 
       return null;

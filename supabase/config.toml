@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.validate-action]
 verify_jwt = false
+
+[functions.tatum-generate-address]
+verify_jwt = false
+
+[functions.tatum-webhook]
+verify_jwt = false
