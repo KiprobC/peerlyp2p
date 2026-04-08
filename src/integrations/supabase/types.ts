@@ -1792,45 +1792,54 @@ export type Database = {
       wallet_transactions: {
         Row: {
           amount: number
+          confirmations: number | null
           created_at: string
           crypto_type: string
           description: string | null
           fee: number | null
           id: string
           mpesa_receipt: string | null
+          network: string | null
           reference: string | null
           status: string | null
           trade_id: string | null
+          tx_hash: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           wallet_id: string
         }
         Insert: {
           amount: number
+          confirmations?: number | null
           created_at?: string
           crypto_type: string
           description?: string | null
           fee?: number | null
           id?: string
           mpesa_receipt?: string | null
+          network?: string | null
           reference?: string | null
           status?: string | null
           trade_id?: string | null
+          tx_hash?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           wallet_id: string
         }
         Update: {
           amount?: number
+          confirmations?: number | null
           created_at?: string
           crypto_type?: string
           description?: string | null
           fee?: number | null
           id?: string
           mpesa_receipt?: string | null
+          network?: string | null
           reference?: string | null
           status?: string | null
           trade_id?: string | null
+          tx_hash?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
           wallet_id?: string
