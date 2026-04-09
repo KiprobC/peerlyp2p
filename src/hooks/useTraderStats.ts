@@ -41,7 +41,9 @@ export const useTraderStats = (userId?: string) => {
 
       const totalTrades = trades?.length || 0;
       const completedTrades = trades?.filter(t => t.status === "completed").length || 0;
-      const successRate = totalTrades > 0 ? Math.round((completedTrades / totalTrades) * 100) : 0;
+      const cancelledTrades = trades?.filter(t => t.status === "cancelled").length || 0;
+      const resolvedTrades = completedTrades + cancelledTrades;
+      const successRate = resolvedTrades > 0 ? Math.round((completedTrades / resolvedTrades) * 100) : 0;
 
       // Fetch rating from profile (this is calculated from trade_ratings)
       const { data: profile, error: profileError } = await supabase
@@ -84,7 +86,9 @@ export const fetchTraderStatsById = async (userId: string): Promise<TraderStats>
 
     const totalTrades = trades?.length || 0;
     const completedTrades = trades?.filter(t => t.status === "completed").length || 0;
-    const successRate = totalTrades > 0 ? Math.round((completedTrades / totalTrades) * 100) : 0;
+    const cancelledTrades = trades?.filter(t => t.status === "cancelled").length || 0;
+    const resolvedTrades = completedTrades + cancelledTrades;
+    const successRate = resolvedTrades > 0 ? Math.round((completedTrades / resolvedTrades) * 100) : 0;
 
     const { data: profile } = await supabase
       .from("profiles")
