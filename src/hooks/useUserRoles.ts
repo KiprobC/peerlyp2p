@@ -49,13 +49,14 @@ export const useUserRoles = () => {
 
       if (tradesError) throw tradesError;
 
-      // Calculate trade stats per user
-      const userTradeStats = new Map<string, { total: number; completed: number }>();
+      // Calculate trade stats per user (only resolved trades for success rate)
+      const userTradeStats = new Map<string, { total: number; completed: number; cancelled: number }>();
       trades?.forEach((trade) => {
         [trade.buyer_id, trade.seller_id].forEach((userId) => {
-          const stats = userTradeStats.get(userId) || { total: 0, completed: 0 };
+          const stats = userTradeStats.get(userId) || { total: 0, completed: 0, cancelled: 0 };
           stats.total += 1;
           if (trade.status === "completed") stats.completed += 1;
+          if (trade.status === "cancelled") stats.cancelled += 1;
           userTradeStats.set(userId, stats);
         });
       });
@@ -68,7 +69,7 @@ export const useUserRoles = () => {
 
       // Merge data
       const usersWithRoles: UserWithRole[] = (profiles || []).map((profile) => {
-        const stats = userTradeStats.get(profile.user_id) || { total: 0, completed: 0 };
+        const stats = userTradeStats.get(profile.user_id) || { total: 0, completed: 0, cancelled: 0 };
         const role = roleMap.get(profile.user_id) || "user";
         const createdAt = new Date(profile.created_at);
         const now = new Date();
@@ -85,7 +86,10 @@ export const useUserRoles = () => {
           is_verified: profile.is_verified || false,
           total_trades: stats.total,
           successful_trades: stats.completed,
-          success_rate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+          success_rate: (() => {
+            const resolved = stats.completed + stats.cancelled;
+            return resolved > 0 ? Math.round((stats.completed / resolved) * 100) : 0;
+          })(),
           rating: profile.rating || 0,
           created_at: profile.created_at,
           days_on_platform: daysOnPlatform,

@@ -115,9 +115,10 @@ const Marketplace = () => {
         if (traderTierIndex < minTierIndex) return false;
       }
       if (filters.minCompletionRate > 0) {
-        const successfulTrades = offer.trader_successful_trades ?? offer.trader_trades ?? 0;
-        const totalTrades = offer.trader_trades || 1;
-        const completionRate = (successfulTrades / totalTrades) * 100;
+        const completed = offer.trader_successful_trades ?? 0;
+        const cancelled = offer.trader_cancelled_trades ?? 0;
+        const resolved = completed + cancelled;
+        const completionRate = resolved > 0 ? (completed / resolved) * 100 : 0;
         if (completionRate < filters.minCompletionRate) return false;
       }
       return true;
@@ -125,9 +126,10 @@ const Marketplace = () => {
 
     // Helper functions for scoring
     const getCompletionRate = (o: OfferWithProfile) => {
-      const successful = o.trader_successful_trades ?? o.trader_trades ?? 0;
-      const total = o.trader_trades || 1;
-      return successful / total;
+      const completed = o.trader_successful_trades ?? 0;
+      const cancelled = o.trader_cancelled_trades ?? 0;
+      const resolved = completed + cancelled;
+      return resolved > 0 ? completed / resolved : 0;
     };
 
     const isOnline = (o: OfferWithProfile) => isUserOnline(o.trader_last_seen || null);
