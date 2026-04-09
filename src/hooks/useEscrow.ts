@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface EscrowResult {
   success: boolean;
@@ -81,16 +82,18 @@ export const useEscrow = () => {
   };
 
   // Release escrow to buyer with 0.99% seller fee (atomic server-side)
+  // Then trigger on-chain USDT transfer via Tatum
   const releaseEscrow = async (
     sellerId: string,
     buyerId: string,
     cryptoType: string,
     amount: number,
     tradeId: string
-  ): Promise<EscrowResult & { fee_amount?: number; buyer_amount?: number }> => {
+  ): Promise<EscrowResult & { fee_amount?: number; buyer_amount?: number; tx_hash?: string }> => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
+      // Step 1: Internal balance update (atomic DB transaction)
       const { data, error } = await (supabase.rpc as any)("release_escrow_with_fee", {
         p_trade_id: tradeId,
         p_seller_id: sellerId,
@@ -115,10 +118,39 @@ export const useEscrow = () => {
         return { success: false, error: result.error || "Failed to release escrow" };
       }
 
+      // Step 2: Trigger on-chain USDT transfer (only for USDT trades)
+      let txHash: string | undefined;
+      if (normalizedCrypto === "USDT") {
+        try {
+          const { data: sendData, error: sendError } = await supabase.functions.invoke(
+            "tatum-send-usdt",
+            { body: { trade_id: tradeId } }
+          );
+
+          if (sendError) {
+            console.error("On-chain USDT transfer failed:", sendError);
+            toast.error("Internal release succeeded, but on-chain transfer failed. Contact support.");
+          } else if (sendData?.success) {
+            txHash = sendData.tx_hash;
+            console.log("On-chain USDT transfer successful:", txHash);
+          } else if (sendData?.already_released) {
+            console.log("On-chain transfer already completed");
+          } else {
+            console.error("On-chain transfer returned unexpected result:", sendData);
+            toast.error("On-chain transfer issue. Contact support if funds not received.");
+          }
+        } catch (onChainError: any) {
+          // Don't fail the whole release - internal balance is already updated
+          console.error("On-chain transfer exception:", onChainError);
+          toast.error("Internal release succeeded, but on-chain transfer failed. Contact support.");
+        }
+      }
+
       return {
         success: true,
         fee_amount: result.fee_amount,
         buyer_amount: result.buyer_amount,
+        tx_hash: txHash,
       };
     } catch (error: any) {
       console.error("Error releasing escrow:", error);
