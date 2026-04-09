@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.tatum-webhook]
 verify_jwt = false
+
+[functions.tatum-send-usdt]
+verify_jwt = false
