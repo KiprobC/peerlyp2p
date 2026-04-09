@@ -36,6 +36,7 @@ export interface OfferWithProfile extends Offer {
   trader_rating?: number;
   trader_trades?: number;
   trader_successful_trades?: number;
+  trader_cancelled_trades?: number;
   trader_verified?: boolean;
   trader_positive_count?: number;
   trader_last_seen?: string | null;
@@ -97,21 +98,24 @@ export const useOffers = (filters?: OfferFilters) => {
           .in("rated_id", userIds)
           .gte("rating", 4);
 
-        // Fetch actual completed trade counts for all users
+        // Fetch completed and cancelled trade counts for success rate calculation
         const { data: trades } = await supabase
           .from("trades")
-          .select("buyer_id, seller_id")
-          .eq("status", "completed")
+          .select("buyer_id, seller_id, status")
+          .in("status", ["completed", "cancelled"])
           .or(userIds.map(id => `buyer_id.eq.${id},seller_id.eq.${id}`).join(","));
 
-        const tradeCounts: Record<string, number> = {};
+        const completedCounts: Record<string, number> = {};
+        const cancelledCounts: Record<string, number> = {};
         trades?.forEach(t => {
-          if (userIds.includes(t.buyer_id)) {
-            tradeCounts[t.buyer_id] = (tradeCounts[t.buyer_id] || 0) + 1;
-          }
-          if (userIds.includes(t.seller_id)) {
-            tradeCounts[t.seller_id] = (tradeCounts[t.seller_id] || 0) + 1;
-          }
+          const isCompleted = t.status === "completed";
+          const isCancelled = t.status === "cancelled";
+          [t.buyer_id, t.seller_id].forEach(uid => {
+            if (userIds.includes(uid)) {
+              if (isCompleted) completedCounts[uid] = (completedCounts[uid] || 0) + 1;
+              if (isCancelled) cancelledCounts[uid] = (cancelledCounts[uid] || 0) + 1;
+            }
+          });
         });
 
         const positiveCounts: Record<string, number> = {};
@@ -125,8 +129,9 @@ export const useOffers = (filters?: OfferFilters) => {
           const profile = profileMap.get(offer.user_id);
           const reservedAmount = offer.reserved_amount ?? 0;
           const cryptoAmount = offer.crypto_amount ?? 0;
-          const traderTrades = tradeCounts[offer.user_id] || profile?.total_trades || 0;
-          const traderSuccessfulTrades = profile?.successful_trades ?? traderTrades;
+          const traderTrades = (completedCounts[offer.user_id] || 0) + (cancelledCounts[offer.user_id] || 0) || profile?.total_trades || 0;
+          const traderSuccessfulTrades = completedCounts[offer.user_id] || 0;
+          const traderCancelledTrades = cancelledCounts[offer.user_id] || 0;
           return {
             ...offer,
             reserved_amount: reservedAmount,
