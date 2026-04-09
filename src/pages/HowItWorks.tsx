@@ -41,7 +41,7 @@ const HowItWorks = () => {
         <section className="py-16 bg-card">
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              How <span className="gradient-text">KenyaCoin</span> Works
+              How <span className="gradient-text">Peerly</span> Works
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Learn how to buy and sell cryptocurrency safely using our peer-to-peer platform.
