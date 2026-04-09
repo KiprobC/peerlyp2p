@@ -141,6 +141,7 @@ export const useOffers = (filters?: OfferFilters) => {
             trader_rating: profile?.rating || 0,
             trader_trades: traderTrades,
             trader_successful_trades: traderSuccessfulTrades,
+            trader_cancelled_trades: traderCancelledTrades,
             trader_verified: profile?.is_verified || false,
             trader_positive_count: positiveCounts[offer.user_id] || 0,
             trader_last_seen: profile?.last_seen || null,
