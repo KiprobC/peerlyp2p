@@ -23,7 +23,7 @@ const Navbar = () => {
   const authedLinks = [
     { name: "Dashboard", path: "/dashboard" },
     { name: "Marketplace", path: "/marketplace" },
-    { name: "Wallet", path: "/wallet-deposit" },
+    { name: "Wallet", path: "/wallet/deposit" },
     { name: "My Trades", path: "/trades" },
   ];
 
