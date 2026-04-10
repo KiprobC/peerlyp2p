@@ -3,7 +3,7 @@ import peerlyIcon from "@/assets/peerly-icon.png";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DashboardSkeleton } from "@/components/loaders";
+import { DashboardSkeleton, TradeCardSkeleton } from "@/components/loaders";
 import {
   Wallet,
   ArrowUpRight,
