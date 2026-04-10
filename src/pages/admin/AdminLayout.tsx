@@ -5,6 +5,7 @@ import { ModeratorNotificationBell } from "@/components/moderator/ModeratorNotif
 import { useAdminRole } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { Shield, AlertTriangle } from "lucide-react";
+import { FullScreenLoader } from "@/components/loaders";
 import { Button } from "@/components/ui/button";
 
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -41,16 +42,7 @@ export const AdminLayout = () => {
   }, [lastActivity, signOut, navigate]);
 
   if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-            <Shield className="h-8 w-8 text-primary animate-pulse" />
-          </div>
-          <p className="text-muted-foreground">Verifying admin access...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader text="Verifying admin access..." />;
   }
 
   if (!user) {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ChatSkeleton, InlineLoader } from "@/components/loaders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TradeEvidence } from "@/hooks/useTradeEvidence";
 import {
