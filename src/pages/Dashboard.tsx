@@ -3,7 +3,7 @@ import peerlyIcon from "@/assets/peerly-icon.png";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardSkeleton, TradeCardSkeleton } from "@/components/loaders";
 import {
   Wallet,
   ArrowUpRight,
@@ -90,29 +90,7 @@ const Dashboard = () => {
   const recentTrades = trades.slice(0, 5);
 
   if (profileLoading || walletsLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-14 sm:h-16">
-              <Skeleton className="h-8 sm:h-10 w-24 sm:w-32" />
-              <Skeleton className="h-8 w-20 sm:w-24" />
-            </div>
-          </div>
-        </nav>
-        <main className="pt-20 sm:pt-24 pb-16">
-          <div className="container mx-auto px-4 space-y-4 sm:space-y-6">
-            <Skeleton className="h-10 sm:h-12 w-48 sm:w-64" />
-            <Skeleton className="h-40 sm:h-48 w-full" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-              <Skeleton className="h-28 sm:h-32" />
-              <Skeleton className="h-28 sm:h-32" />
-              <Skeleton className="h-28 sm:h-32" />
-            </div>
-          </div>
-        </main>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -356,9 +334,7 @@ const Dashboard = () => {
               </div>
               <div className="space-y-2 sm:space-y-3">
                 {tradesLoading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-14 sm:h-16 w-full" />
-                  ))
+                  <TradeCardSkeleton count={3} />
                 ) : recentTrades.length > 0 ? (
                   recentTrades.map((trade) => {
                     const isBuyer = trade.buyer_id === user?.id;

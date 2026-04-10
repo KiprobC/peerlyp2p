@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TradeCardSkeleton } from "@/components/loaders";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
@@ -116,9 +116,7 @@ const Trades = () => {
 
             <TabsContent value="active" className="space-y-3 sm:space-y-4">
               {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 sm:h-24" />
-                ))
+                <TradeCardSkeleton count={3} />
               ) : activeTrades.length > 0 ? (
                 activeTrades.map((trade) => <TradeCard key={trade.id} trade={trade} />)
               ) : (
@@ -136,9 +134,7 @@ const Trades = () => {
 
             <TabsContent value="completed" className="space-y-3 sm:space-y-4">
               {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 sm:h-24" />
-                ))
+                <TradeCardSkeleton count={3} />
               ) : completedTrades.length > 0 ? (
                 completedTrades.map((trade) => <TradeCard key={trade.id} trade={trade} />)
               ) : (
@@ -151,9 +147,7 @@ const Trades = () => {
 
             <TabsContent value="disputed" className="space-y-3 sm:space-y-4">
               {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 sm:h-24" />
-                ))
+                <TradeCardSkeleton count={3} />
               ) : disputedTrades.length > 0 ? (
                 disputedTrades.map((trade) => <TradeCard key={trade.id} trade={trade} />)
               ) : (
@@ -166,9 +160,7 @@ const Trades = () => {
 
             <TabsContent value="cancelled" className="space-y-3 sm:space-y-4">
               {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20 sm:h-24" />
-                ))
+                <TradeCardSkeleton count={3} />
               ) : cancelledTrades.length > 0 ? (
                 cancelledTrades.map((trade) => <TradeCard key={trade.id} trade={trade} />)
               ) : (

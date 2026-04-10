@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ChatSkeleton, InlineLoader } from "@/components/loaders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TradeEvidence } from "@/hooks/useTradeEvidence";
 import {
@@ -368,9 +369,8 @@ const TradePageContent = () => {
           </div>
         </header>
         <main className="flex-1 pb-20">
-          <div className="container mx-auto px-3 max-w-4xl space-y-3 py-4">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-64" />
+          <div className="container mx-auto px-3 max-w-4xl py-4">
+            <InlineLoader text="Loading trade..." />
           </div>
         </main>
       </div>
@@ -738,16 +738,7 @@ const TradePageContent = () => {
   // Helper function to render messages with inline evidence
   function renderMessages() {
     if (messagesLoading) {
-      return (
-        <div className="flex flex-col gap-3 pt-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton 
-              key={i} 
-              className={`h-12 ${i % 2 === 0 ? 'w-2/3' : 'w-1/2 ml-auto'}`} 
-            />
-          ))}
-        </div>
-      );
+      return <ChatSkeleton rows={5} />;
     }
     
     // Merge messages and evidence into a single timeline

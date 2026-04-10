@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth, AuthState } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { FullScreenLoader } from "@/components/loaders";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,14 +16,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Show loading state while auth is being resolved
   if (authState === "loading") {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Verifying session...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader text="Verifying session..." />;
   }
 
   // Redirect to login if not authenticated
