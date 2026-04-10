@@ -212,3 +212,93 @@
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
+
+/* Skeleton shimmer overlay */
+.shimmer-skeleton {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--muted-foreground) / 0.06) 40%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted-foreground) / 0.06) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Peerly SVG Logo Loader animations */
+.peerly-svg-loader {
+  animation: peerlyBreathe 2s ease-in-out infinite;
+}
+
+.peerly-draw-ring {
+  stroke-dasharray: 276;
+  stroke-dashoffset: 276;
+  animation: peerlyDrawRing 1.6s ease-in-out infinite;
+}
+
+.peerly-draw-letter path {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: peerlyDrawLetter 1.8s ease-in-out infinite;
+}
+
+.peerly-dot-pulse {
+  animation: peerlyDotPulse 1.8s ease-in-out infinite;
+}
+
+.peerly-logo-glow {
+  filter: drop-shadow(0 0 0px transparent);
+}
+.dark .peerly-logo-glow {
+  filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.3));
+  animation: peerlyGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes peerlyBreathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.04); opacity: 0.9; }
+}
+
+@keyframes peerlyDrawRing {
+  0% { stroke-dashoffset: 276; }
+  50% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -276; }
+}
+
+@keyframes peerlyDrawLetter {
+  0% { stroke-dashoffset: 300; opacity: 0.3; }
+  40% { stroke-dashoffset: 0; opacity: 1; }
+  60% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: -300; opacity: 0.3; }
+}
+
+@keyframes peerlyDotPulse {
+  0%, 100% { r: 4; opacity: 0.4; }
+  50% { r: 6; opacity: 1; }
+}
+
+@keyframes peerlyGlow {
+  from { filter: drop-shadow(0 0 8px hsl(var(--primary) / 0.2)); }
+  to { filter: drop-shadow(0 0 20px hsl(var(--primary) / 0.4)); }
+}
+
+/* Fade transition for content appearing after loading */
+.loader-fade-enter {
+  animation: loaderFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes loaderFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
