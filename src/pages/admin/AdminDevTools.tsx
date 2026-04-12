@@ -56,7 +56,7 @@ const AdminDevTools = () => {
           <h1 className="text-3xl font-bold">Dev Tools</h1>
           <p className="text-muted-foreground">Development-only testing utilities</p>
         </div>
-        <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-500">
+        <Badge variant="outline" className="ml-auto border-accent text-accent">
           <AlertTriangle className="h-3 w-3 mr-1" />
           DEV ONLY
         </Badge>
@@ -121,7 +121,7 @@ const AdminDevTools = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-green-500">
+                  <div className="flex items-center gap-2 text-primary">
                     <CheckCircle className="h-4 w-4" />
                     <span className="text-sm font-medium">Deposit simulated</span>
                   </div>
