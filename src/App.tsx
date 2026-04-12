@@ -55,6 +55,7 @@ import { AdminRoles } from "./pages/admin/AdminRoles";
 import AdminSupport from "./pages/admin/AdminSupport";
 import AdminPlatformControls from "./pages/admin/AdminPlatformControls";
 import AdminRiskControls from "./pages/admin/AdminRiskControls";
+import AdminDevTools from "./pages/admin/AdminDevTools";
 import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
@@ -246,6 +247,7 @@ const AppRoutes = () => {
         <Route path="support" element={<AdminSupport />} />
         <Route path="platform-controls" element={<AdminPlatformControls />} />
         <Route path="risk-controls" element={<AdminRiskControls />} />
+        <Route path="dev-tools" element={<AdminDevTools />} />
       </Route>
       
       {/* Moderator routes - ModeratorLayout handles role check internally */}
