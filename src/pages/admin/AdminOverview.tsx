@@ -1,24 +1,27 @@
-import { 
-  Users, 
-  ArrowRightLeft, 
-  AlertTriangle, 
-  DollarSign, 
+import {
+  Users,
+  ArrowRightLeft,
+  AlertTriangle,
+  DollarSign,
   Package,
   TrendingUp,
   Clock,
   CheckCircle,
   XCircle,
-  Shield
+  Shield,
+  Activity,
 } from "lucide-react";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { AdminAlerts } from "@/components/admin/AdminAlerts";
 import { DataConsistencyCard } from "@/components/admin/DataConsistencyCard";
-import { usePlatformStats, useAdminTrades, useAdminUsers, useAdminTransactions } from "@/hooks/useAdmin";
+import { useAdminRealtime } from "@/hooks/useAdminRealtime";
+import { useAdminTrades, useAdminUsers, useAdminTransactions, usePlatformStats } from "@/hooks/useAdmin";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 
 export const AdminOverview = () => {
+  const { stats: realtimeStats, loading: realtimeLoading } = useAdminRealtime();
   const { stats, loading: statsLoading } = usePlatformStats();
   const { trades, disputedTrades } = useAdminTrades();
   const { users } = useAdminUsers();
@@ -28,7 +31,9 @@ export const AdminOverview = () => {
   const pendingKYCUsers = users.filter((u) => u.kyc_status === "submitted");
   const pendingKYCDisplay = pendingKYCUsers.slice(0, 5);
 
-  if (statsLoading) {
+  const isLoading = realtimeLoading && statsLoading;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -38,37 +43,65 @@ export const AdminOverview = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-        <p className="text-muted-foreground">Real-time platform monitoring and statistics</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+          <p className="text-muted-foreground">Real-time platform monitoring and statistics</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Activity className="h-3.5 w-3.5 text-green-500 animate-pulse" />
+          <span>Live • Updates every 10s</span>
+        </div>
       </div>
 
-      {/* Main Stats Grid */}
+      {/* Critical Alert Banner */}
+      {(realtimeStats.pendingDisputes > 0 || realtimeStats.failedTransactions > 0) && (
+        <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/5 flex items-center gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+          <div className="flex-1 text-sm">
+            {realtimeStats.pendingDisputes > 0 && (
+              <span className="font-medium text-destructive mr-4">
+                {realtimeStats.pendingDisputes} active dispute{realtimeStats.pendingDisputes > 1 ? "s" : ""}
+              </span>
+            )}
+            {realtimeStats.failedTransactions > 0 && (
+              <span className="font-medium text-destructive">
+                {realtimeStats.failedTransactions} failed transaction{realtimeStats.failedTransactions > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <Link to="/admin/disputes" className="text-xs text-primary hover:underline shrink-0">
+            View →
+          </Link>
+        </div>
+      )}
+
+      {/* Main Stats Grid - Real-time */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Users"
-          value={stats.totalUsers}
+          value={realtimeStats.totalUsers}
           icon={Users}
-          subtitle={`${stats.verifiedUsers} verified`}
+          subtitle={`${realtimeStats.pendingKYC} pending KYC`}
           variant="primary"
         />
         <StatsCard
           title="Active Trades"
-          value={stats.activeTrades}
+          value={realtimeStats.activeTrades}
           icon={ArrowRightLeft}
           subtitle={`${stats.totalTrades} total`}
           variant="success"
         />
         <StatsCard
           title="Pending Disputes"
-          value={stats.disputedTrades}
+          value={realtimeStats.pendingDisputes}
           icon={AlertTriangle}
           subtitle="Requires attention"
-          variant={stats.disputedTrades > 0 ? "destructive" : "default"}
+          variant={realtimeStats.pendingDisputes > 0 ? "destructive" : "default"}
         />
         <StatsCard
           title="Escrow Locked"
-          value={`${stats.totalEscrowLocked.toFixed(4)}`}
+          value={realtimeStats.escrowLocked.toFixed(4)}
           icon={Shield}
           subtitle="Total crypto in escrow"
           variant="warning"
@@ -78,8 +111,8 @@ export const AdminOverview = () => {
       {/* Volume Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatsCard
-          title="Today's Volume"
-          value={`KES ${stats.todayVolume.toLocaleString()}`}
+          title="24h Volume"
+          value={`KES ${realtimeStats.tradingVolume24h.toLocaleString()}`}
           icon={DollarSign}
           variant="default"
         />
@@ -103,7 +136,7 @@ export const AdminOverview = () => {
         <div className="glass-card text-center">
           <Clock className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
           <p className="text-2xl font-bold">{stats.activeTrades}</p>
-          <p className="text-xs text-muted-foreground">Pending</p>
+          <p className="text-xs text-muted-foreground">Active</p>
         </div>
         <div className="glass-card text-center">
           <CheckCircle className="h-6 w-6 mx-auto mb-2 text-primary" />
@@ -116,7 +149,7 @@ export const AdminOverview = () => {
           <p className="text-xs text-muted-foreground">Cancelled</p>
         </div>
         <div className="glass-card text-center">
-          <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-accent" />
+          <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
           <p className="text-2xl font-bold">{stats.disputedTrades}</p>
           <p className="text-xs text-muted-foreground">Disputed</p>
         </div>
@@ -131,7 +164,7 @@ export const AdminOverview = () => {
       <AdminAlerts
         pendingKYC={pendingKYCUsers.length}
         disputedTrades={disputedTrades.length}
-        totalEscrowLocked={stats.totalEscrowLocked}
+        totalEscrowLocked={realtimeStats.escrowLocked}
         failedTransactions={pendingTransactions.filter(t => t.status === "failed").length}
       />
 
@@ -187,7 +220,7 @@ export const AdminOverview = () => {
         <div className="glass-card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Shield className="h-5 w-5 text-accent" />
+              <Shield className="h-5 w-5 text-yellow-500" />
               Pending KYC ({pendingKYCUsers.length})
             </h2>
             <Link to="/admin/kyc" className="text-sm text-primary hover:underline">
@@ -208,7 +241,7 @@ export const AdminOverview = () => {
                     <p className="text-sm text-muted-foreground">{user.email}</p>
                   </div>
                   <div className="text-right">
-                    <Badge variant="outline" className="border-accent text-accent">
+                    <Badge variant="outline" className="border-yellow-500 text-yellow-500">
                       Submitted
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-1">

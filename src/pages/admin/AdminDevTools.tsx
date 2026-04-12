@@ -48,6 +48,8 @@ const AdminDevTools = () => {
     }
   };
 
+  const isDev = import.meta.env.DEV || import.meta.env.MODE === "development";
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-3">
@@ -56,11 +58,26 @@ const AdminDevTools = () => {
           <h1 className="text-3xl font-bold">Dev Tools</h1>
           <p className="text-muted-foreground">Development-only testing utilities</p>
         </div>
-        <Badge variant="outline" className="ml-auto border-accent text-accent">
+        <Badge variant="outline" className="ml-auto border-yellow-500 text-yellow-500">
           <AlertTriangle className="h-3 w-3 mr-1" />
-          DEV ONLY
+          {isDev ? "DEV MODE" : "PRODUCTION"}
         </Badge>
       </div>
+
+      {!isDev && (
+        <div className="p-4 rounded-lg border border-destructive/40 bg-destructive/5">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <div>
+              <p className="font-medium text-destructive">Production Mode Detected</p>
+              <p className="text-sm text-muted-foreground">
+                Dev tools are disabled in production to prevent accidental data modifications.
+                These tools are only available in development environments.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -99,7 +116,7 @@ const AdminDevTools = () => {
 
           <Button
             onClick={handleSimulateDeposit}
-            disabled={loading}
+            disabled={loading || !isDev}
             className="w-full sm:w-auto"
           >
             {loading ? (
