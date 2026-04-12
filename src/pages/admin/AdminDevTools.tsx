@@ -116,7 +116,7 @@ const AdminDevTools = () => {
 
           <Button
             onClick={handleSimulateDeposit}
-            disabled={loading}
+            disabled={loading || !isDev}
             className="w-full sm:w-auto"
           >
             {loading ? (
