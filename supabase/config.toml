@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.tatum-send-usdt]
 verify_jwt = false
+
+[functions.simulate-deposit]
+verify_jwt = false
