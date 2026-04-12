@@ -39,7 +39,7 @@ export const DataConsistencyCard = () => {
       // --- Check 1: Escrow locked balance matches active trades ---
       const { data: wallets } = await supabase
         .from("wallets")
-        .select("locked_balance, crypto_type, user_id, id");
+        .select("locked_balance, balance, crypto_type, user_id, id");
 
       const { data: activeTrades } = await supabase
         .from("trades")
