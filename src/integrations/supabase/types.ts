@@ -376,6 +376,48 @@ export type Database = {
           },
         ]
       }
+      idempotency_keys: {
+        Row: {
+          actor_id: string | null
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          expires_at: string
+          id: string
+          key: string
+          reference_id: string | null
+          response_snapshot: Json | null
+          scope: string
+          status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          expires_at?: string
+          id?: string
+          key: string
+          reference_id?: string | null
+          response_snapshot?: Json | null
+          scope: string
+          status?: string
+        }
+        Update: {
+          actor_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          expires_at?: string
+          id?: string
+          key?: string
+          reference_id?: string | null
+          response_snapshot?: Json | null
+          scope?: string
+          status?: string
+        }
+        Relationships: []
+      }
       internal_transfers: {
         Row: {
           amount: number
@@ -1896,6 +1938,13 @@ export type Database = {
         Args: { p_offer_id: string; p_reason?: string }
         Returns: Json
       }
+      assert_trade_transition: {
+        Args: {
+          p_new_status: Database["public"]["Enums"]["trade_status"]
+          p_trade_id: string
+        }
+        Returns: Database["public"]["Enums"]["trade_status"]
+      }
       assign_dispute_moderator: {
         Args: {
           p_moderator_id: string
@@ -1938,8 +1987,22 @@ export type Database = {
         Args: { p_action_type: string; p_ip_address: string; p_user_id: string }
         Returns: Json
       }
+      claim_idempotency_key: {
+        Args: {
+          p_actor_id?: string
+          p_key: string
+          p_reference_id?: string
+          p_scope: string
+        }
+        Returns: Json
+      }
       cleanup_expired_otps: { Args: never; Returns: number }
       cleanup_expired_rate_limits: { Args: never; Returns: number }
+      cleanup_idempotency_keys: { Args: never; Returns: number }
+      complete_idempotency_key: {
+        Args: { p_key: string; p_response?: Json }
+        Returns: undefined
+      }
       create_notification: {
         Args: {
           p_data?: Json
@@ -1970,6 +2033,18 @@ export type Database = {
         Args: { p_amount: number; p_wallet_id: string }
         Returns: undefined
       }
+      credit_deposit: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_idempotency_key?: string
+          p_network?: string
+          p_simulated?: boolean
+          p_tx_hash: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       escalate_breached_disputes: { Args: never; Returns: Json }
       execute_internal_transfer: {
         Args: {
@@ -1978,6 +2053,10 @@ export type Database = {
           p_recipient_username: string
         }
         Returns: Json
+      }
+      fail_idempotency_key: {
+        Args: { p_error?: string; p_key: string }
+        Returns: undefined
       }
       freeze_user: {
         Args: { p_reason?: string; p_user_id: string }
@@ -2029,15 +2108,26 @@ export type Database = {
       }
       is_platform_enabled: { Args: { p_setting_id: string }; Returns: boolean }
       is_user_frozen: { Args: { p_user_id: string }; Returns: boolean }
-      lock_escrow: {
-        Args: {
-          p_amount: number
-          p_crypto_type: string
-          p_seller_id: string
-          p_trade_id: string
-        }
-        Returns: Json
-      }
+      lock_escrow:
+        | {
+            Args: {
+              p_amount: number
+              p_crypto_type: string
+              p_seller_id: string
+              p_trade_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_crypto_type: string
+              p_idempotency_key: string
+              p_seller_id: string
+              p_trade_id: string
+            }
+            Returns: Json
+          }
       lock_trade_evidence: {
         Args: { p_trade_id: string; p_uploader_role: string }
         Returns: boolean
@@ -2092,16 +2182,28 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      release_escrow_with_fee: {
-        Args: {
-          p_buyer_id: string
-          p_crypto_type: string
-          p_escrow_amount: number
-          p_seller_id: string
-          p_trade_id: string
-        }
-        Returns: Json
-      }
+      release_escrow_with_fee:
+        | {
+            Args: {
+              p_buyer_id: string
+              p_crypto_type: string
+              p_escrow_amount: number
+              p_seller_id: string
+              p_trade_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_buyer_id: string
+              p_crypto_type: string
+              p_escrow_amount: number
+              p_idempotency_key: string
+              p_seller_id: string
+              p_trade_id: string
+            }
+            Returns: Json
+          }
       reset_trading_stats_if_needed: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -2114,15 +2216,26 @@ export type Database = {
         }
         Returns: Json
       }
-      return_escrow_with_reservation: {
-        Args: {
-          p_amount: number
-          p_crypto_type: string
-          p_seller_id: string
-          p_trade_id: string
-        }
-        Returns: Json
-      }
+      return_escrow_with_reservation:
+        | {
+            Args: {
+              p_amount: number
+              p_crypto_type: string
+              p_seller_id: string
+              p_trade_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_crypto_type: string
+              p_idempotency_key: string
+              p_seller_id: string
+              p_trade_id: string
+            }
+            Returns: Json
+          }
       reverse_internal_transfer: {
         Args: { p_reason: string; p_transfer_id: string }
         Returns: Json
