@@ -178,7 +178,82 @@ const AdminIdempotency = () => {
                 </TableHeader>
                 <TableBody>
                   {rows.map((r) => (
-                    <>
+                    <FragmentRow
+                      key={r.id}
+                      row={r}
+                      expanded={expanded === r.id}
+                      onToggle={() => setExpanded(expanded === r.id ? null : r.id)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+interface FragmentRowProps {
+  row: IdempotencyRow;
+  expanded: boolean;
+  onToggle: () => void;
+}
+
+const FragmentRow = ({ row: r, expanded, onToggle }: FragmentRowProps) => {
+  return (
+    <>
+      <TableRow>
+        <TableCell>
+          <Badge variant="outline">{r.scope}</Badge>
+        </TableCell>
+        <TableCell>
+          <Badge variant={statusVariant(r.status) as any}>{r.status}</Badge>
+        </TableCell>
+        <TableCell className="font-mono text-xs max-w-[200px] truncate">
+          {r.reference_id ?? "—"}
+        </TableCell>
+        <TableCell className="font-mono text-xs max-w-[260px] truncate">
+          {r.key}
+        </TableCell>
+        <TableCell className="text-xs whitespace-nowrap">
+          {format(new Date(r.created_at), "MMM d, HH:mm:ss")}
+        </TableCell>
+        <TableCell>
+          <Button size="sm" variant="ghost" onClick={onToggle}>
+            {expanded ? "Hide" : "View"}
+          </Button>
+        </TableCell>
+      </TableRow>
+      {expanded && (
+        <TableRow>
+          <TableCell colSpan={6} className="bg-muted/40">
+            <div className="space-y-2 py-2">
+              {r.error && (
+                <div className="text-xs">
+                  <span className="font-semibold text-destructive">Error: </span>
+                  <span className="font-mono">{r.error}</span>
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-semibold mb-1">Response snapshot</p>
+                <pre className="text-xs bg-background border border-border rounded-md p-3 overflow-x-auto">
+                  {JSON.stringify(r.response_snapshot ?? {}, null, 2)}
+                </pre>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Expires {format(new Date(r.expires_at), "PPP p")}
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+};
+
+export default AdminIdempotency;
                       <TableRow key={r.id}>
                         <TableCell>
                           <Badge variant="outline">{r.scope}</Badge>
