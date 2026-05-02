@@ -1,81 +1,132 @@
+# Financial Hardening: Idempotency, Locking & State Machine
 
+Goal: make every money-moving action **safe, atomic, and repeat-proof** — no duplicate deposits, no double releases, no race conditions, with a full audit trail and an admin viewer.
 
-## Auto-Flag Suspicious Trader Detection & Scammer Fingerprint System
+---
 
-### Overview
-Two interconnected systems: (1) automated behavioral risk scoring per trader, and (2) device fingerprinting for multi-account detection. Both feed into a unified risk status visible on trader profiles and moderator dashboards.
+## 1. Database changes (migration)
 
-### Database Changes (Migration)
+### `idempotency_keys` table
+- `id uuid pk`
+- `key text unique not null`
+- `scope text not null` — `deposit | escrow_lock | release | refund | withdraw | transfer | simulate_deposit`
+- `reference_id text` — tx_hash, trade_id, withdrawal_id
+- `actor_id uuid` — caller (nullable for webhooks)
+- `status text not null` — `pending | completed | failed`
+- `response_snapshot jsonb`
+- `error text`
+- `created_at timestamptz default now()`
+- `expires_at timestamptz default now() + interval '30 days'`
 
-**Table 1: `trader_behavior_metrics`** — Materialized per-user stats, updated via trigger on trade status changes.
-- `user_id` (UUID, PK, references auth.users)
-- `total_trades`, `completed_trades`, `cancelled_trades`, `disputes_raised_against`, `disputes_started_by`, `failed_payment_reports` (integers, default 0)
-- `average_release_time_minutes` (numeric, nullable)
-- `risk_score` (numeric, default 0)
-- `risk_level` (text: trusted/normal/watchlist/high_risk, default 'normal')
-- `last_trade_at`, `updated_at` (timestamps)
-- RLS: Users can read own; admins/moderators can read all; no direct user writes.
+RLS: admins read all; service role writes; users read their own (`actor_id = auth.uid()`).
 
-**Table 2: `user_risk_alerts`** — Per-user triggered risk flags (distinct from the existing `risk_flags` which stores rule templates).
-- `id`, `user_id`, `risk_type` (text: high_dispute_rate, mass_cancellation, slow_release, payment_reports, multiple_disputes_daily, shared_device, shared_ip, linked_to_banned)
-- `description`, `severity` (low/medium/high/critical)
-- `is_resolved` (boolean, default false), `resolved_by`, `resolution` (text), `resolved_at`
-- `created_at`
-- RLS: Admins/moderators full access; users cannot see.
+Indexes: `(scope, created_at desc)`, `(reference_id)`, `(expires_at)`.
 
-**Table 3: `user_fingerprints`** — Device/browser fingerprints captured automatically.
-- `id`, `user_id`, `ip_address`, `device_type`, `browser`, `operating_system`, `screen_resolution`, `timezone`, `device_hash` (text), `action_type` (login/trade_open/chat_message/dispute), `created_at`
-- RLS: Only admins can read; no user access.
+### `trade_state_transitions` (allowed moves)
+Lightweight reference table seeded with valid edges; used by a `assert_trade_transition(old, new)` helper. Alternatively encoded directly in a CHECK-style PL/pgSQL function — we'll use the function approach (simpler, no extra table).
 
-**Database function: `recalculate_trader_risk(p_user_id UUID)`** — SECURITY DEFINER function that:
-1. Aggregates stats from `trades` table into `trader_behavior_metrics` (upsert)
-2. Calculates risk_score using the formula: `(dispute_rate * 40) + (cancel_rate * 20) + (slow_release_score * 20) + (reports * 20)`
-3. Maps score to risk_level (0-20 trusted, 21-40 normal, 41-60 watchlist, 61+ high_risk)
-4. Checks rule triggers (dispute rate >25%, >5 cancellations in 24h, avg release >90min, etc.) and inserts into `user_risk_alerts`
+```text
+pending  → confirmed | cancelled | expired
+confirmed→ paid | cancelled | disputed | expired
+paid     → completed | disputed
+disputed → completed | cancelled | resolved
+```
 
-**Trigger: `on_trade_status_change`** — After UPDATE on `trades`, calls `recalculate_trader_risk` for both buyer and seller when status changes to completed/cancelled/disputed.
+Rejects: `completed → *`, `cancelled → *`, double `paid`, double `completed`.
 
-### Edge Function: `collect-fingerprint`
-- Receives fingerprint data from frontend (IP from request headers, device info from body)
-- Generates `device_hash` server-side from IP+browser+OS+device+resolution
-- Stores in `user_fingerprints`
-- Checks for matching `device_hash` or IP across different users → creates `user_risk_alerts` if found
-- Cross-references against banned users
+### Helper SECURITY DEFINER functions
+- `claim_idempotency_key(p_key, p_scope, p_reference_id, p_actor_id) returns jsonb`
+  - Inserts row with `status='pending'`. On unique conflict, returns the existing row's status + snapshot so the caller can short-circuit (`{ replay: true, status, response }`) or wait (`{ in_progress: true }`).
+- `complete_idempotency_key(p_key, p_response jsonb)` → marks completed, stores snapshot.
+- `fail_idempotency_key(p_key, p_error text)` → marks failed (allows safe retry by clients with a *new* key, but blocks accidental replays of same key).
+- `assert_trade_transition(p_trade_id uuid, p_new_status trade_status) returns void` — `SELECT ... FOR UPDATE` on the trade row, raises exception on illegal jump.
 
-### Frontend Changes
+### Update existing money RPCs to use locking + idempotency + state checks
+All of these get a new `p_idempotency_key text` arg and internally:
+1. `claim_idempotency_key(...)` — replay short-circuit.
+2. `SELECT ... FOR UPDATE` on wallet rows (and trade row where relevant) ordered by id to avoid deadlocks.
+3. `assert_trade_transition(...)` where status changes.
+4. Do the work inside the implicit function transaction.
+5. `complete_idempotency_key(...)` with a JSON snapshot of the result.
+6. On exception → `fail_idempotency_key(...)` then re-raise.
 
-**1. Fingerprint collection utility (`src/lib/fingerprint.ts`)**
-- Collects browser, OS, device type, screen resolution, timezone from `navigator`
-- Sends to edge function on login, trade open, dispute raise
+Functions touched:
+- `lock_escrow` → key `escrow_lock_{trade_id}`
+- `release_escrow_with_fee` → key `release_{trade_id}`, enforces transition to `completed`
+- `return_escrow_with_reservation` → key `refund_{trade_id}`
+- (new) `credit_deposit(p_user_id, p_crypto, p_amount, p_tx_hash, p_network, p_idempotency_key)` — single source of truth used by both `tatum-webhook` and `simulate-deposit`. Key = `deposit_{tx_hash}`. Uses `FOR UPDATE` on the wallet row.
+- `process_withdrawal` (if/when it exists in withdraw flow) — key = `withdraw_{withdrawal_id}`.
 
-**2. Hook: `useTraderRisk.ts`**
-- Fetches `trader_behavior_metrics` for a given user_id
-- Returns risk_level, risk_score for display
+### Cleanup job
+`pg_cron` daily: `DELETE FROM idempotency_keys WHERE expires_at < now() AND status <> 'pending'` plus archive of last 90 days `completed` to `idempotency_keys_archive` (optional — start with delete-only).
 
-**3. TraderProfilePanel update**
-- Add risk badge below username: colored dot + label (Trusted/Normal/Watchlist/High Risk)
-- Only show badge, no technical details to regular users
+---
 
-**4. Trade chat risk warning banner**
-- If counterparty risk_level is "watchlist" or "high_risk", show warning banner: "This trader is flagged for suspicious activity. Trade with caution."
+## 2. Edge function changes
 
-**5. Moderator Dashboard: "Suspicious Traders" section**
-- New card listing users with active `user_risk_alerts`
-- Shows risk_level badge, alert count, latest alert description
-- Action buttons: Warn, Restrict Trading, Suspend, Ban (these update profile/flags)
+### `tatum-webhook` & `simulate-deposit`
+- Replace inline deposit logic with a single call to the new `credit_deposit` RPC, passing `idempotency_key = 'deposit_' + tx_hash`.
+- Drop the manual fetch-then-update wallet pattern (race-prone).
+- Keep notification creation (idempotent because keyed off the deposit insert succeeding).
 
-**6. Admin Panel: Fingerprint viewer**
-- On AdminUsers page, add ability to view fingerprint data for a selected user
-- Shows IP history, devices, matching accounts
+### `tatum-send-usdt`
+- Already checks `escrow_released`. Add `idempotency_key = 'onchain_release_' + trade_id` to guard the on-chain send with a DB-level claim before broadcasting.
 
-### Files to Create/Modify
-- **New migration SQL** (tables + function + trigger)
-- **New**: `supabase/functions/collect-fingerprint/index.ts`
-- **New**: `src/lib/fingerprint.ts`
-- **New**: `src/hooks/useTraderRisk.ts`
-- **Modified**: `src/components/trade/TraderProfilePanel.tsx` — add risk badge
-- **Modified**: `src/pages/Trade.tsx` — add risk warning banner, call fingerprint on trade open
-- **Modified**: `src/pages/moderator/ModeratorDashboard.tsx` — add Suspicious Traders card
-- **Modified**: `src/contexts/AuthContext.tsx` — call fingerprint on login
-- **Modified**: `src/hooks/useTraderProfile.ts` — include risk data in fetch
+---
 
+## 3. Frontend changes
+
+### `useEscrow.ts`
+- Generate idempotency keys deterministically (`escrow_lock_{tradeId}`, `release_{tradeId}`, `refund_{tradeId}`) and pass to the RPCs.
+- Map new error code `IDEMPOTENCY_REPLAY` → silently treat as success using returned snapshot.
+- Map `IN_PROGRESS` → toast "Action already in progress".
+- Map `INVALID_TRANSITION` → toast specific message.
+
+### Critical-action buttons (Release / Mark Paid / Cancel / Withdraw / Transfer)
+- Audit and ensure each one:
+  - disables on click,
+  - shows the existing `InlineLoader`,
+  - is gated by a single `isSubmitting` state with `try/finally`.
+- Most already do this; we'll fix any gaps found in `ReleaseCryptoDialog`, `CancelTradeDialog`, `TradeActions`, `SendCryptoDialog`, `useInternalTransfer`, `WalletWithdraw`.
+
+### Deposit simulation UI
+- Generate a fresh UUID per click as the simulated `tx_hash` so retries don't replay (the backend will still reject true duplicates).
+
+---
+
+## 4. Admin panel
+
+### New page: `/admin/idempotency` (added to AdminSidebar under System)
+- DataTable of `idempotency_keys` with columns: scope, key, reference_id, status, actor, created_at, expires_at, snapshot (expandable).
+- Filters: scope (select), status, search by key/reference_id (matches tx_hash & trade_id).
+- Read-only; admin RLS.
+
+---
+
+## 5. Audit logging
+Every successful RPC that uses idempotency already writes to `wallet_transactions` / `trade_audit_trail` / `admin_actions`. We'll additionally store the `idempotency_key` in those records' metadata where a JSON column exists (`admin_actions.details`, `trade_audit_trail.metadata`, `notifications.data`, `wallet_transactions.description` suffix) — non-breaking enrichment.
+
+---
+
+## 6. Out of scope (for this pass)
+- Replacing existing webhook signature validation (separate concern).
+- Building the master-wallet on-chain release config (user said "we'll get back to it").
+- Withdrawal RPC overhaul if no `process_withdrawal` function exists yet — we'll only wire the idempotency key into the existing `WalletWithdraw` flow and document the gap.
+
+---
+
+## Rollout order
+1. Migration (table + helper fns + updated RPCs + cron). **Awaits user approval.**
+2. Edge function updates (`tatum-webhook`, `simulate-deposit`, `tatum-send-usdt`) → deploy.
+3. Frontend hook + dialog updates.
+4. Admin idempotency viewer + sidebar entry.
+5. Smoke test: simulate deposit twice with same key → second is a replay; release a trade twice → second returns snapshot; attempt `paid → paid` → rejected.
+
+---
+
+## Risks / notes
+- Changing RPC signatures is a breaking change for any in-flight callers; we'll keep the old positional args and **append** `p_idempotency_key text default null`. When null, we generate one server-side from `(scope, reference_id)` to preserve backward compatibility.
+- `FOR UPDATE` inside SECURITY DEFINER functions is safe and contained to the function's transaction.
+- Cleanup cron uses `pg_cron` + `pg_net`; we'll insert it via the `insert` tool (not migration) per the scheduled-jobs rule.
+
+Confirm and I'll start with the migration.
