@@ -50,16 +50,14 @@ export const useEscrow = () => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-      // Use the SECURITY DEFINER lock_escrow function which handles:
-      // - Wallet auto-creation (bypasses RLS)
-      // - Balance checking
-      // - Locking funds
-      // - Transaction logging
-      const { data, error } = await supabase.rpc("lock_escrow", {
+      // SECURITY DEFINER + idempotency-key overload prevents double-locking
+      // when the user double-clicks or a request retries.
+      const { data, error } = await (supabase.rpc as any)("lock_escrow", {
         p_seller_id: sellerId,
         p_crypto_type: normalizedCrypto,
         p_amount: amount,
         p_trade_id: tradeId,
+        p_idempotency_key: `escrow_lock_${tradeId}`,
       });
 
       if (error) {
@@ -93,13 +91,14 @@ export const useEscrow = () => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-      // Step 1: Internal balance update (atomic DB transaction)
+      // Step 1: Internal balance update (atomic DB transaction + idempotency)
       const { data, error } = await (supabase.rpc as any)("release_escrow_with_fee", {
         p_trade_id: tradeId,
         p_seller_id: sellerId,
         p_buyer_id: buyerId,
         p_crypto_type: normalizedCrypto,
         p_escrow_amount: amount,
+        p_idempotency_key: `release_${tradeId}`,
       });
 
       if (error) {
@@ -168,12 +167,13 @@ export const useEscrow = () => {
     try {
       const normalizedCrypto = normalizeCryptoType(cryptoType);
 
-      // Use the new RPC function that handles reservation restoration
+      // Idempotent overload: same trade can't be refunded twice.
       const { data, error } = await (supabase.rpc as any)("return_escrow_with_reservation", {
         p_seller_id: sellerId,
         p_crypto_type: normalizedCrypto,
         p_amount: amount,
         p_trade_id: tradeId,
+        p_idempotency_key: `refund_${tradeId}`,
       });
 
       if (error) {
