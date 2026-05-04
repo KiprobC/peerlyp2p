@@ -132,6 +132,7 @@ const KYCUpload = () => {
       toast.error("Please upload all required documents");
       return;
     }
+    if (!user || !profile) return;
 
     setIsSubmitting(true);
     try {
@@ -139,8 +140,48 @@ const KYCUpload = () => {
         kyc_status: "submitted",
         kyc_submitted_at: new Date().toISOString(),
       });
-      
-      toast.success("KYC documents submitted for review");
+
+      // Create a submission record
+      const { data: sub, error: subErr } = await (supabase as any)
+        .from("kyc_submissions")
+        .insert({
+          user_id: user.id,
+          country_code: profile.kyc_country || profile.country,
+          id_type: profile.id_type,
+          id_number: profile.id_number,
+          full_name: profile.full_name,
+          date_of_birth: profile.date_of_birth,
+          id_front_url: profile.id_front_url,
+          id_back_url: profile.id_back_url,
+          selfie_url: profile.selfie_url,
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      if (subErr) throw subErr;
+
+      toast.info("Bot is reviewing your documents…");
+
+      const { data: result, error: fnErr } = await supabase.functions.invoke("kyc-auto-verify", {
+        body: { submission_id: sub.id },
+      });
+
+      if (fnErr) throw fnErr;
+
+      const status = (result as any)?.status;
+      if (status === "auto_approved") {
+        toast.success("Identity verified automatically!");
+      } else if (status === "auto_rejected") {
+        const reason = (result as any)?.reason;
+        toast.error(
+          reason === "document_reused"
+            ? "These documents are already linked to another account."
+            : "Verification failed. Please upload clear, valid documents."
+        );
+      } else {
+        toast.success("Submitted for manual review (24–48h).");
+      }
       navigate("/profile");
     } catch (error) {
       console.error("Error submitting KYC:", error);
