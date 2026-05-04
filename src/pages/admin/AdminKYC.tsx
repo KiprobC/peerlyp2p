@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { KYCSubmissionsPanel } from "@/components/admin/KYCSubmissionsPanel";
 
 const kycStatusConfig = {
   pending: { label: "Pending", icon: Clock, variant: "secondary" as const },
@@ -204,6 +205,8 @@ export const AdminKYC = () => {
           <p className="text-sm text-muted-foreground">Not Submitted</p>
         </div>
       </div>
+
+      <KYCSubmissionsPanel />
 
       <DataTable
         data={kycSubmissions}
