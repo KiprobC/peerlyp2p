@@ -463,6 +463,116 @@ export type Database = {
         }
         Relationships: []
       }
+      kyc_document_fingerprints: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          id: string
+          kind: string
+          submission_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          id?: string
+          kind: string
+          submission_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          kind?: string
+          submission_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_document_fingerprints_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kyc_submissions: {
+        Row: {
+          bot_checks: Json | null
+          bot_reason: string | null
+          bot_score: number | null
+          country_code: string | null
+          created_at: string
+          date_of_birth: string | null
+          full_name: string | null
+          id: string
+          id_back_hash: string | null
+          id_back_url: string | null
+          id_front_hash: string | null
+          id_front_url: string | null
+          id_number: string | null
+          id_type: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          selfie_hash: string | null
+          selfie_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bot_checks?: Json | null
+          bot_reason?: string | null
+          bot_score?: number | null
+          country_code?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_name?: string | null
+          id?: string
+          id_back_hash?: string | null
+          id_back_url?: string | null
+          id_front_hash?: string | null
+          id_front_url?: string | null
+          id_number?: string | null
+          id_type?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          selfie_hash?: string | null
+          selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bot_checks?: Json | null
+          bot_reason?: string | null
+          bot_score?: number | null
+          country_code?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_name?: string | null
+          id?: string
+          id_back_hash?: string | null
+          id_back_url?: string | null
+          id_front_hash?: string | null
+          id_front_url?: string | null
+          id_number?: string | null
+          id_type?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          selfie_hash?: string | null
+          selfie_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       kyc_tier_limits: {
         Row: {
           allowed_payment_methods: string[]
@@ -1996,6 +2106,14 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_kyc_fingerprints: {
+        Args: {
+          p_fingerprints: Json
+          p_submission_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       cleanup_expired_otps: { Args: never; Returns: number }
       cleanup_expired_rate_limits: { Args: never; Returns: number }
       cleanup_idempotency_keys: { Args: never; Returns: number }
@@ -2057,6 +2175,15 @@ export type Database = {
       fail_idempotency_key: {
         Args: { p_error?: string; p_key: string }
         Returns: undefined
+      }
+      finalize_kyc_decision: {
+        Args: {
+          p_decision: string
+          p_notes?: string
+          p_reviewer: string
+          p_submission_id: string
+        }
+        Returns: Json
       }
       freeze_user: {
         Args: { p_reason?: string; p_user_id: string }

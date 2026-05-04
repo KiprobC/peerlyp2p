@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.simulate-deposit]
 verify_jwt = false
+
+[functions.kyc-auto-verify]
+verify_jwt = true
