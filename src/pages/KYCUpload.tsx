@@ -141,30 +141,37 @@ const KYCUpload = () => {
         kyc_submitted_at: new Date().toISOString(),
       });
 
-      // Create a submission record
-      const { data: sub, error: subErr } = await (supabase as any)
-        .from("kyc_submissions")
-        .insert({
-          user_id: user.id,
-          country_code: profile.kyc_country || profile.country,
-          id_type: profile.id_type,
-          id_number: profile.id_number,
-          full_name: profile.full_name,
-          date_of_birth: profile.date_of_birth,
-          id_front_url: profile.id_front_url,
-          id_back_url: profile.id_back_url,
-          selfie_url: profile.selfie_url,
-          status: "pending",
-        })
-        .select()
-        .single();
+      // Server-side guarded insert (cooldown + duplicate-submission check)
+      const { data: rpcData, error: rpcErr } = await (supabase as any).rpc("submit_kyc_application", {
+        p_country_code: profile.kyc_country || profile.country,
+        p_id_type: profile.id_type,
+        p_id_number: profile.id_number,
+        p_full_name: profile.full_name,
+        p_date_of_birth: profile.date_of_birth,
+        p_id_front_url: profile.id_front_url,
+        p_id_back_url: profile.id_back_url,
+        p_selfie_url: profile.selfie_url,
+      });
 
-      if (subErr) throw subErr;
+      if (rpcErr) {
+        const msg = rpcErr.message || "";
+        if (msg.includes("COOLDOWN_ACTIVE")) {
+          toast.error("Please wait a few minutes before resubmitting your documents.");
+        } else if (msg.includes("SUBMISSION_IN_PROGRESS")) {
+          toast.error("You already have a KYC submission under review.");
+        } else if (msg.includes("ALREADY_VERIFIED")) {
+          toast.error("Your account is already verified.");
+        } else {
+          toast.error("Failed to submit KYC");
+        }
+        throw rpcErr;
+      }
 
+      const submissionId = (rpcData as any)?.submission_id;
       toast.info("Bot is reviewing your documents…");
 
       const { data: result, error: fnErr } = await supabase.functions.invoke("kyc-auto-verify", {
-        body: { submission_id: sub.id },
+        body: { submission_id: submissionId },
       });
 
       if (fnErr) throw fnErr;
