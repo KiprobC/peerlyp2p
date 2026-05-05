@@ -237,6 +237,13 @@ export const KYCSubmissionsPanel = () => {
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setSelected(null)}>Close</Button>
+            {selected && (
+              <Link to={`/admin/kyc/viewer/${selected.id}`}>
+                <Button variant="secondary">
+                  <Maximize2 className="h-4 w-4 mr-1" /> Open Viewer
+                </Button>
+              </Link>
+            )}
             <Button variant="destructive" disabled={processing} onClick={() => decide("manually_rejected")}>
               <ShieldX className="h-4 w-4 mr-1" /> Reject
             </Button>
