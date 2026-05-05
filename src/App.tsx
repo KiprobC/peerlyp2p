@@ -46,6 +46,7 @@ import AdminNotifications from "./pages/admin/AdminNotifications";
 import { AdminFees } from "./pages/admin/AdminFees";
 import { AdminEscrow } from "./pages/admin/AdminEscrow";
 import AdminKYC from "./pages/admin/AdminKYC";
+import AdminKYCViewer from "./pages/admin/AdminKYCViewer";
 import { AdminTreasury } from "./pages/admin/AdminTreasury";
 import AdminDeposits from "./pages/admin/AdminDeposits";
 import { AdminModeration } from "./pages/admin/AdminModeration";
