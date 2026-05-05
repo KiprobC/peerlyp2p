@@ -2367,6 +2367,19 @@ export type Database = {
         Args: { p_reason: string; p_transfer_id: string }
         Returns: Json
       }
+      submit_kyc_application: {
+        Args: {
+          p_country_code: string
+          p_date_of_birth: string
+          p_full_name: string
+          p_id_back_url: string
+          p_id_front_url: string
+          p_id_number: string
+          p_id_type: string
+          p_selfie_url: string
+        }
+        Returns: Json
+      }
       toggle_platform_setting: {
         Args: { p_enabled: boolean; p_setting_id: string }
         Returns: Json
