@@ -163,9 +163,16 @@ export const KYCSubmissionsPanel = () => {
                       {formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => openSubmission(s)}>
-                    <Eye className="h-4 w-4 mr-1" /> Review
-                  </Button>
+                  <div className="flex gap-2">
+                    <Link to={`/admin/kyc/viewer/${s.id}`}>
+                      <Button size="sm" variant="secondary">
+                        <Maximize2 className="h-4 w-4 mr-1" /> Viewer
+                      </Button>
+                    </Link>
+                    <Button size="sm" variant="outline" onClick={() => openSubmission(s)}>
+                      <Eye className="h-4 w-4 mr-1" /> Quick
+                    </Button>
+                  </div>
                 </div>
               );
             })
