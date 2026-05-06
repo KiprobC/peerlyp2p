@@ -79,8 +79,7 @@ export const ReleaseCryptoDialog = ({
    const isConfirmValid = confirmText.toUpperCase() === "RELEASE";
    const canConfirm = canInteract && isConfirmValid && !processing;
  
-   const handleConfirm = async () => {
-     if (!canConfirm) return;
+   const doRelease = async () => {
      setProcessing(true);
      try {
        await onConfirm();
@@ -88,6 +87,15 @@ export const ReleaseCryptoDialog = ({
        setProcessing(false);
        onClose();
      }
+   };
+
+   const handleConfirm = async () => {
+     if (!canConfirm) return;
+     if (passkeys.length > 0) {
+       setShowPasskey(true);
+       return;
+     }
+     await doRelease();
    };
  
    const handleClose = () => {
