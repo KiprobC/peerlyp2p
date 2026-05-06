@@ -97,6 +97,39 @@ const Login = () => {
     setAttempts(0);
   };
 
+  // Show passkey challenge screen
+  if (passkeyChallenge) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-8">
+        <div className="w-full max-w-md text-center">
+          <Link to="/" className="flex items-center justify-center mb-8">
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+          </Link>
+          <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+            {isLoading ? (
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            ) : (
+              <Fingerprint className="w-10 h-10 text-primary" />
+            )}
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Use your passkey to sign in</h1>
+          <p className="text-muted-foreground mb-8">
+            Use fingerprint, face, or device PIN to continue
+          </p>
+          <div className="space-y-3">
+            <Button onClick={handlePasskeyVerify} className="w-full" size="lg" disabled={isLoading}>
+              <Fingerprint className="w-5 h-5 mr-2" />
+              Continue with passkey
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => { cancelPasskeyChallenge(); }}>
+              Cancel and use a different account
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Show MFA challenge screen
   if (mfaChallenge) {
     return (
