@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [mfaChallenge, setMfaChallenge] = useState<MFAChallenge | null>(null);
+  const [passkeyChallenge, setPasskeyChallenge] = useState<PasskeyChallenge | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   // Handle session state updates
