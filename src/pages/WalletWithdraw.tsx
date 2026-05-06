@@ -24,6 +24,8 @@ const WalletWithdraw = () => {
   const [address, setAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOTPVerify, setShowOTPVerify] = useState(false);
+  const [showPasskey, setShowPasskey] = useState(false);
+  const { passkeys } = usePasskeys();
 
   const selectedInfo = cryptoInfo[selectedCrypto];
   const selectedWallet = wallets.find(w => w.crypto_type === selectedCrypto);
