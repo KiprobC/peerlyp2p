@@ -10,6 +10,8 @@ import { useWallets, cryptoInfo } from "@/hooks/useWallets";
 import { usePlatformFees } from "@/hooks/usePlatformFees";
 import { useMFA } from "@/hooks/useMFA";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
+import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+import { usePasskeys } from "@/hooks/usePasskeys";
 import { toast } from "sonner";
 
 const WalletWithdraw = () => {
