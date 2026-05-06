@@ -42,6 +42,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useMFA } from "@/hooks/useMFA";
 import { MFAEnrollDialog } from "@/components/mfa/MFAEnrollDialog";
 import { MFAVerifyDialog } from "@/components/mfa/MFAVerifyDialog";
+import { PasskeyDeviceList } from "@/components/security/PasskeyDeviceList";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { SettingsItem, SettingsSection } from "@/components/settings/SettingsItem";
 import SupportChatDialog from "@/components/support/SupportChatDialog";
@@ -540,6 +541,11 @@ const Settings = () => {
                   Enable 2FA
                 </Button>
               )}
+            </div>
+
+            {/* Passkeys */}
+            <div className="p-4 rounded-lg bg-muted/50">
+              <PasskeyDeviceList />
             </div>
 
             {/* Sessions */}

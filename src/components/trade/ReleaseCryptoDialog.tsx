@@ -20,6 +20,8 @@
  import { Input } from "@/components/ui/input";
  import { AlertTriangle, Unlock, Loader2, ShieldAlert } from "lucide-react";
  import { cn } from "@/lib/utils";
+ import { usePasskeys } from "@/hooks/usePasskeys";
+ import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
  
 interface ReleaseCryptoDialogProps {
   open: boolean;
@@ -47,6 +49,8 @@ export const ReleaseCryptoDialog = ({
    const [processing, setProcessing] = useState(false);
    const [countdown, setCountdown] = useState(DELAY_SECONDS);
    const [canInteract, setCanInteract] = useState(false);
+   const [showPasskey, setShowPasskey] = useState(false);
+   const { passkeys } = usePasskeys();
  
    // Reset state when dialog opens
    useEffect(() => {
@@ -75,8 +79,7 @@ export const ReleaseCryptoDialog = ({
    const isConfirmValid = confirmText.toUpperCase() === "RELEASE";
    const canConfirm = canInteract && isConfirmValid && !processing;
  
-   const handleConfirm = async () => {
-     if (!canConfirm) return;
+   const doRelease = async () => {
      setProcessing(true);
      try {
        await onConfirm();
@@ -84,6 +87,15 @@ export const ReleaseCryptoDialog = ({
        setProcessing(false);
        onClose();
      }
+   };
+
+   const handleConfirm = async () => {
+     if (!canConfirm) return;
+     if (passkeys.length > 0) {
+       setShowPasskey(true);
+       return;
+     }
+     await doRelease();
    };
  
    const handleClose = () => {
@@ -198,41 +210,57 @@ export const ReleaseCryptoDialog = ({
      </>
    );
  
+   const passkeyOverlay = (
+     <PasskeyVerifyDialog
+       open={showPasskey}
+       onOpenChange={setShowPasskey}
+       onVerified={doRelease}
+       title="Authorize crypto release"
+       description="Use fingerprint or face to authorize this irreversible action"
+     />
+   );
+
    if (isMobile) {
      return (
-       <Drawer open={open} onOpenChange={handleClose}>
-         <DrawerContent className="pb-safe">
-           <DrawerHeader className="text-left">
-             <DrawerTitle className="flex items-center gap-2">
-               <AlertTriangle className="w-5 h-5 text-amber-500" />
-               Release Crypto to Buyer
-             </DrawerTitle>
-             <DrawerDescription>
-               You are about to release crypto to the buyer. This action cannot be undone.
-             </DrawerDescription>
-           </DrawerHeader>
-           <div className="px-4">{content}</div>
-           <DrawerFooter className="flex-row gap-2">{footer}</DrawerFooter>
-         </DrawerContent>
-       </Drawer>
+       <>
+         <Drawer open={open} onOpenChange={handleClose}>
+           <DrawerContent className="pb-safe">
+             <DrawerHeader className="text-left">
+               <DrawerTitle className="flex items-center gap-2">
+                 <AlertTriangle className="w-5 h-5 text-amber-500" />
+                 Release Crypto to Buyer
+               </DrawerTitle>
+               <DrawerDescription>
+                 You are about to release crypto to the buyer. This action cannot be undone.
+               </DrawerDescription>
+             </DrawerHeader>
+             <div className="px-4">{content}</div>
+             <DrawerFooter className="flex-row gap-2">{footer}</DrawerFooter>
+           </DrawerContent>
+         </Drawer>
+         {passkeyOverlay}
+       </>
      );
    }
- 
+
    return (
-     <Dialog open={open} onOpenChange={handleClose}>
-       <DialogContent className="sm:max-w-md">
-         <DialogHeader>
-           <DialogTitle className="flex items-center gap-2">
-             <AlertTriangle className="w-5 h-5 text-amber-500" />
-             Release Crypto to Buyer
-           </DialogTitle>
-           <DialogDescription>
-             You are about to release crypto to the buyer. This action cannot be undone.
-           </DialogDescription>
-         </DialogHeader>
-         {content}
-         <DialogFooter className="gap-2 sm:gap-0">{footer}</DialogFooter>
-       </DialogContent>
-     </Dialog>
+     <>
+       <Dialog open={open} onOpenChange={handleClose}>
+         <DialogContent className="sm:max-w-md">
+           <DialogHeader>
+             <DialogTitle className="flex items-center gap-2">
+               <AlertTriangle className="w-5 h-5 text-amber-500" />
+               Release Crypto to Buyer
+             </DialogTitle>
+             <DialogDescription>
+               You are about to release crypto to the buyer. This action cannot be undone.
+             </DialogDescription>
+           </DialogHeader>
+           {content}
+           <DialogFooter className="gap-2 sm:gap-0">{footer}</DialogFooter>
+         </DialogContent>
+       </Dialog>
+       {passkeyOverlay}
+     </>
    );
  };

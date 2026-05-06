@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle, Fingerprint } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import peerlyLogo from "@/assets/peerly-logo.png";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge } = useAuth();
+  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +32,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error, mfaRequired } = await signIn(email, password);
+    const { error, mfaRequired, passkeyRequired } = await signIn(email, password);
     
     if (error) {
       toast.error(error.message || "Invalid email or password");
@@ -40,8 +40,7 @@ const Login = () => {
       return;
     }
 
-    if (mfaRequired) {
-      // MFA challenge will be handled by the mfaChallenge state
+    if (mfaRequired || passkeyRequired) {
       setIsLoading(false);
       return;
     }
@@ -50,6 +49,25 @@ const Login = () => {
     navigate(getRedirectPath());
     setIsLoading(false);
   };
+
+  const handlePasskeyVerify = async () => {
+    setIsLoading(true);
+    const { error } = await completePasskeyChallenge();
+    setIsLoading(false);
+    if (error) {
+      toast.error(error.message || "Passkey verification failed");
+      return;
+    }
+    toast.success("Welcome back!");
+    navigate(getRedirectPath());
+  };
+
+  useEffect(() => {
+    if (passkeyChallenge && !isLoading) {
+      handlePasskeyVerify();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passkeyChallenge]);
 
   const handleMFASubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +103,39 @@ const Login = () => {
     setMfaError("");
     setAttempts(0);
   };
+
+  // Show passkey challenge screen
+  if (passkeyChallenge) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-8">
+        <div className="w-full max-w-md text-center">
+          <Link to="/" className="flex items-center justify-center mb-8">
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+          </Link>
+          <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+            {isLoading ? (
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            ) : (
+              <Fingerprint className="w-10 h-10 text-primary" />
+            )}
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Use your passkey to sign in</h1>
+          <p className="text-muted-foreground mb-8">
+            Use fingerprint, face, or device PIN to continue
+          </p>
+          <div className="space-y-3">
+            <Button onClick={handlePasskeyVerify} className="w-full" size="lg" disabled={isLoading}>
+              <Fingerprint className="w-5 h-5 mr-2" />
+              Continue with passkey
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => { cancelPasskeyChallenge(); }}>
+              Cancel and use a different account
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show MFA challenge screen
   if (mfaChallenge) {

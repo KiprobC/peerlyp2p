@@ -11,16 +11,23 @@ interface MFAChallenge {
   email: string;
 }
 
+interface PasskeyChallenge {
+  email: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   authState: AuthState;
   loading: boolean; // Keep for backward compatibility
   mfaChallenge: MFAChallenge | null;
+  passkeyChallenge: PasskeyChallenge | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
   completeMFAChallenge: (code: string) => Promise<{ error: Error | null }>;
+  completePasskeyChallenge: () => Promise<{ error: Error | null }>;
   cancelMFAChallenge: () => void;
+  cancelPasskeyChallenge: () => void;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 }
@@ -44,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [mfaChallenge, setMfaChallenge] = useState<MFAChallenge | null>(null);
+  const [passkeyChallenge, setPasskeyChallenge] = useState<PasskeyChallenge | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   // Handle session state updates
@@ -274,10 +282,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Check if user has a passkey registered → require passkey verification
+    try {
+      const { checkHasPasskey } = await import("@/hooks/usePasskeys");
+      const hasPk = await checkHasPasskey(email);
+      if (hasPk) {
+        setPasskeyChallenge({ email });
+        return { error: null, passkeyRequired: true };
+      }
+    } catch {
+      // ignore — fall through to normal sign-in
+    }
+
     // Collect fingerprint on login (non-blocking)
     import("@/lib/fingerprint").then(({ collectFingerprint }) => collectFingerprint("login")).catch(() => {});
 
     return { error: null, mfaRequired: false };
+  };
+
+  const completePasskeyChallenge = async () => {
+    if (!passkeyChallenge) return { error: new Error("No passkey challenge pending") };
+    try {
+      const { loginWithPasskey } = await import("@/hooks/usePasskeys");
+      const result = await loginWithPasskey(passkeyChallenge.email);
+      if (!result.verified) return { error: new Error("Passkey verification failed") };
+      setPasskeyChallenge(null);
+      return { error: null };
+    } catch (e: any) {
+      return { error: e };
+    }
+  };
+
+  const cancelPasskeyChallenge = () => {
+    setPasskeyChallenge(null);
+    supabase.auth.signOut();
   };
 
   const completeMFAChallenge = async (code: string) => {
@@ -340,10 +378,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       authState,
       loading: authState === "loading", // Backward compatibility
       mfaChallenge,
+      passkeyChallenge,
       signUp, 
       signIn, 
       completeMFAChallenge,
+      completePasskeyChallenge,
       cancelMFAChallenge,
+      cancelPasskeyChallenge,
       signOut,
       refreshSession
     }}>

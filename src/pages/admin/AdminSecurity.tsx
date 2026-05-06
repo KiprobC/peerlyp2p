@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, ShieldCheck, ShieldX, MoreVertical, Eye, Search, RefreshCw, Loader2, Clock, Key, Smartphone, AlertTriangle } from "lucide-react";
+import { Shield, ShieldCheck, ShieldX, MoreVertical, Eye, Search, RefreshCw, Loader2, Clock, Key, Smartphone, AlertTriangle, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -254,6 +254,8 @@ export const AdminSecurity = () => {
         </CardContent>
       </Card>
 
+      <PasskeyUsersCard />
+
       {/* User Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent>
@@ -334,3 +336,60 @@ export const AdminSecurity = () => {
 };
 
 export default AdminSecurity;
+
+const PasskeyUsersCard = () => {
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["admin-passkey-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_list_passkey_users" as any);
+      if (error) throw error;
+      return (data || []) as Array<{
+        user_id: string;
+        email: string | null;
+        full_name: string | null;
+        passkey_count: number;
+        last_used_at: string | null;
+      }>;
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Fingerprint className="h-5 w-5 text-primary" />
+          Passkey Users
+        </CardTitle>
+        <CardDescription>Users with biometric passkeys registered for 2FA</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No users have registered passkeys yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {data.map((u) => (
+              <div key={u.user_id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{u.full_name || u.email || u.user_id}</p>
+                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                </div>
+                <div className="text-right">
+                  <Badge variant="secondary">
+                    {u.passkey_count} {u.passkey_count === 1 ? "device" : "devices"}
+                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {u.last_used_at
+                      ? `Last used ${formatDistanceToNow(new Date(u.last_used_at), { addSuffix: true })}`
+                      : "Not used yet"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};

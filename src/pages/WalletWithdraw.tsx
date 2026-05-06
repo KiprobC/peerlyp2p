@@ -10,6 +10,8 @@ import { useWallets, cryptoInfo } from "@/hooks/useWallets";
 import { usePlatformFees } from "@/hooks/usePlatformFees";
 import { useMFA } from "@/hooks/useMFA";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
+import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+import { usePasskeys } from "@/hooks/usePasskeys";
 import { toast } from "sonner";
 
 const WalletWithdraw = () => {
@@ -22,6 +24,8 @@ const WalletWithdraw = () => {
   const [address, setAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOTPVerify, setShowOTPVerify] = useState(false);
+  const [showPasskey, setShowPasskey] = useState(false);
+  const { passkeys } = usePasskeys();
 
   const selectedInfo = cryptoInfo[selectedCrypto];
   const selectedWallet = wallets.find(w => w.crypto_type === selectedCrypto);
@@ -37,8 +41,11 @@ const WalletWithdraw = () => {
 
   const handleWithdrawClick = () => {
     if (!isValidAmount || !isValidAddress) return;
-    // Always require OTP verification for withdrawals
-    setShowOTPVerify(true);
+    if (passkeys.length > 0) {
+      setShowPasskey(true);
+    } else {
+      setShowOTPVerify(true);
+    }
   };
 
   const executeWithdraw = async () => {
@@ -274,6 +281,15 @@ const WalletWithdraw = () => {
         description={`Confirm withdrawal of ${parsedAmount} ${selectedCrypto} to external wallet`}
         actionLabel="Confirm Withdrawal"
         requireMFA={mfaEnabled}
+      />
+
+      <PasskeyVerifyDialog
+        open={showPasskey}
+        onOpenChange={setShowPasskey}
+        onVerified={executeWithdraw}
+        onFallback={() => setShowOTPVerify(true)}
+        title="Authorize withdrawal"
+        description={`Use fingerprint or face to confirm sending ${parsedAmount} ${selectedCrypto}`}
       />
     </div>
   );
