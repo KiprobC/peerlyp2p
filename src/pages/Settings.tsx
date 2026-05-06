@@ -542,6 +542,11 @@ const Settings = () => {
               )}
             </div>
 
+            {/* Passkeys */}
+            <div className="p-4 rounded-lg bg-muted/50">
+              <PasskeyDeviceList />
+            </div>
+
             {/* Sessions */}
             <div 
               className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
