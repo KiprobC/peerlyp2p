@@ -21,10 +21,13 @@ interface AuthContextType {
   authState: AuthState;
   loading: boolean; // Keep for backward compatibility
   mfaChallenge: MFAChallenge | null;
+  passkeyChallenge: PasskeyChallenge | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
   completeMFAChallenge: (code: string) => Promise<{ error: Error | null }>;
+  completePasskeyChallenge: () => Promise<{ error: Error | null }>;
   cancelMFAChallenge: () => void;
+  cancelPasskeyChallenge: () => void;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 }
