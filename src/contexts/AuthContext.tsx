@@ -11,6 +11,10 @@ interface MFAChallenge {
   email: string;
 }
 
+interface PasskeyChallenge {
+  email: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
