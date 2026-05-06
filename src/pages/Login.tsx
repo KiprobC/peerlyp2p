@@ -62,6 +62,13 @@ const Login = () => {
     navigate(getRedirectPath());
   };
 
+  useEffect(() => {
+    if (passkeyChallenge && !isLoading) {
+      handlePasskeyVerify();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passkeyChallenge]);
+
   const handleMFASubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
