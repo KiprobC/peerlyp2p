@@ -831,6 +831,45 @@ export type Database = {
         }
         Relationships: []
       }
+      passkeys: {
+        Row: {
+          aaguid: string | null
+          counter: number
+          created_at: string
+          credential_id: string
+          device_name: string
+          id: string
+          last_used_at: string | null
+          public_key: string
+          transports: string[] | null
+          user_id: string
+        }
+        Insert: {
+          aaguid?: string | null
+          counter?: number
+          created_at?: string
+          credential_id: string
+          device_name?: string
+          id?: string
+          last_used_at?: string | null
+          public_key: string
+          transports?: string[] | null
+          user_id: string
+        }
+        Update: {
+          aaguid?: string | null
+          counter?: number
+          created_at?: string
+          credential_id?: string
+          device_name?: string
+          id?: string
+          last_used_at?: string | null
+          public_key?: string
+          transports?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_method_restrictions: {
         Row: {
           country_code: string
@@ -2039,6 +2078,36 @@ export type Database = {
         }
         Relationships: []
       }
+      webauthn_challenges: {
+        Row: {
+          challenge: string
+          created_at: string
+          email: string | null
+          expires_at: string
+          id: string
+          purpose: string
+          user_id: string | null
+        }
+        Insert: {
+          challenge: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          purpose: string
+          user_id?: string | null
+        }
+        Update: {
+          challenge?: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          purpose?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2047,6 +2116,16 @@ export type Database = {
       admin_disable_offer: {
         Args: { p_offer_id: string; p_reason?: string }
         Returns: Json
+      }
+      admin_list_passkey_users: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          last_used_at: string
+          passkey_count: number
+          user_id: string
+        }[]
       }
       assert_trade_transition: {
         Args: {
@@ -2305,6 +2384,7 @@ export type Database = {
         Args: { p_is_system?: boolean; p_message: string; p_trade_id: string }
         Returns: string
       }
+      passkey_count: { Args: { _user_id: string }; Returns: number }
       recalculate_trader_risk: {
         Args: { p_user_id: string }
         Returns: undefined
