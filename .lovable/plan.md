@@ -1,110 +1,121 @@
-## KYC Auto-Verification Bot + Manual Admin Approval + Document Reuse Prevention
+## Passkey-based 2FA (WebAuthn) Implementation Plan
 
-### Goals
-1. Automatic bot that scores KYC submissions and auto-approves/rejects/escalates.
-2. Admins can manually review every submission with full document/image visibility.
-3. Same physical document (ID number, image hash) cannot be reused across multiple accounts.
-
----
+Add WebAuthn passkeys as a second factor for sensitive actions (login, withdraw, release crypto), alongside the existing TOTP/Email OTP system.
 
 ### 1. Database (migration)
 
-**`kyc_submissions`** — one row per submission attempt (immutable history)
-- `id`, `user_id`, `country_code`, `id_type`, `id_number`
-- `id_front_url`, `id_back_url`, `selfie_url`
-- `id_front_hash`, `id_back_hash`, `selfie_hash` (sha256 of file bytes)
-- `status` — `pending | auto_approved | auto_rejected | needs_review | manually_approved | manually_rejected`
-- `bot_score` numeric, `bot_checks` jsonb, `bot_reason` text
-- `reviewer_id`, `reviewed_at`, `review_notes`
-- `created_at`
+New table `public.passkeys`:
+- `id` uuid PK, `user_id` uuid (FK profiles/auth.users)
+- `credential_id` text UNIQUE (base64url)
+- `public_key` text (base64url COSE key)
+- `counter` bigint default 0
+- `transports` text[] (usb, nfc, ble, internal, hybrid)
+- `device_name` text
+- `aaguid` text nullable
+- `last_used_at` timestamptz
+- `created_at` timestamptz default now()
 
-**`kyc_document_fingerprints`** — global dedup index
-- `id`, `fingerprint` (text, unique), `kind` (`id_number | image_hash`)
-- `user_id` (first claimer), `submission_id`, `created_at`
-- Unique index on `(fingerprint, kind)` blocks re-use across users.
+New table `public.webauthn_challenges` (short-lived):
+- `id` uuid PK, `user_id` uuid nullable (null for login challenges keyed by email)
+- `email` text nullable
+- `challenge` text (base64url)
+- `purpose` text check in ('registration','authentication','step_up')
+- `expires_at` timestamptz (5 min)
+- `created_at` timestamptz
 
-**RLS**
-- `kyc_submissions`: user reads own; admins read/update all.
-- `kyc_document_fingerprints`: admin only (service role writes).
+RLS:
+- `passkeys`: users can SELECT/UPDATE/DELETE their own; INSERT only via SECURITY DEFINER RPC. Admins can SELECT all.
+- `webauthn_challenges`: no client access; only edge functions via service role.
 
-**RPC `claim_kyc_fingerprints(p_submission_id, p_user_id, p_fingerprints jsonb[])`**
-- Inserts each fingerprint atomically; on conflict where `user_id != p_user_id` raises `DOCUMENT_REUSED`.
+RPC `passkey_count(_user_id uuid)` returns int (security definer, used by UI/auth flow).
 
-**RPC `finalize_kyc_decision(p_submission_id, p_decision, p_reviewer, p_notes)`**
-- Updates submission + writes to `profiles.kyc_status` + audit log.
+Index on `passkeys(user_id)`, `webauthn_challenges(expires_at)` for cleanup.
 
----
+### 2. Edge Functions
 
-### 2. Edge function `kyc-auto-verify` (called on submission)
+Use `@simplewebauthn/server` (Deno-compatible via esm.sh).
 
-Inputs: `submission_id`.
+- `passkey-register-begin` (verify_jwt=true): generate registration options, store challenge, return PublicKeyCredentialCreationOptionsJSON.
+- `passkey-register-finish` (verify_jwt=true): verify attestation, insert into `passkeys` with provided device_name. Enforce unique credential_id.
+- `passkey-auth-begin` (verify_jwt=false): accept email (for login step) or current user (for step-up). Return allowCredentials + challenge.
+- `passkey-auth-finish` (verify_jwt=false): verify assertion, update counter + last_used_at. For login: returns success token used by client to set MFA-passed flag. For step-up: returns short-lived signed token (JWT HS256 with project secret) the client presents to RPCs.
 
-Steps:
-1. Load submission + uploaded files from storage.
-2. Compute SHA-256 of each image → call `claim_kyc_fingerprints` with `[id_number, id_front_hash, id_back_hash, selfie_hash]`. If conflict → mark `auto_rejected` with `reason: document_reused`.
-3. Run **bot checks** (each contributes to score 0–100):
-   - **Field validity**: id_number length/format per country, name not empty, DOB ≥ 18.
-   - **Image quality** via Lovable AI (`google/gemini-2.5-flash`, multimodal): for each image ask "Is this a clear, unedited photo of a government ID / a live selfie? Return JSON {valid, confidence, issues}".
-   - **ID/Selfie match**: send id_front + selfie to Gemini, "Do these depict the same person? JSON {match, confidence}".
-   - **Name match**: extract OCR name from ID image via Gemini, compare to profile full_name (Levenshtein-like in JS).
-   - **Country match**: ID country == selected country.
-4. Aggregate score:
-   - `≥ 85` AND no critical fail → `auto_approved` → set `profiles.kyc_status = verified`, `kyc_verified_at = now()`.
-   - `≤ 40` OR critical fail (image_invalid, country_mismatch) → `auto_rejected`.
-   - Otherwise → `needs_review` (sent to admin queue).
-5. Emit notification to user + (if `needs_review`) to admins.
+Origin/RP ID derived from request `Origin` header validated against allowlist (preview URL, published URL, custom domains).
 
-Function deployed with `verify_jwt = true` (called from frontend after upload).
+Config in `supabase/config.toml`:
+```
+[functions.passkey-auth-begin]
+verify_jwt = false
+[functions.passkey-auth-finish]
+verify_jwt = false
+```
 
----
+### 3. Frontend
 
-### 3. Frontend changes
+New hook `src/hooks/usePasskeys.ts`:
+- `listPasskeys()`, `registerPasskey(deviceName)`, `renamePasskey(id,name)`, `deletePasskey(id)`, `authenticateStepUp(purpose)`, `hasPasskey(email)`.
+- Uses `@simplewebauthn/browser` (`startRegistration`, `startAuthentication`).
 
-**`KYCUpload.tsx`**
-- After uploading the 3 images + form submission, insert a `kyc_submissions` row, then `supabase.functions.invoke('kyc-auto-verify', { body: { submission_id } })`.
-- Show live state: "Bot is reviewing your documents…" → result screen (approved / rejected with reason / pending manual review).
-- On `document_reused` show specific message.
+New components:
+- `src/components/security/PasskeySetupDialog.tsx` — registration flow with device-name input and biometric prompt UI ("Use fingerprint / face to continue").
+- `src/components/security/PasskeyVerifyDialog.tsx` — step-up modal with fallback "Use authenticator code instead" / "Use email OTP".
+- `src/components/security/PasskeyDeviceList.tsx` — "Your Devices" list with rename/remove, last_used relative time.
 
-**`AdminKYC.tsx` (rebuild as review queue)**
-- Tabs: `Needs Review` (default), `Auto-Approved`, `Auto-Rejected`, `All`.
-- Row click → drawer with:
-  - Profile data (name, DOB, country, id_number).
-  - Three document images (signed URLs from storage, viewable inline + downloadable).
-  - Bot score, per-check breakdown (`bot_checks` jsonb pretty-printed).
-  - Approve / Reject buttons → calls `finalize_kyc_decision` RPC; reject requires note.
-- Search by id_number / user email; filter by country.
+Settings page: add a "Passkeys" section under Security with the device list and "Enable Passkey 2FA" button.
 
----
+### 4. Auth flow integration
 
-### 4. Document storage & access
-- Reuse existing `kyc-documents` storage bucket (private). Add admin RLS read policy via signed URLs generated server-side (admins only).
-- Files are kept indefinitely so admins can always re-review.
+`AuthContext.signIn`:
+- After password success, check `passkey_count` for user (via `passkey-auth-begin` returning hasPasskey). If passkeys exist, set new state `passkeyChallenge` (mirrors `mfaChallenge`). Existing TOTP path remains.
+- New `completePasskeyChallenge()` calls `passkey-auth-finish`. Provides `cancelPasskeyChallenge()` and "use authenticator instead" path that falls through to existing TOTP if user has both.
 
----
+`Login.tsx`: render new passkey screen ("Use fingerprint / face to continue") when `passkeyChallenge` set, with fallback buttons.
 
-### 5. Secrets
-Bot uses Lovable AI Gateway only — `LOVABLE_API_KEY` already present. **No new secrets required.**
+### 5. Step-up for sensitive actions
 
----
+Reuse existing `OTPVerificationDialog` pattern. Add `usePasskeyStepUp` that:
+- Prefers passkey when available, falls back to email OTP.
+- Returns a step-up token consumed by withdraw / release-crypto RPCs (passed as parameter; backend validates token signature + purpose + freshness < 5 min).
 
-### 6. Files touched
+Wire into:
+- `WalletWithdraw.tsx` (withdraw)
+- `ReleaseCryptoDialog.tsx` (release crypto)
 
-Created
-- `supabase/functions/kyc-auto-verify/index.ts`
-- `src/components/admin/KYCReviewDrawer.tsx`
-- `src/hooks/useKYCReview.ts`
+### 6. Admin panel
 
-Modified
-- `src/pages/KYCUpload.tsx` — submit → invoke bot, show status.
-- `src/pages/admin/AdminKYC.tsx` — review queue UI.
-- `supabase/config.toml` — register new function.
-- New migration for tables, RPCs, RLS, indexes.
+`AdminSecurity.tsx`: add "Passkey Users" tab listing user_id, email, passkey count, last_used (via SECURITY DEFINER RPC `admin_list_passkey_users`). Flag: users with >5 failed passkey attempts in 24h (count from existing `security_events`).
 
----
+### 7. Security rules
 
-### Out of scope (this pass)
-- Liveness video / 3D selfie capture (browser-only photo upload retained).
-- Sanctions/PEP screening (can be a follow-up bot check).
-- Per-country ID-number regex library beyond a basic length+digit check (can extend later).
+- Origin allowlist enforced server-side in both finish functions.
+- Reject if challenge expired/missing/already used (delete on consume).
+- Counter monotonicity check; reject if counter regresses (cloned authenticator).
+- Unique constraint on `credential_id` prevents reuse across accounts.
+- HTTPS-only enforced by deployment; RP ID validated.
 
-Confirm and I'll start with the migration.
+### Files to create
+- `supabase/migrations/<ts>_passkeys.sql`
+- `supabase/functions/passkey-register-begin/index.ts`
+- `supabase/functions/passkey-register-finish/index.ts`
+- `supabase/functions/passkey-auth-begin/index.ts`
+- `supabase/functions/passkey-auth-finish/index.ts`
+- `src/hooks/usePasskeys.ts`
+- `src/components/security/PasskeySetupDialog.tsx`
+- `src/components/security/PasskeyVerifyDialog.tsx`
+- `src/components/security/PasskeyDeviceList.tsx`
+
+### Files to modify
+- `supabase/config.toml` — add new function configs
+- `src/contexts/AuthContext.tsx` — add passkey challenge state + completion
+- `src/pages/Login.tsx` — passkey verification screen
+- `src/pages/Settings.tsx` — passkeys section
+- `src/pages/WalletWithdraw.tsx` — step-up integration
+- `src/components/trade/ReleaseCryptoDialog.tsx` — step-up integration
+- `src/pages/admin/AdminSecurity.tsx` — passkey users tab
+
+### Open question
+A step-up token signed by the edge function needs a shared HMAC secret that the RPCs can verify in Postgres. Options:
+1. Use a Supabase secret + a Postgres function `verify_stepup_token(token)` reading the secret from Vault.
+2. Have the edge function call the destructive RPC itself after verifying the passkey (no token passed through client).
+
+Option 2 is simpler and more secure — the withdraw / release-crypto flows would be wrapped in edge functions that perform passkey verification then invoke the existing RPC with service role. I will use Option 2.
