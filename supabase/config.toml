@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.kyc-auto-verify]
 verify_jwt = true
+
+[functions.passkey-auth-begin]
+verify_jwt = false
+
+[functions.passkey-auth-finish]
+verify_jwt = false
