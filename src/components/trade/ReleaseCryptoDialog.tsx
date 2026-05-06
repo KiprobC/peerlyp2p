@@ -49,6 +49,8 @@ export const ReleaseCryptoDialog = ({
    const [processing, setProcessing] = useState(false);
    const [countdown, setCountdown] = useState(DELAY_SECONDS);
    const [canInteract, setCanInteract] = useState(false);
+   const [showPasskey, setShowPasskey] = useState(false);
+   const { passkeys } = usePasskeys();
  
    // Reset state when dialog opens
    useEffect(() => {
