@@ -32,7 +32,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    const { error, mfaRequired } = await signIn(email, password);
+    const { error, mfaRequired, passkeyRequired } = await signIn(email, password);
     
     if (error) {
       toast.error(error.message || "Invalid email or password");
@@ -40,8 +40,7 @@ const Login = () => {
       return;
     }
 
-    if (mfaRequired) {
-      // MFA challenge will be handled by the mfaChallenge state
+    if (mfaRequired || passkeyRequired) {
       setIsLoading(false);
       return;
     }
@@ -49,6 +48,18 @@ const Login = () => {
     toast.success("Welcome back!");
     navigate(getRedirectPath());
     setIsLoading(false);
+  };
+
+  const handlePasskeyVerify = async () => {
+    setIsLoading(true);
+    const { error } = await completePasskeyChallenge();
+    setIsLoading(false);
+    if (error) {
+      toast.error(error.message || "Passkey verification failed");
+      return;
+    }
+    toast.success("Welcome back!");
+    navigate(getRedirectPath());
   };
 
   const handleMFASubmit = async (e: React.FormEvent) => {
