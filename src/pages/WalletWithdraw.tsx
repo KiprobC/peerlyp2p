@@ -282,6 +282,15 @@ const WalletWithdraw = () => {
         actionLabel="Confirm Withdrawal"
         requireMFA={mfaEnabled}
       />
+
+      <PasskeyVerifyDialog
+        open={showPasskey}
+        onOpenChange={setShowPasskey}
+        onVerified={executeWithdraw}
+        onFallback={() => setShowOTPVerify(true)}
+        title="Authorize withdrawal"
+        description={`Use fingerprint or face to confirm sending ${parsedAmount} ${selectedCrypto}`}
+      />
     </div>
   );
 };
