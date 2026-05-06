@@ -282,10 +282,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Check if user has a passkey registered → require passkey verification
+    try {
+      const { checkHasPasskey } = await import("@/hooks/usePasskeys");
+      const hasPk = await checkHasPasskey(email);
+      if (hasPk) {
+        setPasskeyChallenge({ email });
+        return { error: null, passkeyRequired: true };
+      }
+    } catch {
+      // ignore — fall through to normal sign-in
+    }
+
     // Collect fingerprint on login (non-blocking)
     import("@/lib/fingerprint").then(({ collectFingerprint }) => collectFingerprint("login")).catch(() => {});
 
     return { error: null, mfaRequired: false };
+  };
+
+  const completePasskeyChallenge = async () => {
+    if (!passkeyChallenge) return { error: new Error("No passkey challenge pending") };
+    try {
+      const { loginWithPasskey } = await import("@/hooks/usePasskeys");
+      const result = await loginWithPasskey(passkeyChallenge.email);
+      if (!result.verified) return { error: new Error("Passkey verification failed") };
+      setPasskeyChallenge(null);
+      return { error: null };
+    } catch (e: any) {
+      return { error: e };
+    }
+  };
+
+  const cancelPasskeyChallenge = () => {
+    setPasskeyChallenge(null);
+    supabase.auth.signOut();
   };
 
   const completeMFAChallenge = async (code: string) => {
