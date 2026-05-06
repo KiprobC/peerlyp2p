@@ -254,6 +254,8 @@ export const AdminSecurity = () => {
         </CardContent>
       </Card>
 
+      <PasskeyUsersCard />
+
       {/* User Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent>
