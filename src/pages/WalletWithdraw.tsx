@@ -41,8 +41,11 @@ const WalletWithdraw = () => {
 
   const handleWithdrawClick = () => {
     if (!isValidAmount || !isValidAddress) return;
-    // Always require OTP verification for withdrawals
-    setShowOTPVerify(true);
+    if (passkeys.length > 0) {
+      setShowPasskey(true);
+    } else {
+      setShowOTPVerify(true);
+    }
   };
 
   const executeWithdraw = async () => {
