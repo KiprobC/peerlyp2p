@@ -378,10 +378,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       authState,
       loading: authState === "loading", // Backward compatibility
       mfaChallenge,
+      passkeyChallenge,
       signUp, 
       signIn, 
       completeMFAChallenge,
+      completePasskeyChallenge,
       cancelMFAChallenge,
+      cancelPasskeyChallenge,
       signOut,
       refreshSession
     }}>
