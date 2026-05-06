@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, ShieldCheck, ShieldX, MoreVertical, Eye, Search, RefreshCw, Loader2, Clock, Key, Smartphone, AlertTriangle } from "lucide-react";
+import { Shield, ShieldCheck, ShieldX, MoreVertical, Eye, Search, RefreshCw, Loader2, Clock, Key, Smartphone, AlertTriangle, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
