@@ -142,16 +142,42 @@ const Login = () => {
           <p className="text-muted-foreground mb-8">
             Use fingerprint, face, or device PIN to continue
           </p>
+          {passkeyError && (
+            <div className="flex items-center justify-center gap-2 text-destructive text-sm mb-4">
+              <AlertCircle className="h-4 w-4" />
+              {passkeyError}
+            </div>
+          )}
           <div className="space-y-3">
             <Button onClick={handlePasskeyVerify} className="w-full" size="lg" disabled={isLoading}>
               <Fingerprint className="w-5 h-5 mr-2" />
-              Continue with passkey
+              Try passkey again
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              size="lg"
+              onClick={() => setShowOtpFallback(true)}
+              disabled={isLoading}
+            >
+              <Mail className="w-5 h-5 mr-2" />
+              Use email code instead
             </Button>
             <Button variant="ghost" className="w-full" onClick={() => { cancelPasskeyChallenge(); }}>
               Cancel and use a different account
             </Button>
           </div>
         </div>
+
+        <OTPVerificationDialog
+          open={showOtpFallback}
+          onOpenChange={setShowOtpFallback}
+          onVerified={handleOtpFallbackVerified}
+          actionType="sensitive_action"
+          title="Verify with email code"
+          description="We'll send a verification code to your email as a passkey backup"
+          actionLabel="Verify & Sign In"
+        />
       </div>
     );
   }
