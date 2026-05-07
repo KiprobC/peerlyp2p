@@ -141,7 +141,9 @@ export const OTPVerificationDialog = ({
 
   const handleResend = async () => {
     setCode("");
+    setResending(true);
     await resendCode(actionType);
+    setResending(false);
   };
 
   const handleClose = (open: boolean) => {
