@@ -56,10 +56,11 @@ const Login = () => {
 
   const handlePasskeyVerify = async () => {
     setIsLoading(true);
+    setPasskeyError("");
     const { error } = await completePasskeyChallenge();
     setIsLoading(false);
     if (error) {
-      toast.error(error.message || "Passkey verification failed");
+      setPasskeyError(error.message || "Passkey verification failed or was cancelled");
       return;
     }
     toast.success("Welcome back!");
@@ -67,11 +68,23 @@ const Login = () => {
   };
 
   useEffect(() => {
-    if (passkeyChallenge && !isLoading) {
+    if (passkeyChallenge && !autoTriggered) {
+      setAutoTriggered(true);
       handlePasskeyVerify();
+    }
+    if (!passkeyChallenge) {
+      setAutoTriggered(false);
+      setPasskeyError("");
+      setShowOtpFallback(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passkeyChallenge]);
+
+  const handleOtpFallbackVerified = () => {
+    // Email OTP verified — accept session and proceed
+    setShowOtpFallback(false);
+    cancelPasskeyChallenge(); // clears challenge state without signing out... but cancelPasskey signs out.
+  };
 
   const handleMFASubmit = async (e: React.FormEvent) => {
     e.preventDefault();
