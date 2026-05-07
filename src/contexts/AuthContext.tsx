@@ -26,6 +26,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
   completeMFAChallenge: (code: string) => Promise<{ error: Error | null }>;
   completePasskeyChallenge: () => Promise<{ error: Error | null }>;
+  acceptPasskeyFallback: () => void;
   cancelMFAChallenge: () => void;
   cancelPasskeyChallenge: () => void;
   signOut: () => Promise<void>;
@@ -313,6 +314,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const acceptPasskeyFallback = () => {
+    // User completed alternative verification (e.g. email OTP) — clear challenge but keep session.
+    setPasskeyChallenge(null);
+  };
+
   const cancelPasskeyChallenge = () => {
     setPasskeyChallenge(null);
     supabase.auth.signOut();
@@ -383,6 +389,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signIn, 
       completeMFAChallenge,
       completePasskeyChallenge,
+      acceptPasskeyFallback,
       cancelMFAChallenge,
       cancelPasskeyChallenge,
       signOut,

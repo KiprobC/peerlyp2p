@@ -6,10 +6,11 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle, Fing
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import peerlyLogo from "@/assets/peerly-logo.png";
+import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge } = useAuth();
+  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge, acceptPasskeyFallback } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,6 +18,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [mfaError, setMfaError] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const [passkeyError, setPasskeyError] = useState("");
+  const [showOtpFallback, setShowOtpFallback] = useState(false);
+  const [autoTriggered, setAutoTriggered] = useState(false);
 
   // Get redirect destination from session storage
   const getRedirectPath = () => {
@@ -52,10 +56,11 @@ const Login = () => {
 
   const handlePasskeyVerify = async () => {
     setIsLoading(true);
+    setPasskeyError("");
     const { error } = await completePasskeyChallenge();
     setIsLoading(false);
     if (error) {
-      toast.error(error.message || "Passkey verification failed");
+      setPasskeyError(error.message || "Passkey verification failed or was cancelled");
       return;
     }
     toast.success("Welcome back!");
@@ -63,11 +68,25 @@ const Login = () => {
   };
 
   useEffect(() => {
-    if (passkeyChallenge && !isLoading) {
+    if (passkeyChallenge && !autoTriggered) {
+      setAutoTriggered(true);
       handlePasskeyVerify();
+    }
+    if (!passkeyChallenge) {
+      setAutoTriggered(false);
+      setPasskeyError("");
+      setShowOtpFallback(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passkeyChallenge]);
+
+  const handleOtpFallbackVerified = () => {
+    // Email OTP verified — accept session and proceed without signing out
+    setShowOtpFallback(false);
+    acceptPasskeyFallback();
+    toast.success("Verified by email — welcome back!");
+    navigate(getRedirectPath());
+  };
 
   const handleMFASubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,16 +142,42 @@ const Login = () => {
           <p className="text-muted-foreground mb-8">
             Use fingerprint, face, or device PIN to continue
           </p>
+          {passkeyError && (
+            <div className="flex items-center justify-center gap-2 text-destructive text-sm mb-4">
+              <AlertCircle className="h-4 w-4" />
+              {passkeyError}
+            </div>
+          )}
           <div className="space-y-3">
             <Button onClick={handlePasskeyVerify} className="w-full" size="lg" disabled={isLoading}>
               <Fingerprint className="w-5 h-5 mr-2" />
-              Continue with passkey
+              Try passkey again
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              size="lg"
+              onClick={() => setShowOtpFallback(true)}
+              disabled={isLoading}
+            >
+              <Mail className="w-5 h-5 mr-2" />
+              Use email code instead
             </Button>
             <Button variant="ghost" className="w-full" onClick={() => { cancelPasskeyChallenge(); }}>
               Cancel and use a different account
             </Button>
           </div>
         </div>
+
+        <OTPVerificationDialog
+          open={showOtpFallback}
+          onOpenChange={setShowOtpFallback}
+          onVerified={handleOtpFallbackVerified}
+          actionType="sensitive_action"
+          title="Verify with email code"
+          description="We'll send a verification code to your email as a passkey backup"
+          actionLabel="Verify & Sign In"
+        />
       </div>
     );
   }

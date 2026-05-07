@@ -20,8 +20,9 @@
  import { Input } from "@/components/ui/input";
  import { AlertTriangle, Unlock, Loader2, ShieldAlert } from "lucide-react";
  import { cn } from "@/lib/utils";
- import { usePasskeys } from "@/hooks/usePasskeys";
- import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+  import { usePasskeys } from "@/hooks/usePasskeys";
+  import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+  import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
  
 interface ReleaseCryptoDialogProps {
   open: boolean;
@@ -50,6 +51,7 @@ export const ReleaseCryptoDialog = ({
    const [countdown, setCountdown] = useState(DELAY_SECONDS);
    const [canInteract, setCanInteract] = useState(false);
    const [showPasskey, setShowPasskey] = useState(false);
+   const [showOtpFallback, setShowOtpFallback] = useState(false);
    const { passkeys } = usePasskeys();
  
    // Reset state when dialog opens
@@ -211,13 +213,25 @@ export const ReleaseCryptoDialog = ({
    );
  
    const passkeyOverlay = (
-     <PasskeyVerifyDialog
-       open={showPasskey}
-       onOpenChange={setShowPasskey}
-       onVerified={doRelease}
-       title="Authorize crypto release"
-       description="Use fingerprint or face to authorize this irreversible action"
-     />
+     <>
+       <PasskeyVerifyDialog
+         open={showPasskey}
+         onOpenChange={setShowPasskey}
+         onVerified={doRelease}
+         onFallback={() => setShowOtpFallback(true)}
+         title="Authorize crypto release"
+         description="Use fingerprint or face to authorize this irreversible action"
+       />
+       <OTPVerificationDialog
+         open={showOtpFallback}
+         onOpenChange={setShowOtpFallback}
+         onVerified={doRelease}
+         actionType="sensitive_action"
+         title="Verify with email code"
+         description="Enter the verification code sent to your email to authorize this release"
+         actionLabel="Confirm Release"
+       />
+     </>
    );
 
    if (isMobile) {
