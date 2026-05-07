@@ -256,20 +256,32 @@ export const OTPVerificationDialog = ({
               )}
 
               {/* Resend button */}
-              <div className="flex justify-center">
+              <div className="space-y-2 pt-2">
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="outline"
+                  className="w-full"
                   onClick={handleResend}
-                  disabled={isOnCooldown || otpLoading}
-                  className="text-muted-foreground"
+                  disabled={isOnCooldown || otpLoading || resending}
                 >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${otpLoading ? "animate-spin" : ""}`} />
-                  {isOnCooldown && countdown > 0
-                    ? `Resend in ${countdown}s`
-                    : "Resend Code"
-                  }
+                  {resending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  {isOnCooldown && countdown > 0 ? (
+                    <span className="flex items-center gap-2">
+                      Resend code in
+                      <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-md bg-primary/10 text-primary font-mono text-sm">
+                        {countdown}s
+                      </span>
+                    </span>
+                  ) : (
+                    "Resend Code"
+                  )}
                 </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  Didn't receive it? Click above to request a new code.
+                </p>
               </div>
             </>
           )}
