@@ -10,7 +10,7 @@ import { OTPVerificationDialog } from "@/components/security/OTPVerificationDial
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge } = useAuth();
+  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge, acceptPasskeyFallback } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
