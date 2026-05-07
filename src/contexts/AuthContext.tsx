@@ -26,6 +26,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
   completeMFAChallenge: (code: string) => Promise<{ error: Error | null }>;
   completePasskeyChallenge: () => Promise<{ error: Error | null }>;
+  acceptPasskeyFallback: () => void;
   cancelMFAChallenge: () => void;
   cancelPasskeyChallenge: () => void;
   signOut: () => Promise<void>;
