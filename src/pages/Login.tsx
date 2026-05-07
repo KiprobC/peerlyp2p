@@ -6,6 +6,7 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle, Fing
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import peerlyLogo from "@/assets/peerly-logo.png";
+import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 
 const Login = () => {
   const navigate = useNavigate();
