@@ -41,6 +41,7 @@ export const OTPVerificationDialog = ({
   const [mfaCode, setMfaCode] = useState("");
   const [step, setStep] = useState<"otp" | "mfa">("otp");
   const [countdown, setCountdown] = useState(0);
+  const [resending, setResending] = useState(false);
 
   const {
     loading: otpLoading,
