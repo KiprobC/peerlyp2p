@@ -18,6 +18,9 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [mfaError, setMfaError] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const [passkeyError, setPasskeyError] = useState("");
+  const [showOtpFallback, setShowOtpFallback] = useState(false);
+  const [autoTriggered, setAutoTriggered] = useState(false);
 
   // Get redirect destination from session storage
   const getRedirectPath = () => {
