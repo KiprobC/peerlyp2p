@@ -389,6 +389,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signIn, 
       completeMFAChallenge,
       completePasskeyChallenge,
+      acceptPasskeyFallback,
       cancelMFAChallenge,
       cancelPasskeyChallenge,
       signOut,
