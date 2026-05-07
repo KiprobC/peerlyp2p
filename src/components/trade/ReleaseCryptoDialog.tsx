@@ -20,8 +20,9 @@
  import { Input } from "@/components/ui/input";
  import { AlertTriangle, Unlock, Loader2, ShieldAlert } from "lucide-react";
  import { cn } from "@/lib/utils";
- import { usePasskeys } from "@/hooks/usePasskeys";
- import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+  import { usePasskeys } from "@/hooks/usePasskeys";
+  import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+  import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
  
 interface ReleaseCryptoDialogProps {
   open: boolean;
