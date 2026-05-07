@@ -213,13 +213,25 @@ export const ReleaseCryptoDialog = ({
    );
  
    const passkeyOverlay = (
-     <PasskeyVerifyDialog
-       open={showPasskey}
-       onOpenChange={setShowPasskey}
-       onVerified={doRelease}
-       title="Authorize crypto release"
-       description="Use fingerprint or face to authorize this irreversible action"
-     />
+     <>
+       <PasskeyVerifyDialog
+         open={showPasskey}
+         onOpenChange={setShowPasskey}
+         onVerified={doRelease}
+         onFallback={() => setShowOtpFallback(true)}
+         title="Authorize crypto release"
+         description="Use fingerprint or face to authorize this irreversible action"
+       />
+       <OTPVerificationDialog
+         open={showOtpFallback}
+         onOpenChange={setShowOtpFallback}
+         onVerified={doRelease}
+         actionType="sensitive_action"
+         title="Verify with email code"
+         description="Enter the verification code sent to your email to authorize this release"
+         actionLabel="Confirm Release"
+       />
+     </>
    );
 
    if (isMobile) {
