@@ -314,6 +314,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const acceptPasskeyFallback = () => {
+    // User completed alternative verification (e.g. email OTP) — clear challenge but keep session.
+    setPasskeyChallenge(null);
+  };
+
   const cancelPasskeyChallenge = () => {
     setPasskeyChallenge(null);
     supabase.auth.signOut();
