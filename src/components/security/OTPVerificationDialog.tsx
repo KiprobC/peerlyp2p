@@ -270,20 +270,46 @@ export const OTPVerificationDialog = ({
 
               {/* Code input */}
               <div className="space-y-2">
-                <Label htmlFor="otp-code">Verification Code</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="otp-code">Verification Code</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={pasteFromClipboard}
+                    disabled={isLocked || otpLoading}
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5 mr-1" />
+                    Paste
+                  </Button>
+                </div>
                 <Input
                   id="otp-code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
+                  autoComplete="one-time-code"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  onPaste={(e) => {
+                    const t = e.clipboardData.getData("text");
+                    const digits = t.replace(/\D/g, "").slice(0, 6);
+                    if (digits) {
+                      e.preventDefault();
+                      setCode(digits);
+                    }
+                  }}
                   placeholder="Enter 6-digit code"
                   className="text-center text-2xl tracking-[0.5em] font-mono"
                   disabled={isLocked || otpLoading}
                   autoFocus
                 />
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Copy className="h-3 w-3" />
+                  Tip: copy the code from your email — we'll auto-detect it, or tap Paste.
+                </p>
               </div>
 
               {/* Error display */}
