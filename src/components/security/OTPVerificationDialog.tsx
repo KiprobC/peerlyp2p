@@ -87,6 +87,50 @@ export const OTPVerificationDialog = ({
     }
   }, [open, resetOTP]);
 
+  // WebOTP API: auto-fill SMS/email codes on supported browsers (mostly Android Chrome).
+  useEffect(() => {
+    if (!open || step !== "otp") return;
+    const w = window as unknown as {
+      OTPCredential?: unknown;
+    };
+    if (!("OTPCredential" in window)) return;
+    const ac = new AbortController();
+    try {
+      // @ts-expect-error - WebOTP API not in TS lib
+      navigator.credentials
+        .get({ otp: { transport: ["sms"] }, signal: ac.signal })
+        .then((cred: { code?: string } | null) => {
+          if (cred?.code) {
+            const digits = cred.code.replace(/\D/g, "").slice(0, 6);
+            if (digits.length === 6) setCode(digits);
+          }
+        })
+        .catch(() => { /* user cancelled or unsupported */ });
+    } catch { /* noop */ }
+    return () => ac.abort();
+  }, [open, step]);
+
+  // Paste from clipboard helper
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const digits = text.replace(/\D/g, "").slice(0, 6);
+      if (digits.length === 0) {
+        toast({ title: "Nothing numeric on clipboard", variant: "destructive" });
+        return;
+      }
+      if (step === "otp") setCode(digits);
+      else setMfaCode(digits);
+      toast({ title: "Code pasted", description: `${digits.length} digit(s) inserted` });
+    } catch {
+      toast({
+        title: "Clipboard blocked",
+        description: "Tap and hold the input, then choose Paste.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Countdown timer for cooldown
   useEffect(() => {
     if (!cooldownUntil) {
