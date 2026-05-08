@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute, PublicRoute } from "@/components/auth";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { useThemeInit } from "@/hooks/useThemeInit";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useRealtimeWallets } from "@/hooks/useRealtimeWallets";
@@ -274,6 +275,7 @@ const App = () => (
         <AuthProvider>
           <AppRoutes />
           <MobileBottomNav />
+          <InstallPrompt />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

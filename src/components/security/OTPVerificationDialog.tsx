@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOTPVerification, OTPActionType } from "@/hooks/useOTPVerification";
 import { useMFA } from "@/hooks/useMFA";
-import { Shield, Mail, Loader2, RefreshCw, AlertTriangle, CheckCircle, Lock } from "lucide-react";
+import { Shield, Mail, Loader2, RefreshCw, AlertTriangle, CheckCircle, Lock, ClipboardPaste, Copy } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface OTPVerificationDialogProps {
   open: boolean;
@@ -85,6 +86,49 @@ export const OTPVerificationDialog = ({
       resetOTP();
     }
   }, [open, resetOTP]);
+
+  // WebOTP API: auto-fill SMS/email codes on supported browsers (mostly Android Chrome).
+  useEffect(() => {
+    if (!open || step !== "otp") return;
+    if (!("OTPCredential" in window)) return;
+    const ac = new AbortController();
+    try {
+      const creds = navigator.credentials as unknown as {
+        get: (opts: { otp: { transport: string[] }; signal: AbortSignal }) => Promise<{ code?: string } | null>;
+      };
+      creds
+        .get({ otp: { transport: ["sms"] }, signal: ac.signal })
+        .then((cred) => {
+          if (cred?.code) {
+            const digits = cred.code.replace(/\D/g, "").slice(0, 6);
+            if (digits.length === 6) setCode(digits);
+          }
+        })
+        .catch(() => { /* user cancelled or unsupported */ });
+    } catch { /* noop */ }
+    return () => ac.abort();
+  }, [open, step]);
+
+  // Paste from clipboard helper
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const digits = text.replace(/\D/g, "").slice(0, 6);
+      if (digits.length === 0) {
+        toast({ title: "Nothing numeric on clipboard", variant: "destructive" });
+        return;
+      }
+      if (step === "otp") setCode(digits);
+      else setMfaCode(digits);
+      toast({ title: "Code pasted", description: `${digits.length} digit(s) inserted` });
+    } catch {
+      toast({
+        title: "Clipboard blocked",
+        description: "Tap and hold the input, then choose Paste.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Countdown timer for cooldown
   useEffect(() => {
@@ -226,20 +270,46 @@ export const OTPVerificationDialog = ({
 
               {/* Code input */}
               <div className="space-y-2">
-                <Label htmlFor="otp-code">Verification Code</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="otp-code">Verification Code</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={pasteFromClipboard}
+                    disabled={isLocked || otpLoading}
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5 mr-1" />
+                    Paste
+                  </Button>
+                </div>
                 <Input
                   id="otp-code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
+                  autoComplete="one-time-code"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                  onPaste={(e) => {
+                    const t = e.clipboardData.getData("text");
+                    const digits = t.replace(/\D/g, "").slice(0, 6);
+                    if (digits) {
+                      e.preventDefault();
+                      setCode(digits);
+                    }
+                  }}
                   placeholder="Enter 6-digit code"
                   className="text-center text-2xl tracking-[0.5em] font-mono"
                   disabled={isLocked || otpLoading}
                   autoFocus
                 />
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Copy className="h-3 w-3" />
+                  Tip: copy the code from your email — we'll auto-detect it, or tap Paste.
+                </p>
               </div>
 
               {/* Error display */}
@@ -307,15 +377,37 @@ export const OTPVerificationDialog = ({
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="mfa-code">Authenticator Code</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="mfa-code">Authenticator Code</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={pasteFromClipboard}
+                    disabled={mfaLocked || mfaLoading}
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5 mr-1" />
+                    Paste
+                  </Button>
+                </div>
                 <Input
                   id="mfa-code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
+                  autoComplete="one-time-code"
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                  onPaste={(e) => {
+                    const t = e.clipboardData.getData("text");
+                    const digits = t.replace(/\D/g, "").slice(0, 6);
+                    if (digits) {
+                      e.preventDefault();
+                      setMfaCode(digits);
+                    }
+                  }}
                   placeholder="Enter 6-digit code"
                   className="text-center text-2xl tracking-[0.5em] font-mono"
                   disabled={mfaLocked || mfaLoading}
