@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useOTPVerification, OTPActionType } from "@/hooks/useOTPVerification";
 import { useMFA } from "@/hooks/useMFA";
-import { Shield, Mail, Loader2, RefreshCw, AlertTriangle, CheckCircle, Lock } from "lucide-react";
+import { Shield, Mail, Loader2, RefreshCw, AlertTriangle, CheckCircle, Lock, ClipboardPaste, Copy } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface OTPVerificationDialogProps {
   open: boolean;
