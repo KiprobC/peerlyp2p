@@ -90,9 +90,6 @@ export const OTPVerificationDialog = ({
   // WebOTP API: auto-fill SMS/email codes on supported browsers (mostly Android Chrome).
   useEffect(() => {
     if (!open || step !== "otp") return;
-    const w = window as unknown as {
-      OTPCredential?: unknown;
-    };
     if (!("OTPCredential" in window)) return;
     const ac = new AbortController();
     try {
