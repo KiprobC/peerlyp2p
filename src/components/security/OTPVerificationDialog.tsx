@@ -96,10 +96,12 @@ export const OTPVerificationDialog = ({
     if (!("OTPCredential" in window)) return;
     const ac = new AbortController();
     try {
-      // @ts-expect-error - WebOTP API not in TS lib
-      navigator.credentials
+      const creds = navigator.credentials as unknown as {
+        get: (opts: { otp: { transport: string[] }; signal: AbortSignal }) => Promise<{ code?: string } | null>;
+      };
+      creds
         .get({ otp: { transport: ["sms"] }, signal: ac.signal })
-        .then((cred: { code?: string } | null) => {
+        .then((cred) => {
           if (cred?.code) {
             const digits = cred.code.replace(/\D/g, "").slice(0, 6);
             if (digits.length === 6) setCode(digits);
