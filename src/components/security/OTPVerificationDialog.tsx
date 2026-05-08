@@ -377,15 +377,37 @@ export const OTPVerificationDialog = ({
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="mfa-code">Authenticator Code</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="mfa-code">Authenticator Code</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={pasteFromClipboard}
+                    disabled={mfaLocked || mfaLoading}
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5 mr-1" />
+                    Paste
+                  </Button>
+                </div>
                 <Input
                   id="mfa-code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
+                  autoComplete="one-time-code"
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ""))}
+                  onPaste={(e) => {
+                    const t = e.clipboardData.getData("text");
+                    const digits = t.replace(/\D/g, "").slice(0, 6);
+                    if (digits) {
+                      e.preventDefault();
+                      setMfaCode(digits);
+                    }
+                  }}
                   placeholder="Enter 6-digit code"
                   className="text-center text-2xl tracking-[0.5em] font-mono"
                   disabled={mfaLocked || mfaLoading}
