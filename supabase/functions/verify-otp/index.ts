@@ -109,12 +109,10 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: "Verification code sent to your email",
           expiresInMinutes: 10,
-          // Include code in development for testing
-          ...(Deno.env.get("ENVIRONMENT") !== "production" && { devCode: result.code })
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

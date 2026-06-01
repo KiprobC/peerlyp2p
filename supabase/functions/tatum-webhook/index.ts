@@ -17,7 +17,53 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
+    // Read the raw body so we can verify the HMAC signature before parsing.
+    const rawBody = await req.text();
+
+    // Verify Tatum webhook signature (HMAC-SHA256 of raw body using TATUM_WEBHOOK_SECRET).
+    // Fail closed: without a configured secret, reject all webhook calls.
+    const webhookSecret = Deno.env.get("TATUM_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("TATUM_WEBHOOK_SECRET is not configured; rejecting webhook.");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const providedSig =
+      req.headers.get("x-payload-hash") ||
+      req.headers.get("x-signature") ||
+      req.headers.get("x-tatum-signature") ||
+      "";
+
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(webhookSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
+    const sigBytes = new Uint8Array(sigBuf);
+    const expectedHex = Array.from(sigBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+    const expectedBase64 = btoa(String.fromCharCode(...sigBytes));
+
+    const normalizedProvided = providedSig.trim().replace(/^sha256=/i, "");
+    const signatureValid =
+      normalizedProvided.length > 0 &&
+      (normalizedProvided.toLowerCase() === expectedHex ||
+        normalizedProvided === expectedBase64);
+
+    if (!signatureValid) {
+      console.warn("Tatum webhook signature mismatch");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = JSON.parse(rawBody);
     console.log("Tatum webhook received:", JSON.stringify(body));
 
     const { address, amount, txId, currency, chain, type } = body;
