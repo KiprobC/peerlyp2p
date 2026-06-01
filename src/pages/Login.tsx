@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import peerlyLogo from "@/assets/peerly-logo.png";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -362,6 +363,17 @@ const Login = () => {
               <ArrowRight className="w-5 h-5" />
             </Button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <GoogleSignInButton source="login" />
 
           <div className="mt-6 text-center">
             <span className="text-muted-foreground">Don't have an account? </span>
