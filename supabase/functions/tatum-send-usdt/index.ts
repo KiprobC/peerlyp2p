@@ -56,6 +56,53 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Idempotency: prefer client-supplied Idempotency-Key header; fall back to
+    // a deterministic key so missing header still cannot double-spend a trade.
+    const idemHeader = req.headers.get("Idempotency-Key") || req.headers.get("idempotency-key");
+    const idemKey = (idemHeader && idemHeader.trim().length > 0)
+      ? `send_usdt:${trade_id}:${idemHeader.trim()}`
+      : `send_usdt:${trade_id}`;
+
+    const claim = await serviceClient.rpc("claim_idempotency_key", {
+      p_key: idemKey,
+      p_scope: "tatum_send_usdt",
+      p_reference_id: trade_id,
+      p_actor_id: user.id,
+    });
+    if (claim.error) {
+      console.error("claim_idempotency_key error", claim.error);
+      return new Response(JSON.stringify({ error: "Idempotency check failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const claimData = claim.data as any;
+    if (claimData?.replay) {
+      return new Response(JSON.stringify({ ...(claimData.response ?? {}), replay: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (claimData?.in_progress) {
+      return new Response(JSON.stringify({ error: "Withdrawal already in progress", in_progress: true }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Helper to settle the idempotency key around any exit branch.
+    const settle = async (ok: boolean, payload: Record<string, unknown>) => {
+      try {
+        if (ok) {
+          await serviceClient.rpc("complete_idempotency_key", { p_key: idemKey, p_response: payload });
+        } else {
+          await serviceClient.rpc("fail_idempotency_key", { p_key: idemKey, p_error: String(payload.error ?? "failed") });
+        }
+      } catch (e) {
+        console.error("settle idempotency error", e);
+      }
+    };
+
     // Fetch the trade
     const { data: trade, error: tradeError } = await serviceClient
       .from("trades")
