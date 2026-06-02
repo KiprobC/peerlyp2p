@@ -129,10 +129,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // (serviceClient already created above for replay check)
+
 
     // Map chain to crypto_type
     let cryptoType: string;
