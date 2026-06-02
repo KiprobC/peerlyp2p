@@ -224,9 +224,10 @@ Deno.serve(async (req) => {
 
     if (!sendResponse.ok) {
       console.error("Tatum send failed:", JSON.stringify(sendResult));
-      return new Response(JSON.stringify({ 
-        error: "Blockchain transfer failed", 
-        details: sendResult.message || sendResult.statusCode || "Unknown error" 
+      await settle(false, { error: sendResult.message || sendResult.statusCode || "tatum error" });
+      return new Response(JSON.stringify({
+        error: "Blockchain transfer failed",
+        details: sendResult.message || sendResult.statusCode || "Unknown error"
       }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -236,7 +237,6 @@ Deno.serve(async (req) => {
     const txHash = sendResult.txId;
     console.log(`USDT TRC20 transfer successful. TX: ${txHash}`);
 
-    // Log the on-chain transaction in wallet_transactions
     const { data: buyerWallet } = await serviceClient
       .rpc("get_or_create_wallet", { p_user_id: trade.buyer_id, p_crypto_type: "USDT" });
 
@@ -260,7 +260,6 @@ Deno.serve(async (req) => {
         });
     }
 
-    // Create notification for buyer
     await serviceClient
       .from("notifications")
       .insert({
@@ -268,21 +267,18 @@ Deno.serve(async (req) => {
         title: "Crypto Released",
         message: `${buyerAmount} USDT has been sent to your wallet on-chain.`,
         type: "payment",
-        data: { 
-          trade_id, 
-          tx_hash: txHash, 
-          amount: buyerAmount, 
-          crypto_type: "USDT" 
-        },
+        data: { trade_id, tx_hash: txHash, amount: buyerAmount, crypto_type: "USDT" },
       });
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    const successPayload = {
+      success: true,
       tx_hash: txHash,
       buyer_amount: buyerAmount,
       fee_amount: feeAmount,
       on_chain: true,
-    }), {
+    };
+    await settle(true, successPayload);
+    return new Response(JSON.stringify(successPayload), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -296,3 +292,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+
