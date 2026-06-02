@@ -2108,6 +2108,42 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_events: {
+        Row: {
+          id: string
+          payload: Json | null
+          payload_hash: string
+          provider: string
+          reason: string | null
+          received_at: string
+          signature: string | null
+          source_ts: string | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          payload?: Json | null
+          payload_hash: string
+          provider: string
+          reason?: string | null
+          received_at?: string
+          signature?: string | null
+          source_ts?: string | null
+          status?: string
+        }
+        Update: {
+          id?: string
+          payload?: Json | null
+          payload_hash?: string
+          provider?: string
+          reason?: string | null
+          received_at?: string
+          signature?: string | null
+          source_ts?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2243,14 +2279,24 @@ export type Database = {
         Returns: Json
       }
       escalate_breached_disputes: { Args: never; Returns: Json }
-      execute_internal_transfer: {
-        Args: {
-          p_amount: number
-          p_crypto_type: string
-          p_recipient_username: string
-        }
-        Returns: Json
-      }
+      execute_internal_transfer:
+        | {
+            Args: {
+              p_amount: number
+              p_crypto_type: string
+              p_recipient_username: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_crypto_type: string
+              p_idempotency_key: string
+              p_recipient_username: string
+            }
+            Returns: Json
+          }
       fail_idempotency_key: {
         Args: { p_error?: string; p_key: string }
         Returns: undefined
@@ -2388,6 +2434,17 @@ export type Database = {
       recalculate_trader_risk: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      record_webhook_event: {
+        Args: {
+          p_max_age_seconds?: number
+          p_payload: Json
+          p_payload_hash: string
+          p_provider: string
+          p_signature: string
+          p_source_ts: string
+        }
+        Returns: Json
       }
       release_escrow_with_fee:
         | {
