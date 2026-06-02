@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (tradeError || !trade) {
+      await settle(false, { error: "Trade not found" });
       return new Response(JSON.stringify({ error: "Trade not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -119,7 +120,6 @@ Deno.serve(async (req) => {
 
     // Security: only the seller can trigger release
     if (trade.seller_id !== user.id) {
-      // Also allow admins
       const { data: adminRole } = await serviceClient
         .from("user_roles")
         .select("role")
@@ -128,6 +128,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (!adminRole) {
+        await settle(false, { error: "Forbidden" });
         return new Response(JSON.stringify({ error: "Only the seller or admin can release escrow" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -135,42 +136,34 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Validate trade state - must be payment_sent (buyer marked as paid)
     if (trade.status !== "payment_sent" && trade.status !== "disputed") {
+      await settle(false, { error: `bad status: ${trade.status}` });
       return new Response(JSON.stringify({ error: `Cannot release escrow for trade with status: ${trade.status}` }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Idempotency: check if escrow is already released
     if (trade.escrow_released) {
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Escrow already released",
-        already_released: true 
-      }), {
+      const payload = { success: true, message: "Escrow already released", already_released: true };
+      await settle(true, payload);
+      return new Response(JSON.stringify(payload), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Only process on-chain transfer for USDT trades
     const cryptoType = (trade.crypto_type || "").toUpperCase().trim();
-    
+
     if (cryptoType !== "USDT") {
-      // For non-USDT trades, just return success (internal balance already handled)
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Non-USDT trade - internal release only",
-        on_chain: false 
-      }), {
+      const payload = { success: true, message: "Non-USDT trade - internal release only", on_chain: false };
+      await settle(true, payload);
+      return new Response(JSON.stringify(payload), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get buyer's deposit address (TRC20)
     const { data: buyerAddr, error: addrError } = await serviceClient
       .from("deposit_addresses")
       .select("address")
@@ -181,26 +174,28 @@ Deno.serve(async (req) => {
 
     if (addrError || !buyerAddr?.address) {
       console.error("Buyer deposit address not found:", addrError);
-      return new Response(JSON.stringify({ 
-        error: "Buyer's USDT deposit address not found. Buyer must generate a deposit address first." 
+      await settle(false, { error: "Buyer deposit address missing" });
+      return new Response(JSON.stringify({
+        error: "Buyer's USDT deposit address not found. Buyer must generate a deposit address first."
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get Tatum credentials
     const tatumKey = Deno.env.get("TATUM_API_KEY");
     const masterPrivateKey = Deno.env.get("TATUM_MASTER_WALLET_PRIVATE_KEY");
     const masterAddress = Deno.env.get("TATUM_MASTER_WALLET_ADDRESS");
 
     if (!tatumKey || !masterPrivateKey || !masterAddress) {
       console.error("Missing Tatum configuration");
+      await settle(false, { error: "Tatum config missing" });
       return new Response(JSON.stringify({ error: "Blockchain transfer configuration incomplete" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     // Calculate the net amount (after 0.99% fee, matching release_escrow_with_fee logic)
     const feeRate = 0.0099;
