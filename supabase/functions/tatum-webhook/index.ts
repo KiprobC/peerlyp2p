@@ -66,7 +66,54 @@ Deno.serve(async (req) => {
     const body = JSON.parse(rawBody);
     console.log("Tatum webhook received:", JSON.stringify(body));
 
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Replay protection: hash full body, dedup via webhook_events table.
+    // Also reject events older than 10 minutes if a timestamp is present.
+    let sourceTs: string | null = null;
+    const tsCandidate =
+      body?.timestamp ?? body?.eventTime ?? body?.blockTime ?? body?.created;
+    if (tsCandidate) {
+      const n = typeof tsCandidate === "number" ? tsCandidate : Number(tsCandidate);
+      if (Number.isFinite(n)) {
+        sourceTs = new Date(n < 1e12 ? n * 1000 : n).toISOString();
+      } else if (typeof tsCandidate === "string") {
+        const d = new Date(tsCandidate);
+        if (!isNaN(d.getTime())) sourceTs = d.toISOString();
+      }
+    }
+
+    const { data: recordResult, error: recordErr } = await serviceClient.rpc(
+      "record_webhook_event",
+      {
+        p_provider: "tatum",
+        p_payload_hash: expectedHex,
+        p_signature: normalizedProvided,
+        p_source_ts: sourceTs,
+        p_payload: body,
+        p_max_age_seconds: 600,
+      },
+    );
+    if (recordErr) {
+      console.error("record_webhook_event error", recordErr);
+      return new Response(JSON.stringify({ error: "Replay check failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (recordResult && (recordResult as any).accepted === false) {
+      console.warn("Webhook rejected:", recordResult);
+      return new Response(JSON.stringify({ status: "rejected", reason: (recordResult as any).reason }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { address, amount, txId, currency, chain, type } = body;
+
 
     if (!address || !amount || !txId) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -82,10 +129,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // (serviceClient already created above for replay check)
+
 
     // Map chain to crypto_type
     let cryptoType: string;

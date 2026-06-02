@@ -1,121 +1,115 @@
-## Passkey-based 2FA (WebAuthn) Implementation Plan
+# Peerly Production Hardening Sprint — Plan
 
-Add WebAuthn passkeys as a second factor for sensitive actions (login, withdraw, release crypto), alongside the existing TOTP/Email OTP system.
+This is a large multi-phase initiative. I'll execute it in sequenced batches with your approval at each phase boundary so we can verify behaviour before moving on. Below is the scoped plan, the order of work, and what each phase ships.
 
-### 1. Database (migration)
+## Execution order & rationale
 
-New table `public.passkeys`:
-- `id` uuid PK, `user_id` uuid (FK profiles/auth.users)
-- `credential_id` text UNIQUE (base64url)
-- `public_key` text (base64url COSE key)
-- `counter` bigint default 0
-- `transports` text[] (usb, nfc, ble, internal, hybrid)
-- `device_name` text
-- `aaguid` text nullable
-- `last_used_at` timestamptz
-- `created_at` timestamptz default now()
+Phases are ordered so each layer rests on the one below. Skipping ahead risks silent corruption (e.g. push notifications before idempotency would amplify duplicate events).
 
-New table `public.webauthn_challenges` (short-lived):
-- `id` uuid PK, `user_id` uuid nullable (null for login challenges keyed by email)
-- `email` text nullable
-- `challenge` text (base64url)
-- `purpose` text check in ('registration','authentication','step_up')
-- `expires_at` timestamptz (5 min)
-- `created_at` timestamptz
-
-RLS:
-- `passkeys`: users can SELECT/UPDATE/DELETE their own; INSERT only via SECURITY DEFINER RPC. Admins can SELECT all.
-- `webauthn_challenges`: no client access; only edge functions via service role.
-
-RPC `passkey_count(_user_id uuid)` returns int (security definer, used by UI/auth flow).
-
-Index on `passkeys(user_id)`, `webauthn_challenges(expires_at)` for cleanup.
-
-### 2. Edge Functions
-
-Use `@simplewebauthn/server` (Deno-compatible via esm.sh).
-
-- `passkey-register-begin` (verify_jwt=true): generate registration options, store challenge, return PublicKeyCredentialCreationOptionsJSON.
-- `passkey-register-finish` (verify_jwt=true): verify attestation, insert into `passkeys` with provided device_name. Enforce unique credential_id.
-- `passkey-auth-begin` (verify_jwt=false): accept email (for login step) or current user (for step-up). Return allowCredentials + challenge.
-- `passkey-auth-finish` (verify_jwt=false): verify assertion, update counter + last_used_at. For login: returns success token used by client to set MFA-passed flag. For step-up: returns short-lived signed token (JWT HS256 with project secret) the client presents to RPCs.
-
-Origin/RP ID derived from request `Origin` header validated against allowlist (preview URL, published URL, custom domains).
-
-Config in `supabase/config.toml`:
-```
-[functions.passkey-auth-begin]
-verify_jwt = false
-[functions.passkey-auth-finish]
-verify_jwt = false
+```text
+P1 Financial Safety  →  P2 Accounting  →  P3 Fraud  →  P4 Security
+                                              ↓
+P8 Validation Tests ← P7 Moderation ← P6 Audit Immutability ← P5 Push
 ```
 
-### 3. Frontend
+---
 
-New hook `src/hooks/usePasskeys.ts`:
-- `listPasskeys()`, `registerPasskey(deviceName)`, `renamePasskey(id,name)`, `deletePasskey(id)`, `authenticateStepUp(purpose)`, `hasPasskey(email)`.
-- Uses `@simplewebauthn/browser` (`startRegistration`, `startAuthentication`).
+## PHASE 1 — Financial Safety (blocking)
 
-New components:
-- `src/components/security/PasskeySetupDialog.tsx` — registration flow with device-name input and biometric prompt UI ("Use fingerprint / face to continue").
-- `src/components/security/PasskeyVerifyDialog.tsx` — step-up modal with fallback "Use authenticator code instead" / "Use email OTP".
-- `src/components/security/PasskeyDeviceList.tsx` — "Your Devices" list with rename/remove, last_used relative time.
+**1.1 Idempotency enforcement** — DB + edge functions
+- Add `UNIQUE(key, scope)` index to `idempotency_keys` (already exists as table).
+- Helper `claim_idempotency(key, scope, actor)` RPC: inserts pending row or returns prior `response_snapshot`.
+- Update edge functions: `tatum-send-usdt` (withdraw), internal-transfer RPC, `release_escrow_with_fee`, refund flow, fee collection. All require `Idempotency-Key` header; reject with 400 if missing for mutating financial ops.
 
-Settings page: add a "Passkeys" section under Security with the device list and "Enable Passkey 2FA" button.
+**1.2 Escrow row locking**
+- Rewrite `release_escrow_with_fee`, `cancel_trade`, `refund_escrow`, `resolve_dispute` to wrap in explicit transaction with `SELECT ... FOR UPDATE` on trade row, seller wallet row, buyer wallet row, and offer row.
+- Re-verify `trades.status` inside the locked transaction; raise on mismatch.
 
-### 4. Auth flow integration
+**1.3 Webhook replay protection**
+- Add `UNIQUE(tx_hash, network)` partial index on `deposit_addresses`/credit ledger (verify which table holds tx_hash — likely a `deposits` ledger).
+- New table `webhook_events(provider, signature, received_at, payload_hash UNIQUE, status)`.
+- Tatum webhook: reject if body timestamp older than 10 min, or if `payload_hash` already seen.
+- Admin page row in `/admin/security` showing rejected webhook attempts.
 
-`AuthContext.signIn`:
-- After password success, check `passkey_count` for user (via `passkey-auth-begin` returning hasPasskey). If passkeys exist, set new state `passkeyChallenge` (mirrors `mfaChallenge`). Existing TOTP path remains.
-- New `completePasskeyChallenge()` calls `passkey-auth-finish`. Provides `cancelPasskeyChallenge()` and "use authenticator instead" path that falls through to existing TOTP if user has both.
+---
 
-`Login.tsx`: render new passkey screen ("Use fingerprint / face to continue") when `passkeyChallenge` set, with fallback buttons.
+## PHASE 2 — Accounting Integrity
 
-### 5. Step-up for sensitive actions
+- New tables `reconciliation_runs` and `reconciliation_results` (with GRANTs + admin-only RLS).
+- Postgres function `run_reconciliation()` computing:
+  `Σwallets.balance + Σoffers.reserved_amount + Σplatform_wallets.balance == Σdeposits − Σwithdrawals − Σplatform_fees`
+- pg_cron nightly schedule (02:00 UTC). Alert row inserted into `notifications` for admins when delta ≠ 0.
+- Admin page `/admin/reconciliation` with status, deltas, CSV export.
 
-Reuse existing `OTPVerificationDialog` pattern. Add `usePasskeyStepUp` that:
-- Prefers passkey when available, falls back to email OTP.
-- Returns a step-up token consumed by withdraw / release-crypto RPCs (passed as parameter; backend validates token signature + purpose + freshness < 5 min).
+---
 
-Wire into:
-- `WalletWithdraw.tsx` (withdraw)
-- `ReleaseCryptoDialog.tsx` (release crypto)
+## PHASE 3 — Fraud & Risk Enforcement
 
-### 6. Admin panel
+- Extend `validate_trade_action` to read `useTraderRisk` score:
+  - `medium` → return `warning=true`
+  - `high` → cap amount to KYC tier's reduced ceiling
+  - `critical` → block withdrawals + new trades; surface `error_code=RISK_FROZEN`
+- Centralised `enforce_rate_limit(action, identifier)` RPC. Wire into withdraw, deposit-address-gen, OTP, trade create, dispute create, login attempt logging.
 
-`AdminSecurity.tsx`: add "Passkey Users" tab listing user_id, email, passkey count, last_used (via SECURITY DEFINER RPC `admin_list_passkey_users`). Flag: users with >5 failed passkey attempts in 24h (count from existing `security_events`).
+---
 
-### 7. Security rules
+## PHASE 4 — Security Hardening
 
-- Origin allowlist enforced server-side in both finish functions.
-- Reject if challenge expired/missing/already used (delete on consume).
-- Counter monotonicity check; reject if counter regresses (cloned authenticator).
-- Unique constraint on `credential_id` prevents reuse across accounts.
-- HTTPS-only enforced by deployment; RP ID validated.
+- Enable `pgcrypto`; add encrypted columns `bank_account_number_enc`, `mpesa_phone_enc` (bytea) using `pgp_sym_encrypt` keyed by a Supabase Vault secret. Backfill + drop plaintext.
+- `decrypt_payment_identifier(user_id)` SECURITY DEFINER RPC with `has_role('admin')` OR `auth.uid()=user_id` check, writes to `admin_actions` on access.
+- Passkey signCount: already enforced in `passkey-auth-finish` (verified — counter regression returns 400). Add `>=` check (currently `<`) so equal counters also fail unless counter was 0. Add `security_events` row on regression.
 
-### Files to create
-- `supabase/migrations/<ts>_passkeys.sql`
-- `supabase/functions/passkey-register-begin/index.ts`
-- `supabase/functions/passkey-register-finish/index.ts`
-- `supabase/functions/passkey-auth-begin/index.ts`
-- `supabase/functions/passkey-auth-finish/index.ts`
-- `src/hooks/usePasskeys.ts`
-- `src/components/security/PasskeySetupDialog.tsx`
-- `src/components/security/PasskeyVerifyDialog.tsx`
-- `src/components/security/PasskeyDeviceList.tsx`
+---
 
-### Files to modify
-- `supabase/config.toml` — add new function configs
-- `src/contexts/AuthContext.tsx` — add passkey challenge state + completion
-- `src/pages/Login.tsx` — passkey verification screen
-- `src/pages/Settings.tsx` — passkeys section
-- `src/pages/WalletWithdraw.tsx` — step-up integration
-- `src/components/trade/ReleaseCryptoDialog.tsx` — step-up integration
-- `src/pages/admin/AdminSecurity.tsx` — passkey users tab
+## PHASE 5 — Push Notifications
 
-### Open question
-A step-up token signed by the edge function needs a shared HMAC secret that the RPCs can verify in Postgres. Options:
-1. Use a Supabase secret + a Postgres function `verify_stepup_token(token)` reading the secret from Vault.
-2. Have the edge function call the destructive RPC itself after verifying the passkey (no token passed through client).
+- `push_subscriptions(user_id, endpoint UNIQUE, p256dh, auth, ua, created_at)`.
+- `push_deliveries(notification_id, subscription_id, sent_at, delivered_at, failed_at, retry_count, error)`.
+- VAPID keys via secrets (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`).
+- Edge function `send-push` using `npm:web-push`. Trigger from notification insert (DB trigger → `pg_net` → edge fn) for the listed events.
+- Service worker `push` + `notificationclick` handlers with deep links (`/trade/:id`, `/wallet`, `/disputes`).
+- Retry queue: pg_cron every 5 min re-sends `failed_at IS NOT NULL AND retry_count < 5`.
 
-Option 2 is simpler and more secure — the withdraw / release-crypto flows would be wrapped in edge functions that perform passkey verification then invoke the existing RPC with service role. I will use Option 2.
+---
+
+## PHASE 6 — Append-Only Audit
+
+- Revoke UPDATE, DELETE on `trade_audit_trail`, `admin_actions`, treasury ledger from all roles including `service_role`.
+- Add `BEFORE UPDATE OR DELETE` triggers raising exception (defense-in-depth against superuser sessions).
+
+---
+
+## PHASE 7 — Moderation Assignment
+
+- Rewrite `assign_dispute()` to:
+  - Filter `moderator_availability.status='available'`
+  - `active_cases_count < max_cases`
+  - Order by `active_cases_count ASC, last_assigned_at ASC NULLS FIRST`
+- Increment `active_cases_count` atomically inside same transaction.
+
+---
+
+## PHASE 8 — Validation Tests
+
+Deno tests under `supabase/functions/*/`:
+1. Spam withdrawal 100× same Idempotency-Key → 1 settlement.
+2. Replay Tatum webhook → 1 deposit row.
+3. 100 concurrent `start_trade` against single offer → no oversell (sum of trades ≤ offer amount).
+4. Two parallel `release_escrow_with_fee` calls → one succeeds, one raises.
+5. User with `risk_score='critical'` → `validate-action` returns `RISK_FROZEN`.
+
+Run via `supabase--test_edge_functions`.
+
+---
+
+## Deliverables at end
+
+- Updated readiness score, remaining issue lists, launch recommendation, change log document at `/mnt/documents/peerly-hardening-changelog.md`.
+
+---
+
+## How I'll work it
+
+Given size, I propose shipping **one phase per turn**, with migration → code → verification, then pausing for your review. Phase 1 alone is ~3 migrations + ~5 edge function rewrites.
+
+**Confirm to proceed with Phase 1**, or tell me to reorder / drop any item.

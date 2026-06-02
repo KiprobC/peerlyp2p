@@ -56,6 +56,53 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Idempotency: prefer client-supplied Idempotency-Key header; fall back to
+    // a deterministic key so missing header still cannot double-spend a trade.
+    const idemHeader = req.headers.get("Idempotency-Key") || req.headers.get("idempotency-key");
+    const idemKey = (idemHeader && idemHeader.trim().length > 0)
+      ? `send_usdt:${trade_id}:${idemHeader.trim()}`
+      : `send_usdt:${trade_id}`;
+
+    const claim = await serviceClient.rpc("claim_idempotency_key", {
+      p_key: idemKey,
+      p_scope: "tatum_send_usdt",
+      p_reference_id: trade_id,
+      p_actor_id: user.id,
+    });
+    if (claim.error) {
+      console.error("claim_idempotency_key error", claim.error);
+      return new Response(JSON.stringify({ error: "Idempotency check failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const claimData = claim.data as any;
+    if (claimData?.replay) {
+      return new Response(JSON.stringify({ ...(claimData.response ?? {}), replay: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (claimData?.in_progress) {
+      return new Response(JSON.stringify({ error: "Withdrawal already in progress", in_progress: true }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Helper to settle the idempotency key around any exit branch.
+    const settle = async (ok: boolean, payload: Record<string, unknown>) => {
+      try {
+        if (ok) {
+          await serviceClient.rpc("complete_idempotency_key", { p_key: idemKey, p_response: payload });
+        } else {
+          await serviceClient.rpc("fail_idempotency_key", { p_key: idemKey, p_error: String(payload.error ?? "failed") });
+        }
+      } catch (e) {
+        console.error("settle idempotency error", e);
+      }
+    };
+
     // Fetch the trade
     const { data: trade, error: tradeError } = await serviceClient
       .from("trades")
@@ -64,6 +111,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (tradeError || !trade) {
+      await settle(false, { error: "Trade not found" });
       return new Response(JSON.stringify({ error: "Trade not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -72,7 +120,6 @@ Deno.serve(async (req) => {
 
     // Security: only the seller can trigger release
     if (trade.seller_id !== user.id) {
-      // Also allow admins
       const { data: adminRole } = await serviceClient
         .from("user_roles")
         .select("role")
@@ -81,6 +128,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (!adminRole) {
+        await settle(false, { error: "Forbidden" });
         return new Response(JSON.stringify({ error: "Only the seller or admin can release escrow" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -88,42 +136,34 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Validate trade state - must be payment_sent (buyer marked as paid)
     if (trade.status !== "payment_sent" && trade.status !== "disputed") {
+      await settle(false, { error: `bad status: ${trade.status}` });
       return new Response(JSON.stringify({ error: `Cannot release escrow for trade with status: ${trade.status}` }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Idempotency: check if escrow is already released
     if (trade.escrow_released) {
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Escrow already released",
-        already_released: true 
-      }), {
+      const payload = { success: true, message: "Escrow already released", already_released: true };
+      await settle(true, payload);
+      return new Response(JSON.stringify(payload), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Only process on-chain transfer for USDT trades
     const cryptoType = (trade.crypto_type || "").toUpperCase().trim();
-    
+
     if (cryptoType !== "USDT") {
-      // For non-USDT trades, just return success (internal balance already handled)
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "Non-USDT trade - internal release only",
-        on_chain: false 
-      }), {
+      const payload = { success: true, message: "Non-USDT trade - internal release only", on_chain: false };
+      await settle(true, payload);
+      return new Response(JSON.stringify(payload), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get buyer's deposit address (TRC20)
     const { data: buyerAddr, error: addrError } = await serviceClient
       .from("deposit_addresses")
       .select("address")
@@ -134,26 +174,28 @@ Deno.serve(async (req) => {
 
     if (addrError || !buyerAddr?.address) {
       console.error("Buyer deposit address not found:", addrError);
-      return new Response(JSON.stringify({ 
-        error: "Buyer's USDT deposit address not found. Buyer must generate a deposit address first." 
+      await settle(false, { error: "Buyer deposit address missing" });
+      return new Response(JSON.stringify({
+        error: "Buyer's USDT deposit address not found. Buyer must generate a deposit address first."
       }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get Tatum credentials
     const tatumKey = Deno.env.get("TATUM_API_KEY");
     const masterPrivateKey = Deno.env.get("TATUM_MASTER_WALLET_PRIVATE_KEY");
     const masterAddress = Deno.env.get("TATUM_MASTER_WALLET_ADDRESS");
 
     if (!tatumKey || !masterPrivateKey || !masterAddress) {
       console.error("Missing Tatum configuration");
+      await settle(false, { error: "Tatum config missing" });
       return new Response(JSON.stringify({ error: "Blockchain transfer configuration incomplete" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     // Calculate the net amount (after 0.99% fee, matching release_escrow_with_fee logic)
     const feeRate = 0.0099;
@@ -182,9 +224,10 @@ Deno.serve(async (req) => {
 
     if (!sendResponse.ok) {
       console.error("Tatum send failed:", JSON.stringify(sendResult));
-      return new Response(JSON.stringify({ 
-        error: "Blockchain transfer failed", 
-        details: sendResult.message || sendResult.statusCode || "Unknown error" 
+      await settle(false, { error: sendResult.message || sendResult.statusCode || "tatum error" });
+      return new Response(JSON.stringify({
+        error: "Blockchain transfer failed",
+        details: sendResult.message || sendResult.statusCode || "Unknown error"
       }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -194,7 +237,6 @@ Deno.serve(async (req) => {
     const txHash = sendResult.txId;
     console.log(`USDT TRC20 transfer successful. TX: ${txHash}`);
 
-    // Log the on-chain transaction in wallet_transactions
     const { data: buyerWallet } = await serviceClient
       .rpc("get_or_create_wallet", { p_user_id: trade.buyer_id, p_crypto_type: "USDT" });
 
@@ -218,7 +260,6 @@ Deno.serve(async (req) => {
         });
     }
 
-    // Create notification for buyer
     await serviceClient
       .from("notifications")
       .insert({
@@ -226,21 +267,18 @@ Deno.serve(async (req) => {
         title: "Crypto Released",
         message: `${buyerAmount} USDT has been sent to your wallet on-chain.`,
         type: "payment",
-        data: { 
-          trade_id, 
-          tx_hash: txHash, 
-          amount: buyerAmount, 
-          crypto_type: "USDT" 
-        },
+        data: { trade_id, tx_hash: txHash, amount: buyerAmount, crypto_type: "USDT" },
       });
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    const successPayload = {
+      success: true,
       tx_hash: txHash,
       buyer_amount: buyerAmount,
       fee_amount: feeAmount,
       on_chain: true,
-    }), {
+    };
+    await settle(true, successPayload);
+    return new Response(JSON.stringify(successPayload), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -254,3 +292,4 @@ Deno.serve(async (req) => {
     });
   }
 });
+
