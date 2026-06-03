@@ -10,8 +10,9 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import { 
   DollarSign, Wallet, RefreshCw, TrendingUp, Download, 
   Calendar, Filter, ArrowUpRight, ArrowDownRight, Clock,
-  Lock, Unlock, FileText, PieChart
+  Lock, Unlock, FileText, PieChart, Scale
 } from "lucide-react";
+import { ReconciliationPanel } from "@/components/admin/ReconciliationPanel";
 import { format, subDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 
 const CRYPTO_COLORS: Record<string, string> = {
