@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Beaker } from "lucide-react";
+import { Beaker, ShieldAlert } from "lucide-react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -74,6 +74,7 @@ const navSections = [
     items: [
       { href: "/admin/controls", icon: Shield, label: "Platform Controls" },
       { href: "/admin/risk", icon: AlertTriangle, label: "Risk Controls" },
+      { href: "/admin/risk-center", icon: ShieldAlert, label: "Risk Center" },
       { href: "/admin/security", icon: Shield, label: "Security & MFA" },
       { href: "/admin/settings", icon: Settings, label: "Settings" },
       { href: "/admin/logs", icon: Shield, label: "Audit Logs" },

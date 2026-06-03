@@ -56,6 +56,42 @@ export type Database = {
         }
         Relationships: []
       }
+      account_freezes: {
+        Row: {
+          frozen_at: string
+          frozen_by: string
+          id: string
+          is_active: boolean | null
+          reason: string | null
+          scope: string
+          unfrozen_at: string | null
+          unfrozen_by: string | null
+          user_id: string
+        }
+        Insert: {
+          frozen_at?: string
+          frozen_by: string
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          scope: string
+          unfrozen_at?: string | null
+          unfrozen_by?: string | null
+          user_id: string
+        }
+        Update: {
+          frozen_at?: string
+          frozen_by?: string
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          scope?: string
+          unfrozen_at?: string | null
+          unfrozen_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       action_rate_limits: {
         Row: {
           action_type: string
@@ -1277,6 +1313,45 @@ export type Database = {
         }
         Relationships: []
       }
+      risk_events: {
+        Row: {
+          action_type: string
+          created_at: string
+          decision: string
+          id: string
+          ip_address: string | null
+          metadata: Json
+          reasons: Json
+          risk_level: string
+          risk_score: number
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          decision: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          reasons?: Json
+          risk_level: string
+          risk_score: number
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json
+          reasons?: Json
+          risk_level?: string
+          risk_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       risk_flags: {
         Row: {
           action: string
@@ -2375,6 +2450,10 @@ export type Database = {
         Returns: Json
       }
       escalate_breached_disputes: { Args: never; Returns: Json }
+      evaluate_risk: {
+        Args: { p_action: string; p_metadata?: Json; p_user_id: string }
+        Returns: Json
+      }
       execute_internal_transfer:
         | {
             Args: {
@@ -2409,6 +2488,10 @@ export type Database = {
       freeze_user: {
         Args: { p_reason?: string; p_user_id: string }
         Returns: Json
+      }
+      freeze_user_scoped: {
+        Args: { p_reason?: string; p_scope: string; p_user_id: string }
+        Returns: string
       }
       generate_otp_code: {
         Args: {
@@ -2456,6 +2539,10 @@ export type Database = {
       }
       is_platform_enabled: { Args: { p_setting_id: string }; Returns: boolean }
       is_user_frozen: { Args: { p_user_id: string }; Returns: boolean }
+      is_user_frozen_for: {
+        Args: { p_scope: string; p_user_id: string }
+        Returns: boolean
+      }
       lock_escrow:
         | {
             Args: {
@@ -2619,6 +2706,10 @@ export type Database = {
         Returns: Json
       }
       unfreeze_user: { Args: { p_user_id: string }; Returns: Json }
+      unfreeze_user_scoped: {
+        Args: { p_reason?: string; p_scope: string; p_user_id: string }
+        Returns: boolean
+      }
       update_last_seen: { Args: never; Returns: undefined }
       update_trading_stats: {
         Args: { p_amount: number; p_user_id: string }
