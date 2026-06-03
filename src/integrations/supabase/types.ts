@@ -1182,6 +1182,101 @@ export type Database = {
         }
         Relationships: []
       }
+      reconciliation_results: {
+        Row: {
+          actual_total: number
+          created_at: string
+          crypto_type: string
+          drift: number
+          expected_total: number
+          id: string
+          platform_wallet_balance: number
+          reserved_in_offers: number
+          run_id: string
+          status: string
+          total_deposits: number
+          total_fees_collected: number
+          total_withdrawals: number
+          user_locked_balance: number
+          user_wallet_balance: number
+        }
+        Insert: {
+          actual_total?: number
+          created_at?: string
+          crypto_type: string
+          drift?: number
+          expected_total?: number
+          id?: string
+          platform_wallet_balance?: number
+          reserved_in_offers?: number
+          run_id: string
+          status?: string
+          total_deposits?: number
+          total_fees_collected?: number
+          total_withdrawals?: number
+          user_locked_balance?: number
+          user_wallet_balance?: number
+        }
+        Update: {
+          actual_total?: number
+          created_at?: string
+          crypto_type?: string
+          drift?: number
+          expected_total?: number
+          id?: string
+          platform_wallet_balance?: number
+          reserved_in_offers?: number
+          run_id?: string
+          status?: string
+          total_deposits?: number
+          total_fees_collected?: number
+          total_withdrawals?: number
+          user_locked_balance?: number
+          user_wallet_balance?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "reconciliation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reconciliation_runs: {
+        Row: {
+          created_at: string
+          finished_at: string | null
+          id: string
+          notes: string | null
+          started_at: string
+          status: string
+          total_drift: number
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          total_drift?: number
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          total_drift?: number
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       risk_flags: {
         Row: {
           action: string
@@ -2163,6 +2258,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_run_reconciliation: { Args: never; Returns: string }
       assert_trade_transition: {
         Args: {
           p_new_status: Database["public"]["Enums"]["trade_status"]
@@ -2504,6 +2600,7 @@ export type Database = {
         Args: { p_reason: string; p_transfer_id: string }
         Returns: Json
       }
+      run_reconciliation: { Args: { p_triggered_by?: string }; Returns: string }
       submit_kyc_application: {
         Args: {
           p_country_code: string
