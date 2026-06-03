@@ -10,8 +10,9 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import { 
   DollarSign, Wallet, RefreshCw, TrendingUp, Download, 
   Calendar, Filter, ArrowUpRight, ArrowDownRight, Clock,
-  Lock, Unlock, FileText, PieChart
+  Lock, Unlock, FileText, PieChart, Scale
 } from "lucide-react";
+import { ReconciliationPanel } from "@/components/admin/ReconciliationPanel";
 import { format, subDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 
 const CRYPTO_COLORS: Record<string, string> = {
@@ -183,6 +184,9 @@ export const AdminTreasury = () => {
           </TabsTrigger>
           <TabsTrigger value="ledger" className="gap-2">
             <FileText className="h-4 w-4" /> Audit Ledger
+          </TabsTrigger>
+          <TabsTrigger value="reconciliation" className="gap-2">
+            <Scale className="h-4 w-4" /> Reconciliation
           </TabsTrigger>
         </TabsList>
 
@@ -449,6 +453,10 @@ export const AdminTreasury = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="reconciliation" className="space-y-4">
+          <ReconciliationPanel />
         </TabsContent>
       </Tabs>
     </div>
