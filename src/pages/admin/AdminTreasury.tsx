@@ -454,6 +454,10 @@ export const AdminTreasury = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="reconciliation" className="space-y-4">
+          <ReconciliationPanel />
+        </TabsContent>
       </Tabs>
     </div>
   );
