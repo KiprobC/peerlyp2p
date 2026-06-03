@@ -185,6 +185,9 @@ export const AdminTreasury = () => {
           <TabsTrigger value="ledger" className="gap-2">
             <FileText className="h-4 w-4" /> Audit Ledger
           </TabsTrigger>
+          <TabsTrigger value="reconciliation" className="gap-2">
+            <Scale className="h-4 w-4" /> Reconciliation
+          </TabsTrigger>
         </TabsList>
 
         {/* Platform Wallets Tab */}
