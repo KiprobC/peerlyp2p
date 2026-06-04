@@ -2440,6 +2440,10 @@ export type Database = {
         }[]
       }
       admin_run_reconciliation: { Args: never; Returns: string }
+      admin_set_push_dispatch_config: {
+        Args: { p_service_role_key: string }
+        Returns: undefined
+      }
       assert_trade_transition: {
         Args: {
           p_new_status: Database["public"]["Enums"]["trade_status"]
