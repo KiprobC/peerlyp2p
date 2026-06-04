@@ -81,7 +81,7 @@ export function usePushNotifications() {
       const key = vapidPublicKey ?? VAPID_PUBLIC_KEY;
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(key),
+        applicationServerKey: urlBase64ToUint8Array(key).buffer as ArrayBuffer,
       });
 
       const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
