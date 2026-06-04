@@ -549,6 +549,7 @@ export type Database = {
           id_front_hash: string | null
           id_front_url: string | null
           id_number: string | null
+          id_number_enc: string | null
           id_type: string | null
           review_notes: string | null
           reviewed_at: string | null
@@ -573,6 +574,7 @@ export type Database = {
           id_front_hash?: string | null
           id_front_url?: string | null
           id_number?: string | null
+          id_number_enc?: string | null
           id_type?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -597,6 +599,7 @@ export type Database = {
           id_front_hash?: string | null
           id_front_url?: string | null
           id_number?: string | null
+          id_number_enc?: string | null
           id_type?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
@@ -1071,6 +1074,7 @@ export type Database = {
           avatar_url: string | null
           bank_account_name: string | null
           bank_account_number: string | null
+          bank_account_number_enc: string | null
           bank_name: string | null
           bio: string | null
           city: string | null
@@ -1083,6 +1087,7 @@ export type Database = {
           id_back_url: string | null
           id_front_url: string | null
           id_number: string | null
+          id_number_enc: string | null
           id_type: string | null
           is_verified: boolean | null
           kyc_country: string | null
@@ -1091,6 +1096,7 @@ export type Database = {
           kyc_verified_at: string | null
           last_seen: string | null
           mpesa_phone: string | null
+          mpesa_phone_enc: string | null
           phone: string | null
           preferred_currency: string | null
           rating: number | null
@@ -1109,6 +1115,7 @@ export type Database = {
           avatar_url?: string | null
           bank_account_name?: string | null
           bank_account_number?: string | null
+          bank_account_number_enc?: string | null
           bank_name?: string | null
           bio?: string | null
           city?: string | null
@@ -1121,6 +1128,7 @@ export type Database = {
           id_back_url?: string | null
           id_front_url?: string | null
           id_number?: string | null
+          id_number_enc?: string | null
           id_type?: string | null
           is_verified?: boolean | null
           kyc_country?: string | null
@@ -1129,6 +1137,7 @@ export type Database = {
           kyc_verified_at?: string | null
           last_seen?: string | null
           mpesa_phone?: string | null
+          mpesa_phone_enc?: string | null
           phone?: string | null
           preferred_currency?: string | null
           rating?: number | null
@@ -1147,6 +1156,7 @@ export type Database = {
           avatar_url?: string | null
           bank_account_name?: string | null
           bank_account_number?: string | null
+          bank_account_number_enc?: string | null
           bank_name?: string | null
           bio?: string | null
           city?: string | null
@@ -1159,6 +1169,7 @@ export type Database = {
           id_back_url?: string | null
           id_front_url?: string | null
           id_number?: string | null
+          id_number_enc?: string | null
           id_type?: string | null
           is_verified?: boolean | null
           kyc_country?: string | null
@@ -1167,6 +1178,7 @@ export type Database = {
           kyc_verified_at?: string | null
           last_seen?: string | null
           mpesa_phone?: string | null
+          mpesa_phone_enc?: string | null
           phone?: string | null
           preferred_currency?: string | null
           rating?: number | null
@@ -1179,6 +1191,92 @@ export type Database = {
           user_id?: string
           username?: string | null
           username_changed?: boolean | null
+        }
+        Relationships: []
+      }
+      push_deliveries: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          error: string | null
+          failed_at: string | null
+          id: string
+          notification_id: string | null
+          payload: Json
+          retry_count: number
+          sent_at: string | null
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          failed_at?: string | null
+          id?: string
+          notification_id?: string | null
+          payload: Json
+          retry_count?: number
+          sent_at?: string | null
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          error?: string | null
+          failed_at?: string | null
+          id?: string
+          notification_id?: string | null
+          payload?: Json
+          retry_count?: number
+          sent_at?: string | null
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          enabled: boolean
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          enabled?: boolean
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          enabled?: boolean
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -2319,6 +2417,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_decrypt_pii: {
+        Args: { p_reason?: string; p_user_id: string }
+        Returns: {
+          bank_account_number: string
+          id_number: string
+          mpesa_phone: string
+        }[]
+      }
       admin_disable_offer: {
         Args: { p_offer_id: string; p_reason?: string }
         Returns: Json
@@ -2448,6 +2554,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      decrypt_my_pii: {
+        Args: never
+        Returns: {
+          bank_account_number: string
+          id_number: string
+          mpesa_phone: string
+        }[]
       }
       escalate_breached_disputes: { Args: never; Returns: Json }
       evaluate_risk: {
