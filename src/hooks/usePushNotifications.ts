@@ -85,7 +85,7 @@ export function usePushNotifications() {
         (await navigator.serviceWorker.getRegistration("/push-sw/")) ??
         (await navigator.serviceWorker.register("/push-sw.js", { scope: "/push-sw/" }));
 
-      const key = vapidPublicKey ?? VAPID_PUBLIC_KEY;
+      const key = vapidPublicKey ?? (await fetchVapidPublicKey());
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(key).buffer as ArrayBuffer,
