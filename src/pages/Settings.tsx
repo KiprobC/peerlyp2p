@@ -385,6 +385,10 @@ const Settings = () => {
             />
           </SettingsSection>
 
+          <div className="px-4">
+            <PushNotificationSettings />
+          </div>
+
           {/* Privacy & Safety Section */}
           <SettingsSection title="Privacy & Safety">
             <SettingsItem
