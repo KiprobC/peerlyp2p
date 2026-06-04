@@ -24,6 +24,12 @@ interface Payload {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ publicKey: VAPID_PUBLIC }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const body = (await req.json()) as Payload;
     if (!body?.user_id || !body?.title || !body?.body) {
