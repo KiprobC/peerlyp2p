@@ -3,7 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const VAPID_PUBLIC_KEY = "BPeerlyVapidPublicKeyPlaceholderReplaceViaEdgeFunctionConfig";
+let cachedVapidKey: string | null = null;
+async function fetchVapidPublicKey(): Promise<string> {
+  if (cachedVapidKey) return cachedVapidKey;
+  const { data, error } = await supabase.functions.invoke("send-push", { method: "GET" });
+  if (error || !data?.publicKey) throw error ?? new Error("Missing VAPID key");
+  cachedVapidKey = data.publicKey as string;
+  return cachedVapidKey;
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
