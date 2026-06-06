@@ -205,6 +205,32 @@ export const AdminSettings = () => {
         </CardContent>
       </Card>
 
+      </Card>
+
+      {/* Push Notifications Dispatch */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Push Dispatch Bootstrap
+          </CardTitle>
+          <CardDescription>
+            One-click setup so the database trigger can call the push edge function.
+            Lovable Cloud manages the service role key internally — this securely copies it
+            from the edge runtime into the private dispatch config. Re-run after rotating keys.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleBootstrapPush} disabled={isBootstrapping} variant="secondary">
+            {isBootstrapping ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Configuring...</>
+            ) : (
+              <><Send className="h-4 w-4 mr-2" />Configure Push Dispatch</>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={isSaving}>
