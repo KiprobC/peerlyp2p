@@ -6,11 +6,26 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Globe, Shield, Bell, Database, Loader2, Save } from "lucide-react";
+import { Settings, Globe, Shield, Bell, Database, Loader2, Save, Send } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AdminSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
+
+  const handleBootstrapPush = async () => {
+    setIsBootstrapping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("bootstrap-push-dispatch");
+      if (error) throw error;
+      toast.success(data?.message ?? "Push dispatch configured");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to configure push dispatch");
+    } finally {
+      setIsBootstrapping(false);
+    }
+  };
   const [settings, setSettings] = useState({
     platformName: "Peerly",
     supportEmail: "support@peerly.com",
@@ -187,6 +202,32 @@ export const AdminSettings = () => {
               onCheckedChange={(checked) => setSettings(s => ({ ...s, twoFactorRequired: checked }))}
             />
           </div>
+        </CardContent>
+      </Card>
+
+
+
+      {/* Push Notifications Dispatch */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Push Dispatch Bootstrap
+          </CardTitle>
+          <CardDescription>
+            One-click setup so the database trigger can call the push edge function.
+            Lovable Cloud manages the service role key internally — this securely copies it
+            from the edge runtime into the private dispatch config. Re-run after rotating keys.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleBootstrapPush} disabled={isBootstrapping} variant="secondary">
+            {isBootstrapping ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Configuring...</>
+            ) : (
+              <><Send className="h-4 w-4 mr-2" />Configure Push Dispatch</>
+            )}
+          </Button>
         </CardContent>
       </Card>
 
