@@ -12,6 +12,20 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const AdminSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
+
+  const handleBootstrapPush = async () => {
+    setIsBootstrapping(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("bootstrap-push-dispatch");
+      if (error) throw error;
+      toast.success(data?.message ?? "Push dispatch configured");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to configure push dispatch");
+    } finally {
+      setIsBootstrapping(false);
+    }
+  };
   const [settings, setSettings] = useState({
     platformName: "Peerly",
     supportEmail: "support@peerly.com",
