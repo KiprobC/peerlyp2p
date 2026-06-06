@@ -2444,6 +2444,10 @@ export type Database = {
         Args: { p_service_role_key: string }
         Returns: undefined
       }
+      admin_set_push_dispatch_config_internal: {
+        Args: { p_service_role_key: string; p_supabase_url: string }
+        Returns: undefined
+      }
       assert_trade_transition: {
         Args: {
           p_new_status: Database["public"]["Enums"]["trade_status"]
