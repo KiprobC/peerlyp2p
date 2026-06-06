@@ -205,7 +205,7 @@ export const AdminSettings = () => {
         </CardContent>
       </Card>
 
-      </Card>
+
 
       {/* Push Notifications Dispatch */}
       <Card>
