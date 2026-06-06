@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Globe, Shield, Bell, Database, Loader2, Save } from "lucide-react";
+import { Settings, Globe, Shield, Bell, Database, Loader2, Save, Send } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const AdminSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
