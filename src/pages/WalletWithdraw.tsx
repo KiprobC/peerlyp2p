@@ -97,6 +97,7 @@ const WalletWithdraw = () => {
               </Button>
             </Link>
             <h1 className="text-lg font-semibold ml-2">Withdraw Crypto</h1>
+            <div className="ml-auto"><ConnectivityIndicator /></div>
           </div>
         </div>
       </nav>
