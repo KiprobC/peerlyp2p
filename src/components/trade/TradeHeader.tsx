@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { TraderProfilePanel } from "@/components/trade/TraderProfilePanel";
+import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
 
 interface TradeHeaderProps {
   tradeId: string;
