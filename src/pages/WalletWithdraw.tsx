@@ -28,6 +28,8 @@ const WalletWithdraw = () => {
   const [showOTPVerify, setShowOTPVerify] = useState(false);
   const [showPasskey, setShowPasskey] = useState(false);
   const { passkeys } = usePasskeys();
+  const { status: connectivityStatus } = useConnectivity();
+  const connectivityBlocked = connectivityStatus !== "online";
 
   const selectedInfo = cryptoInfo[selectedCrypto];
   const selectedWallet = wallets.find(w => w.crypto_type === selectedCrypto);
