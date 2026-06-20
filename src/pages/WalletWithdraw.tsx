@@ -13,6 +13,8 @@ import { OTPVerificationDialog } from "@/components/security/OTPVerificationDial
 import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
 import { usePasskeys } from "@/hooks/usePasskeys";
 import { toast } from "sonner";
+import { useConnectivity } from "@/hooks/useConnectivity";
+import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
 
 const WalletWithdraw = () => {
   const navigate = useNavigate();
