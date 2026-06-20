@@ -105,6 +105,7 @@ const Dashboard = () => {
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <ConnectivityIndicator />
               <Link to="/notifications">
                 <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10">
                   <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
