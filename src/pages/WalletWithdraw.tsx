@@ -45,6 +45,12 @@ const WalletWithdraw = () => {
 
   const handleWithdrawClick = () => {
     if (!isValidAmount || !isValidAddress) return;
+    if (connectivityBlocked) {
+      toast.error("Connection unstable", {
+        description: "Withdrawals are paused until your connection is verified. Try again shortly.",
+      });
+      return;
+    }
     if (passkeys.length > 0) {
       setShowPasskey(true);
     } else {
