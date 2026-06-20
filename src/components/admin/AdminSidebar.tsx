@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Beaker, ShieldAlert } from "lucide-react";
+import { Beaker, ShieldAlert, Activity } from "lucide-react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -80,6 +80,7 @@ const navSections = [
       { href: "/admin/logs", icon: Shield, label: "Audit Logs" },
       { href: "/admin/idempotency", icon: Lock, label: "Idempotency Logs" },
       { href: "/admin/dev-tools", icon: Beaker, label: "Dev Tools" },
+      { href: "/admin/pwa", icon: Activity, label: "PWA Diagnostics" },
     ],
   },
 ];

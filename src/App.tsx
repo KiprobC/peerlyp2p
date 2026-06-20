@@ -60,6 +60,7 @@ import AdminRiskControls from "./pages/admin/AdminRiskControls";
 import AdminDevTools from "./pages/admin/AdminDevTools";
 import AdminIdempotency from "./pages/admin/AdminIdempotency";
 import AdminRiskCenter from "./pages/admin/AdminRiskCenter";
+import AdminPWADiagnostics from "./pages/admin/AdminPWADiagnostics";
 import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
@@ -255,6 +256,7 @@ const AppRoutes = () => {
         <Route path="dev-tools" element={<AdminDevTools />} />
         <Route path="idempotency" element={<AdminIdempotency />} />
         <Route path="risk-center" element={<AdminRiskCenter />} />
+        <Route path="pwa" element={<AdminPWADiagnostics />} />
       </Route>
       
       {/* Moderator routes - ModeratorLayout handles role check internally */}
