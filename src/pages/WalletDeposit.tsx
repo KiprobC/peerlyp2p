@@ -11,6 +11,7 @@ import { useDepositAddresses } from "@/hooks/useDepositAddresses";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
 
 const NETWORK_INFO: Record<string, { name: string; confirmations: number; time: string }> = {
   BTC: { name: "Bitcoin Network", confirmations: 3, time: "~30 min" },
