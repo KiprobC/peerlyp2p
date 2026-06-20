@@ -82,7 +82,7 @@ export const ReleaseCryptoDialog = ({
    }, [open]);
  
    const isConfirmValid = confirmText.toUpperCase() === "RELEASE";
-   const canConfirm = canInteract && isConfirmValid && !processing;
+   const canConfirm = canInteract && isConfirmValid && !processing && !connectivityBlocked;
  
    const doRelease = async () => {
      setProcessing(true);
