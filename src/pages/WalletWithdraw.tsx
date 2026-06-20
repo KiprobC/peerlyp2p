@@ -256,16 +256,27 @@ const WalletWithdraw = () => {
                 </div>
               </div>
 
+              {connectivityBlocked && (
+                <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <span className="text-amber-600 dark:text-amber-400">
+                    Connection unstable — withdrawals are paused. Funds and history remain viewable.
+                  </span>
+                </div>
+              )}
+
               <Button 
                 className="w-full" 
                 onClick={handleWithdrawClick}
-                disabled={!isValidAmount || !isValidAddress || isSubmitting}
+                disabled={!isValidAmount || !isValidAddress || isSubmitting || connectivityBlocked}
               >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Processing...
                   </>
+                ) : connectivityBlocked ? (
+                  <>Connection check required</>
                 ) : (
                   <>
                     <ExternalLink className="w-4 h-4 mr-2" />
