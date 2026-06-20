@@ -32,6 +32,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useTraderStats } from "@/hooks/useTraderStats";
 import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
+import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
 import { formatDistanceToNow } from "date-fns";
 
 const BALANCE_HIDDEN_KEY = "peerly_balance_hidden";
@@ -105,6 +106,7 @@ const Dashboard = () => {
             </Link>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <ConnectivityIndicator />
               <Link to="/notifications">
                 <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10">
                   <Bell className="w-4 h-4 sm:w-5 sm:h-5" />

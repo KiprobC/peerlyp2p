@@ -20,9 +20,10 @@
  import { Input } from "@/components/ui/input";
  import { AlertTriangle, Unlock, Loader2, ShieldAlert } from "lucide-react";
  import { cn } from "@/lib/utils";
-  import { usePasskeys } from "@/hooks/usePasskeys";
-  import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
-  import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
+   import { usePasskeys } from "@/hooks/usePasskeys";
+   import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+   import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
+   import { useConnectivity } from "@/hooks/useConnectivity";
  
 interface ReleaseCryptoDialogProps {
   open: boolean;
@@ -53,6 +54,8 @@ export const ReleaseCryptoDialog = ({
    const [showPasskey, setShowPasskey] = useState(false);
    const [showOtpFallback, setShowOtpFallback] = useState(false);
    const { passkeys } = usePasskeys();
+   const { status: connectivityStatus } = useConnectivity();
+   const connectivityBlocked = connectivityStatus !== "online";
  
    // Reset state when dialog opens
    useEffect(() => {
@@ -79,7 +82,7 @@ export const ReleaseCryptoDialog = ({
    }, [open]);
  
    const isConfirmValid = confirmText.toUpperCase() === "RELEASE";
-   const canConfirm = canInteract && isConfirmValid && !processing;
+   const canConfirm = canInteract && isConfirmValid && !processing && !connectivityBlocked;
  
    const doRelease = async () => {
      setProcessing(true);
@@ -181,8 +184,17 @@ export const ReleaseCryptoDialog = ({
              <Loader2 className="w-4 h-4 animate-spin" />
              <span>Please wait {countdown} seconds...</span>
            </div>
-         )}
-       </div>
+          )}
+
+          {connectivityBlocked && (
+            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <span className="text-amber-600 dark:text-amber-400">
+                Connection unstable — releasing crypto is paused until we verify a stable connection.
+              </span>
+            </div>
+          )}
+        </div>
      </>
    );
  
