@@ -77,6 +77,7 @@ const WalletDeposit = () => {
               </Button>
             </Link>
             <h1 className="text-lg font-semibold ml-2">Deposit Crypto</h1>
+            <div className="ml-auto"><ConnectivityIndicator /></div>
           </div>
         </div>
       </nav>
