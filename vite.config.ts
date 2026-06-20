@@ -47,21 +47,35 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        navigateFallback: "/offline.html",
+        // SPA fallback: serve the app shell, NOT offline.html, so React Router
+        // can render any route from cache. offline.html is now reserved as a
+        // last-resort document only (manually navigated to by the connectivity hook).
+        navigateFallback: "/index.html",
         navigateFallbackDenylist: [
           /^\/~oauth/,
           /^\/api/,
           /^\/auth/,
+          /^\/offline\.html$/,
+          /^\/push-sw\.js$/,
+          /^\/sw\.js$/,
         ],
         globPatterns: ["**/*.{js,css,html,svg,png,ico,webp,woff2}"],
+        // Force a new SW to take over immediately on update so a fresh deploy
+        // never leaves users on a stale shell pointing at /offline.html.
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            // HTML navigations: network-first to avoid stale shells
+            // HTML navigations: network-first with a generous timeout. Flaky
+            // mobile networks frequently exceed 3s — falling back too eagerly
+            // is what produced the spurious "offline" screen.
             urlPattern: ({ request }) => request.mode === "navigate",
             handler: "NetworkFirst",
             options: {
               cacheName: "html-cache",
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 10,
+              expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
             },
           },
           {
