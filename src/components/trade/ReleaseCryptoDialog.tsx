@@ -184,8 +184,17 @@ export const ReleaseCryptoDialog = ({
              <Loader2 className="w-4 h-4 animate-spin" />
              <span>Please wait {countdown} seconds...</span>
            </div>
-         )}
-       </div>
+          )}
+
+          {connectivityBlocked && (
+            <div className="flex items-start gap-2 p-3 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <span className="text-amber-600 dark:text-amber-400">
+                Connection unstable — releasing crypto is paused until we verify a stable connection.
+              </span>
+            </div>
+          )}
+        </div>
      </>
    );
  
