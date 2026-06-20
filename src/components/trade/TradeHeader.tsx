@@ -93,6 +93,7 @@ export const TradeHeader = ({
                 <span className="hidden sm:inline">{statusInfo.label}</span>
                 <span className="sm:hidden">{statusInfo.shortLabel}</span>
               </Badge>
+              <ConnectivityIndicator />
             </div>
           </div>
         </div>
