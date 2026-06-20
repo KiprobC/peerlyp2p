@@ -32,6 +32,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useTraderStats } from "@/hooks/useTraderStats";
 import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
+import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
 import { formatDistanceToNow } from "date-fns";
 
 const BALANCE_HIDDEN_KEY = "peerly_balance_hidden";
