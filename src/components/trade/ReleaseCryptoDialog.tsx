@@ -54,6 +54,8 @@ export const ReleaseCryptoDialog = ({
    const [showPasskey, setShowPasskey] = useState(false);
    const [showOtpFallback, setShowOtpFallback] = useState(false);
    const { passkeys } = usePasskeys();
+   const { status: connectivityStatus } = useConnectivity();
+   const connectivityBlocked = connectivityStatus !== "online";
  
    // Reset state when dialog opens
    useEffect(() => {
