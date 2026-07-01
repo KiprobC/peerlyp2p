@@ -170,6 +170,54 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_deposit_addresses: {
+        Row: {
+          address: string
+          created_at: string
+          created_by: string | null
+          crypto_type: string
+          id: string
+          is_active: boolean
+          label: string | null
+          memo: string | null
+          memo_required: boolean
+          min_deposit: number
+          network: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          created_by?: string | null
+          crypto_type: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          memo?: string | null
+          memo_required?: boolean
+          min_deposit?: number
+          network: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          crypto_type?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          memo?: string | null
+          memo_required?: boolean
+          min_deposit?: number
+          network?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       countries: {
         Row: {
           code: string
@@ -337,6 +385,71 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      deposit_requests: {
+        Row: {
+          admin_address_id: string | null
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          credited_amount: number | null
+          crypto_type: string
+          deposit_address: string
+          id: string
+          memo: string | null
+          network: string
+          processed_at: string | null
+          processed_by: string | null
+          status: Database["public"]["Enums"]["deposit_request_status"]
+          tx_hash: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_address_id?: string | null
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          credited_amount?: number | null
+          crypto_type: string
+          deposit_address: string
+          id?: string
+          memo?: string | null
+          network: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["deposit_request_status"]
+          tx_hash?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_address_id?: string | null
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          credited_amount?: number | null
+          crypto_type?: string
+          deposit_address?: string
+          id?: string
+          memo?: string | null
+          network?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["deposit_request_status"]
+          tx_hash?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_requests_admin_address_id_fkey"
+            columns: ["admin_address_id"]
+            isOneToOne: false
+            referencedRelation: "admin_deposit_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dispute_assignments: {
         Row: {
@@ -2412,11 +2525,104 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_limit_overrides: {
+        Row: {
+          created_at: string
+          crypto_type: string
+          daily_limit: number
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          crypto_type: string
+          daily_limit: number
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          crypto_type?: string
+          daily_limit?: number
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          crypto_type: string
+          destination_address: string
+          destination_memo: string | null
+          fee: number
+          id: string
+          network: string
+          processed_at: string | null
+          processed_by: string | null
+          status: Database["public"]["Enums"]["withdrawal_request_status"]
+          total_locked: number
+          tx_hash: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          crypto_type: string
+          destination_address: string
+          destination_memo?: string | null
+          fee?: number
+          id?: string
+          network: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["withdrawal_request_status"]
+          total_locked: number
+          tx_hash?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          crypto_type?: string
+          destination_address?: string
+          destination_memo?: string | null
+          fee?: number
+          id?: string
+          network?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["withdrawal_request_status"]
+          total_locked?: number
+          tx_hash?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_approve_deposit: {
+        Args: {
+          p_credited_amount?: number
+          p_notes?: string
+          p_request_id: string
+          p_tx_hash?: string
+        }
+        Returns: undefined
+      }
       admin_decrypt_pii: {
         Args: { p_reason?: string; p_user_id: string }
         Returns: {
@@ -2439,7 +2645,19 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_mark_withdrawal_sent: {
+        Args: { p_notes?: string; p_request_id: string; p_tx_hash: string }
+        Returns: undefined
+      }
       admin_push_dispatch_status: { Args: never; Returns: Json }
+      admin_reject_deposit: {
+        Args: { p_notes?: string; p_request_id: string }
+        Returns: undefined
+      }
+      admin_reject_withdrawal: {
+        Args: { p_notes?: string; p_request_id: string }
+        Returns: undefined
+      }
       admin_run_reconciliation: { Args: never; Returns: string }
       admin_set_push_dispatch_config: {
         Args: { p_service_role_key: string }
@@ -2736,6 +2954,15 @@ export type Database = {
         Args: { p_is_system?: boolean; p_message: string; p_trade_id: string }
         Returns: string
       }
+      notify_admins: {
+        Args: {
+          p_data?: Json
+          p_message: string
+          p_title: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+        }
+        Returns: number
+      }
       passkey_count: { Args: { _user_id: string }; Returns: number }
       recalculate_trader_risk: {
         Args: { p_user_id: string }
@@ -2811,6 +3038,16 @@ export type Database = {
         Returns: Json
       }
       run_reconciliation: { Args: { p_triggered_by?: string }; Returns: string }
+      submit_deposit_request: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_memo?: string
+          p_network: string
+          p_tx_hash?: string
+        }
+        Returns: string
+      }
       submit_kyc_application: {
         Args: {
           p_country_code: string
@@ -2823,6 +3060,17 @@ export type Database = {
           p_selfie_url: string
         }
         Returns: Json
+      }
+      submit_withdrawal_request: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_destination_address: string
+          p_destination_memo?: string
+          p_fee: number
+          p_network: string
+        }
+        Returns: string
       }
       toggle_platform_setting: {
         Args: { p_enabled: boolean; p_setting_id: string }
@@ -2855,6 +3103,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      deposit_request_status: "pending" | "approved" | "rejected" | "cancelled"
       kyc_status: "pending" | "submitted" | "verified" | "rejected"
       kyc_tier: "unverified" | "level_1" | "level_2" | "level_3"
       notification_type: "trade" | "payment" | "kyc" | "system" | "message"
@@ -2872,6 +3121,12 @@ export type Database = {
         | "escrow_lock"
         | "escrow_release"
         | "trade"
+      withdrawal_request_status:
+        | "pending"
+        | "approved"
+        | "sent"
+        | "rejected"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3000,6 +3255,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      deposit_request_status: ["pending", "approved", "rejected", "cancelled"],
       kyc_status: ["pending", "submitted", "verified", "rejected"],
       kyc_tier: ["unverified", "level_1", "level_2", "level_3"],
       notification_type: ["trade", "payment", "kyc", "system", "message"],
@@ -3018,6 +3274,13 @@ export const Constants = {
         "escrow_lock",
         "escrow_release",
         "trade",
+      ],
+      withdrawal_request_status: [
+        "pending",
+        "approved",
+        "sent",
+        "rejected",
+        "cancelled",
       ],
     },
   },
