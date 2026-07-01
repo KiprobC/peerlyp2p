@@ -60,16 +60,25 @@ const WalletWithdraw = () => {
 
   const executeWithdraw = async () => {
     setIsSubmitting(true);
-    
-    // Simulate withdrawal processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    toast.success("Withdrawal request submitted", {
-      description: `${parsedAmount} ${selectedCrypto} will be sent to your address after processing.`
-    });
-    
-    setIsSubmitting(false);
-    navigate("/dashboard");
+    try {
+      const { submitWithdrawalRequest } = await import("@/hooks/useManualTreasury");
+      const network = selectedCrypto === "BTC" ? "bitcoin" : selectedCrypto === "ETH" ? "ethereum" : "tron";
+      await submitWithdrawalRequest({
+        crypto: selectedCrypto,
+        network,
+        amount: parsedAmount,
+        fee,
+        destinationAddress: address,
+      });
+      toast.success("Withdrawal request submitted", {
+        description: `${parsedAmount} ${selectedCrypto} locked and pending admin processing.`,
+      });
+      navigate("/dashboard");
+    } catch (e: any) {
+      toast.error("Withdrawal failed", { description: e.message });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOTPVerified = () => {
