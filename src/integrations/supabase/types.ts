@@ -2439,6 +2439,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_push_dispatch_status: { Args: never; Returns: Json }
       admin_run_reconciliation: { Args: never; Returns: string }
       admin_set_push_dispatch_config: {
         Args: { p_service_role_key: string }
