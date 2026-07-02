@@ -110,8 +110,8 @@ export const useTrades = () => {
           userIds.add(trade.seller_id);
         });
         
-        const { data: profiles } = await supabase
-          .from("profiles")
+        const { data: profiles } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, username")
           .in("user_id", Array.from(userIds));
         
