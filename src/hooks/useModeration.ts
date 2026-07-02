@@ -101,8 +101,8 @@ export const useModeration = () => {
           .in("id", tradeIds);
 
         const assigneeIds = [...new Set(data.map(d => d.assigned_to))];
-        const { data: assignees } = await supabase
-          .from("profiles")
+        const { data: assignees } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, full_name, username")
           .in("user_id", assigneeIds);
 
