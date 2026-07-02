@@ -55,11 +55,11 @@ export const useTraderProfile = () => {
     try {
       // Parallel fetches using secure RPC functions for stats/reviews
       const [profileRes, statsRes, reviewsRes, trustRes, blockRes, offersRes] = await Promise.all([
-        supabase
-          .from("profiles")
+        (supabase as any)
+          .from("public_profiles")
           .select("username, full_name, avatar_url, is_verified, country, created_at, last_seen")
           .eq("user_id", targetUserId)
-          .single(),
+          .maybeSingle(),
         supabase.rpc("get_trader_public_stats", { p_user_id: targetUserId }),
         supabase.rpc("get_trader_reviews", { p_user_id: targetUserId }),
         user ? supabase

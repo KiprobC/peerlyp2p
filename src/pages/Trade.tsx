@@ -136,8 +136,8 @@ const TradePageContent = () => {
     const fetchCounterparty = async () => {
       if (!counterpartyId) return;
 
-      const { data } = await supabase
-        .from("profiles")
+      const { data } = await (supabase as any)
+        .from("public_profiles")
         .select("full_name, username, avatar_url, rating, total_trades, is_verified")
         .eq("user_id", counterpartyId)
         .maybeSingle();

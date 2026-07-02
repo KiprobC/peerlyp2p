@@ -2530,6 +2530,8 @@ export type Database = {
           created_at: string
           crypto_type: string
           daily_limit: number
+          enabled: boolean
+          network: string
           notes: string | null
           updated_at: string
           updated_by: string | null
@@ -2538,6 +2540,8 @@ export type Database = {
           created_at?: string
           crypto_type: string
           daily_limit: number
+          enabled?: boolean
+          network?: string
           notes?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -2546,6 +2550,8 @@ export type Database = {
           created_at?: string
           crypto_type?: string
           daily_limit?: number
+          enabled?: boolean
+          network?: string
           notes?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -2611,7 +2617,57 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_profiles: {
+        Row: {
+          avatar_url: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          full_name: string | null
+          is_verified: boolean | null
+          kyc_status: Database["public"]["Enums"]["kyc_status"] | null
+          last_seen: string | null
+          rating: number | null
+          setup_completed: boolean | null
+          successful_trades: number | null
+          total_trades: number | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          is_verified?: boolean | null
+          kyc_status?: Database["public"]["Enums"]["kyc_status"] | null
+          last_seen?: string | null
+          rating?: number | null
+          setup_completed?: boolean | null
+          successful_trades?: number | null
+          total_trades?: number | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          is_verified?: boolean | null
+          kyc_status?: Database["public"]["Enums"]["kyc_status"] | null
+          last_seen?: string | null
+          rating?: number | null
+          setup_completed?: boolean | null
+          successful_trades?: number | null
+          total_trades?: number | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_approve_deposit: {
@@ -2630,6 +2686,10 @@ export type Database = {
           id_number: string
           mpesa_phone: string
         }[]
+      }
+      admin_delete_withdrawal_limit: {
+        Args: { p_crypto_type: string; p_network: string }
+        Returns: undefined
       }
       admin_disable_offer: {
         Args: { p_offer_id: string; p_reason?: string }
@@ -2658,6 +2718,18 @@ export type Database = {
         Args: { p_notes?: string; p_request_id: string }
         Returns: undefined
       }
+      admin_rotate_deposit_address: {
+        Args: {
+          p_label?: string
+          p_memo_required?: boolean
+          p_min_deposit?: number
+          p_new_address: string
+          p_new_memo?: string
+          p_notes?: string
+          p_old_id: string
+        }
+        Returns: string
+      }
       admin_run_reconciliation: { Args: never; Returns: string }
       admin_set_push_dispatch_config: {
         Args: { p_service_role_key: string }
@@ -2665,6 +2737,17 @@ export type Database = {
       }
       admin_set_push_dispatch_config_internal: {
         Args: { p_service_role_key: string; p_supabase_url: string }
+        Returns: undefined
+      }
+      admin_treasury_overview: { Args: never; Returns: Json }
+      admin_upsert_withdrawal_limit: {
+        Args: {
+          p_crypto_type: string
+          p_daily_limit: number
+          p_enabled?: boolean
+          p_network: string
+          p_notes?: string
+        }
         Returns: undefined
       }
       assert_trade_transition: {

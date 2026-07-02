@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminTreasuryQueue, adminApproveDeposit, adminRejectDeposit, adminMarkWithdrawalSent, adminRejectWithdrawal } from "@/hooks/useManualTreasury";
-import { RefreshCw, Check, X, Send, Plus, Wallet } from "lucide-react";
+import { RefreshCw, Check, X, Send, Plus, Wallet, RotateCw } from "lucide-react";
 
 const AdminManualTreasury = () => {
   const { addresses, pendingDeposits, pendingWithdrawals, loading, refetch } = useAdminTreasuryQueue();
@@ -24,6 +24,11 @@ const AdminManualTreasury = () => {
   const [rejectNotes, setRejectNotes] = useState("");
   const [sendTarget, setSendTarget] = useState<any>(null);
   const [sendForm, setSendForm] = useState({ tx: "", notes: "" });
+  const [rotateTarget, setRotateTarget] = useState<any>(null);
+  const [rotateForm, setRotateForm] = useState({ address: "", memo: "", memo_required: false, min_deposit: "0", label: "", notes: "" });
+  const [tab, setTab] = useState("deposits");
+  const activeAddresses = addresses.filter(a => a.is_active);
+  const inactiveAddresses = addresses.filter(a => !a.is_active);
 
   const openApprove = (d: any) => {
     setApproveTarget(d);
@@ -82,6 +87,25 @@ const AdminManualTreasury = () => {
   const toggleAddress = async (id: string, active: boolean) => {
     const { error } = await supabase.from("admin_deposit_addresses").update({ is_active: active }).eq("id", id);
     if (error) return toast.error(error.message);
+    refetch();
+  };
+
+  const runRotate = async () => {
+    if (!rotateTarget) return;
+    if (rotateForm.address.trim().length < 4) return toast.error("Enter the new address");
+    const { error } = await supabase.rpc("admin_rotate_deposit_address", {
+      p_old_id: rotateTarget.id,
+      p_new_address: rotateForm.address.trim(),
+      p_new_memo: rotateForm.memo || null,
+      p_memo_required: rotateForm.memo_required,
+      p_min_deposit: parseFloat(rotateForm.min_deposit) || 0,
+      p_label: rotateForm.label || rotateTarget.label,
+      p_notes: rotateForm.notes || null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Address rotated — old address deactivated");
+    setRotateTarget(null);
+    setRotateForm({ address: "", memo: "", memo_required: false, min_deposit: "0", label: "", notes: "" });
     refetch();
   };
 
@@ -156,22 +180,45 @@ const AdminManualTreasury = () => {
           <div className="flex justify-end">
             <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Add Address</Button>
           </div>
-          {addresses.map(a => (
-            <Card key={a.id}>
-              <CardContent className="pt-4 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold">{a.crypto_type} <span className="text-muted-foreground text-xs">/ {a.network}</span></p>
-                  <p className="text-xs font-mono break-all">{a.address}</p>
-                  {a.memo && <p className="text-xs">Memo: {a.memo}{a.memo_required && " (required)"}</p>}
-                  <p className="text-xs text-muted-foreground">Min: {a.min_deposit} {a.crypto_type}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={a.is_active} onCheckedChange={c => toggleAddress(a.id, c)} />
-                  <span className="text-xs">{a.is_active ? "Active" : "Inactive"}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Active ({activeAddresses.length})</p>
+            {activeAddresses.length === 0 && <p className="text-xs text-muted-foreground">No active addresses.</p>}
+            {activeAddresses.map(a => (
+              <Card key={a.id} className="mb-2">
+                <CardContent className="pt-4 flex justify-between items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{a.crypto_type} <span className="text-muted-foreground text-xs">/ {a.network}</span>{a.label && <span className="text-xs ml-2">· {a.label}</span>}</p>
+                    <p className="text-xs font-mono break-all">{a.address}</p>
+                    {a.memo && <p className="text-xs">Memo: {a.memo}{a.memo_required && " (required)"}</p>}
+                    <p className="text-xs text-muted-foreground">Min: {a.min_deposit} {a.crypto_type}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setRotateTarget(a); setRotateForm({ address: "", memo: a.memo || "", memo_required: a.memo_required, min_deposit: String(a.min_deposit), label: a.label || "", notes: "" }); }}>
+                      <RotateCw className="w-4 h-4 mr-1" /> Rotate
+                    </Button>
+                    <Switch checked={a.is_active} onCheckedChange={c => toggleAddress(a.id, c)} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {inactiveAddresses.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 mt-4">Retired ({inactiveAddresses.length})</p>
+              {inactiveAddresses.map(a => (
+                <Card key={a.id} className="mb-2 opacity-70">
+                  <CardContent className="pt-4 flex justify-between items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold">{a.crypto_type} <span className="text-muted-foreground text-xs">/ {a.network}</span></p>
+                      <p className="text-xs font-mono break-all">{a.address}</p>
+                      <p className="text-xs text-muted-foreground">Retired {new Date(a.updated_at).toLocaleString()}</p>
+                    </div>
+                    <Switch checked={a.is_active} onCheckedChange={c => toggleAddress(a.id, c)} />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -241,6 +288,31 @@ const AdminManualTreasury = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
             <Button onClick={addAddress}>Add</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rotate address */}
+      <Dialog open={!!rotateTarget} onOpenChange={o => !o && setRotateTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Rotate Deposit Address</DialogTitle></DialogHeader>
+          {rotateTarget && (
+            <div className="space-y-3">
+              <div className="p-2 bg-muted rounded text-xs">
+                <p className="font-semibold">{rotateTarget.crypto_type} / {rotateTarget.network}</p>
+                <p className="font-mono break-all">Current: {rotateTarget.address}</p>
+                <p className="text-muted-foreground">The current address will be deactivated. New deposits will use the new address.</p>
+              </div>
+              <div><Label>New address</Label><Input value={rotateForm.address} onChange={e => setRotateForm({ ...rotateForm, address: e.target.value })} /></div>
+              <div><Label>Memo (optional)</Label><Input value={rotateForm.memo} onChange={e => setRotateForm({ ...rotateForm, memo: e.target.value })} /></div>
+              <div className="flex items-center gap-2"><Switch checked={rotateForm.memo_required} onCheckedChange={c => setRotateForm({ ...rotateForm, memo_required: c })} /><span className="text-sm">Memo required</span></div>
+              <div><Label>Min deposit</Label><Input type="number" step="any" value={rotateForm.min_deposit} onChange={e => setRotateForm({ ...rotateForm, min_deposit: e.target.value })} /></div>
+              <div><Label>Rotation notes (audit trail)</Label><Textarea value={rotateForm.notes} onChange={e => setRotateForm({ ...rotateForm, notes: e.target.value })} /></div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRotateTarget(null)}>Cancel</Button>
+            <Button onClick={runRotate}>Rotate & Deactivate Old</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
