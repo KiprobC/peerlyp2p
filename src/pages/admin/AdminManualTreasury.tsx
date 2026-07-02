@@ -24,6 +24,11 @@ const AdminManualTreasury = () => {
   const [rejectNotes, setRejectNotes] = useState("");
   const [sendTarget, setSendTarget] = useState<any>(null);
   const [sendForm, setSendForm] = useState({ tx: "", notes: "" });
+  const [rotateTarget, setRotateTarget] = useState<any>(null);
+  const [rotateForm, setRotateForm] = useState({ address: "", memo: "", memo_required: false, min_deposit: "0", label: "", notes: "" });
+  const [tab, setTab] = useState("deposits");
+  const activeAddresses = addresses.filter(a => a.is_active);
+  const inactiveAddresses = addresses.filter(a => !a.is_active);
 
   const openApprove = (d: any) => {
     setApproveTarget(d);
