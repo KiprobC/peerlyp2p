@@ -86,8 +86,8 @@ export const useOffers = (filters?: OfferFilters) => {
       // Fetch profiles separately
       if (data && data.length > 0) {
         const userIds = [...new Set(data.map(o => o.user_id))];
-        const { data: profiles } = await supabase
-          .from("profiles")
+        const { data: profiles } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, full_name, username, avatar_url, rating, is_verified, last_seen, successful_trades, total_trades")
           .in("user_id", userIds);
         
