@@ -73,8 +73,8 @@ export const useDisputeModerator = (tradeId: string, assignedModeratorId?: strin
         }
       } else if (assignedModeratorId) {
         // Use the direct moderator ID if no assignment found
-        const { data: profileData } = await supabase
-          .from("profiles")
+        const { data: profileData } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, username, full_name, avatar_url, last_seen")
           .eq("user_id", assignedModeratorId)
           .maybeSingle();
