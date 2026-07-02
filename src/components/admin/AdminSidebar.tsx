@@ -55,9 +55,10 @@ const navSections = [
       { href: "/admin/deposits", icon: Wallet, label: "Deposit Addresses" },
       { href: "/admin/fees", icon: Percent, label: "Fee Management" },
       { href: "/admin/escrow", icon: Lock, label: "Escrow Management" },
-      { href: "/admin/treasury", icon: Landmark, label: "Treasury" },
-    ],
-  },
+      { href: "/admin/treasury", icon: Landmark, label: "Treasury (Ledger)" },
+      { href: "/admin/treasury-overview", icon: BarChart3, label: "Treasury Overview" },
+      { href: "/admin/manual-treasury", icon: Wallet, label: "Manual Treasury" },
+      { href: "/admin/withdrawal-limits", icon: Percent, label: "Withdrawal Limits" },
   {
     title: "Support",
     items: [
