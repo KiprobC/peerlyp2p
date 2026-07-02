@@ -46,8 +46,8 @@ export const useDisputeModerator = (tradeId: string, assignedModeratorId?: strin
         setAssignment(assignmentData as DisputeAssignment);
 
         // Fetch moderator profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
+        const { data: profileData, error: profileError } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, username, full_name, avatar_url, last_seen")
           .eq("user_id", assignmentData.assigned_to)
           .maybeSingle();
