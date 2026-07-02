@@ -123,7 +123,7 @@ export const useOffers = (filters?: OfferFilters) => {
           positiveCounts[r.rated_id] = (positiveCounts[r.rated_id] || 0) + 1;
         });
         
-        const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+        const profileMap = new Map<string, any>((profiles as any[])?.map((p: any) => [p.user_id, p]) || []);
         
         const offersWithProfiles: OfferWithProfile[] = data.map(offer => {
           const profile = profileMap.get(offer.user_id);
