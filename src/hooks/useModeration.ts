@@ -173,8 +173,8 @@ export const useModeration = () => {
 
       if (roles && roles.length > 0) {
         const userIds = roles.map(r => r.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
+        const { data: profiles } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, full_name, username, avatar_url")
           .in("user_id", userIds);
 
