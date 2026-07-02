@@ -128,18 +128,17 @@ export const useModeratorDisputes = () => {
 
         if (tradeData) {
           // Fetch buyer profile
-          const { data: buyerData } = await supabase
-            .from("profiles")
+          const { data: buyerData } = await (supabase as any)
+            .from("public_profiles")
             .select("username, full_name, avatar_url, rating, total_trades, successful_trades")
             .eq("user_id", tradeData.buyer_id)
-            .single();
+            .maybeSingle();
 
-          // Fetch seller profile
-          const { data: sellerData } = await supabase
-            .from("profiles")
+          const { data: sellerData } = await (supabase as any)
+            .from("public_profiles")
             .select("username, full_name, avatar_url, rating, total_trades, successful_trades")
             .eq("user_id", tradeData.seller_id)
-            .single();
+            .maybeSingle();
 
           buyer = buyerData;
           seller = sellerData;
