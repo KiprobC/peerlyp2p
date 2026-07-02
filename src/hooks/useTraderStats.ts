@@ -46,8 +46,8 @@ export const useTraderStats = (userId?: string) => {
       const successRate = resolvedTrades > 0 ? Math.round((completedTrades / resolvedTrades) * 100) : 0;
 
       // Fetch rating from profile (this is calculated from trade_ratings)
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
+      const { data: profile, error: profileError } = await (supabase as any)
+        .from("public_profiles")
         .select("rating")
         .eq("user_id", targetUserId)
         .maybeSingle();
