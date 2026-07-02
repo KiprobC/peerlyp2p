@@ -286,11 +286,11 @@ export const useModeratorTradeMessages = (tradeId: string) => {
       // Enrich with sender info
       const enriched = await Promise.all(
         (data || []).map(async (msg) => {
-          const { data: profile } = await supabase
-            .from("profiles")
+          const { data: profile } = await (supabase as any)
+            .from("public_profiles")
             .select("username, avatar_url")
             .eq("user_id", msg.sender_id)
-            .single();
+            .maybeSingle();
 
           return {
             ...msg,
