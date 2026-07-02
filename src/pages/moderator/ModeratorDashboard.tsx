@@ -29,8 +29,8 @@ export const ModeratorDashboard = () => {
       if (!alerts || alerts.length === 0) { setSuspiciousTraders([]); return; }
 
       const userIds = [...new Set((alerts as any[]).map((a: any) => a.user_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
+      const { data: profiles } = await (supabase as any)
+        .from("public_profiles")
         .select("user_id, username, full_name")
         .in("user_id", userIds);
 
