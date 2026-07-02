@@ -50,13 +50,13 @@ export const useModeratorAvailability = () => {
 
       if (avail && avail.length > 0) {
         const userIds = avail.map((a: any) => a.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
+        const { data: profiles } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, username, full_name")
           .in("user_id", userIds);
 
         const enriched = avail.map((a: any) => {
-          const profile = profiles?.find((p) => p.user_id === a.user_id);
+          const profile = (profiles as any[])?.find((p: any) => p.user_id === a.user_id);
           return { ...a, username: profile?.username, full_name: profile?.full_name };
         });
 
