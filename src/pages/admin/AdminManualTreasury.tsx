@@ -180,22 +180,45 @@ const AdminManualTreasury = () => {
           <div className="flex justify-end">
             <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Add Address</Button>
           </div>
-          {addresses.map(a => (
-            <Card key={a.id}>
-              <CardContent className="pt-4 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold">{a.crypto_type} <span className="text-muted-foreground text-xs">/ {a.network}</span></p>
-                  <p className="text-xs font-mono break-all">{a.address}</p>
-                  {a.memo && <p className="text-xs">Memo: {a.memo}{a.memo_required && " (required)"}</p>}
-                  <p className="text-xs text-muted-foreground">Min: {a.min_deposit} {a.crypto_type}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={a.is_active} onCheckedChange={c => toggleAddress(a.id, c)} />
-                  <span className="text-xs">{a.is_active ? "Active" : "Inactive"}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Active ({activeAddresses.length})</p>
+            {activeAddresses.length === 0 && <p className="text-xs text-muted-foreground">No active addresses.</p>}
+            {activeAddresses.map(a => (
+              <Card key={a.id} className="mb-2">
+                <CardContent className="pt-4 flex justify-between items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold">{a.crypto_type} <span className="text-muted-foreground text-xs">/ {a.network}</span>{a.label && <span className="text-xs ml-2">· {a.label}</span>}</p>
+                    <p className="text-xs font-mono break-all">{a.address}</p>
+                    {a.memo && <p className="text-xs">Memo: {a.memo}{a.memo_required && " (required)"}</p>}
+                    <p className="text-xs text-muted-foreground">Min: {a.min_deposit} {a.crypto_type}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setRotateTarget(a); setRotateForm({ address: "", memo: a.memo || "", memo_required: a.memo_required, min_deposit: String(a.min_deposit), label: a.label || "", notes: "" }); }}>
+                      <RotateCw className="w-4 h-4 mr-1" /> Rotate
+                    </Button>
+                    <Switch checked={a.is_active} onCheckedChange={c => toggleAddress(a.id, c)} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          {inactiveAddresses.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 mt-4">Retired ({inactiveAddresses.length})</p>
+              {inactiveAddresses.map(a => (
+                <Card key={a.id} className="mb-2 opacity-70">
+                  <CardContent className="pt-4 flex justify-between items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold">{a.crypto_type} <span className="text-muted-foreground text-xs">/ {a.network}</span></p>
+                      <p className="text-xs font-mono break-all">{a.address}</p>
+                      <p className="text-xs text-muted-foreground">Retired {new Date(a.updated_at).toLocaleString()}</p>
+                    </div>
+                    <Switch checked={a.is_active} onCheckedChange={c => toggleAddress(a.id, c)} />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
