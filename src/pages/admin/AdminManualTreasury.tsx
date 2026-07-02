@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminTreasuryQueue, adminApproveDeposit, adminRejectDeposit, adminMarkWithdrawalSent, adminRejectWithdrawal } from "@/hooks/useManualTreasury";
-import { RefreshCw, Check, X, Send, Plus, Wallet } from "lucide-react";
+import { RefreshCw, Check, X, Send, Plus, Wallet, RotateCw } from "lucide-react";
 
 const AdminManualTreasury = () => {
   const { addresses, pendingDeposits, pendingWithdrawals, loading, refetch } = useAdminTreasuryQueue();
