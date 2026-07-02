@@ -59,6 +59,8 @@ const navSections = [
       { href: "/admin/treasury-overview", icon: BarChart3, label: "Treasury Overview" },
       { href: "/admin/manual-treasury", icon: Wallet, label: "Manual Treasury" },
       { href: "/admin/withdrawal-limits", icon: Percent, label: "Withdrawal Limits" },
+    ],
+  },
   {
     title: "Support",
     items: [
