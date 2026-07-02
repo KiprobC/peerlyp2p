@@ -62,6 +62,8 @@ import AdminIdempotency from "./pages/admin/AdminIdempotency";
 import AdminRiskCenter from "./pages/admin/AdminRiskCenter";
 import AdminPWADiagnostics from "./pages/admin/AdminPWADiagnostics";
 import AdminManualTreasury from "./pages/admin/AdminManualTreasury";
+import AdminWithdrawalLimits from "./pages/admin/AdminWithdrawalLimits";
+import AdminTreasuryOverview from "./pages/admin/AdminTreasuryOverview";
 import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
