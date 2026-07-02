@@ -90,6 +90,25 @@ const AdminManualTreasury = () => {
     refetch();
   };
 
+  const runRotate = async () => {
+    if (!rotateTarget) return;
+    if (rotateForm.address.trim().length < 4) return toast.error("Enter the new address");
+    const { error } = await supabase.rpc("admin_rotate_deposit_address", {
+      p_old_id: rotateTarget.id,
+      p_new_address: rotateForm.address.trim(),
+      p_new_memo: rotateForm.memo || null,
+      p_memo_required: rotateForm.memo_required,
+      p_min_deposit: parseFloat(rotateForm.min_deposit) || 0,
+      p_label: rotateForm.label || rotateTarget.label,
+      p_notes: rotateForm.notes || null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Address rotated — old address deactivated");
+    setRotateTarget(null);
+    setRotateForm({ address: "", memo: "", memo_required: false, min_deposit: "0", label: "", notes: "" });
+    refetch();
+  };
+
   const pDeps = pendingDeposits.filter(d => d.status === "pending");
   const pWds = pendingWithdrawals.filter(w => w.status === "pending" || w.status === "approved");
 
