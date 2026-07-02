@@ -291,6 +291,31 @@ const AdminManualTreasury = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Rotate address */}
+      <Dialog open={!!rotateTarget} onOpenChange={o => !o && setRotateTarget(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Rotate Deposit Address</DialogTitle></DialogHeader>
+          {rotateTarget && (
+            <div className="space-y-3">
+              <div className="p-2 bg-muted rounded text-xs">
+                <p className="font-semibold">{rotateTarget.crypto_type} / {rotateTarget.network}</p>
+                <p className="font-mono break-all">Current: {rotateTarget.address}</p>
+                <p className="text-muted-foreground">The current address will be deactivated. New deposits will use the new address.</p>
+              </div>
+              <div><Label>New address</Label><Input value={rotateForm.address} onChange={e => setRotateForm({ ...rotateForm, address: e.target.value })} /></div>
+              <div><Label>Memo (optional)</Label><Input value={rotateForm.memo} onChange={e => setRotateForm({ ...rotateForm, memo: e.target.value })} /></div>
+              <div className="flex items-center gap-2"><Switch checked={rotateForm.memo_required} onCheckedChange={c => setRotateForm({ ...rotateForm, memo_required: c })} /><span className="text-sm">Memo required</span></div>
+              <div><Label>Min deposit</Label><Input type="number" step="any" value={rotateForm.min_deposit} onChange={e => setRotateForm({ ...rotateForm, min_deposit: e.target.value })} /></div>
+              <div><Label>Rotation notes (audit trail)</Label><Textarea value={rotateForm.notes} onChange={e => setRotateForm({ ...rotateForm, notes: e.target.value })} /></div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRotateTarget(null)}>Cancel</Button>
+            <Button onClick={runRotate}>Rotate & Deactivate Old</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
