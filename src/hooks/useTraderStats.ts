@@ -90,8 +90,8 @@ export const fetchTraderStatsById = async (userId: string): Promise<TraderStats>
     const resolvedTrades = completedTrades + cancelledTrades;
     const successRate = resolvedTrades > 0 ? Math.round((completedTrades / resolvedTrades) * 100) : 0;
 
-    const { data: profile } = await supabase
-      .from("profiles")
+    const { data: profile } = await (supabase as any)
+      .from("public_profiles")
       .select("rating")
       .eq("user_id", userId)
       .maybeSingle();
