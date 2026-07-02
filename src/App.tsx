@@ -260,6 +260,9 @@ const AppRoutes = () => {
         <Route path="idempotency" element={<AdminIdempotency />} />
         <Route path="risk-center" element={<AdminRiskCenter />} />
         <Route path="pwa" element={<AdminPWADiagnostics />} />
+        <Route path="manual-treasury" element={<AdminManualTreasury />} />
+        <Route path="withdrawal-limits" element={<AdminWithdrawalLimits />} />
+        <Route path="treasury-overview" element={<AdminTreasuryOverview />} />
       </Route>
       
       {/* Moderator routes - ModeratorLayout handles role check internally */}
