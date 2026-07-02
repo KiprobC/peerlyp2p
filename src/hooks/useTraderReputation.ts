@@ -50,12 +50,12 @@ export const useTraderReputation = (userId: string | undefined) => {
       
       let raterProfiles: Record<string, string> = {};
       if (raterIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
+        const { data: profiles } = await (supabase as any)
+          .from("public_profiles")
           .select("user_id, username, full_name")
           .in("user_id", raterIds);
         
-        profiles?.forEach(p => {
+        (profiles as any[])?.forEach((p: any) => {
           raterProfiles[p.user_id] = p.username || p.full_name || "Anonymous";
         });
       }
