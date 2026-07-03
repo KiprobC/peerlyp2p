@@ -46,6 +46,7 @@ import { PasskeyDeviceList } from "@/components/security/PasskeyDeviceList";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { SettingsItem, SettingsSection } from "@/components/settings/SettingsItem";
 import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
+import { QuickUnlockSettingsCard } from "@/components/security/QuickUnlockSettingsCard";
 import SupportChatDialog from "@/components/support/SupportChatDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -552,6 +553,12 @@ const Settings = () => {
             <div className="p-4 rounded-lg bg-muted/50">
               <PasskeyDeviceList />
             </div>
+
+            {/* Quick Unlock */}
+            <div className="p-4 rounded-lg bg-muted/50">
+              <QuickUnlockSettingsCard />
+            </div>
+
 
             {/* Sessions */}
             <div 
