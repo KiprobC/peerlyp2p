@@ -93,9 +93,8 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // In production, send email here via Resend/SendGrid
-      // For now, we log it (development mode)
-      console.log(`[DEV] OTP for user ${userEmail}: ${result.code} (action: ${actionType})`);
+      // SECURITY: never log OTP code values, even in dev.
+      console.log(`OTP generated for user=${userId} action=${actionType}`);
 
       // Log the generation event
       await supabaseAdmin.from("security_events").insert({
