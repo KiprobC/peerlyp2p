@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Settings } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
-import { useWallets } from "@/hooks/useWallets";
+
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProfileDetails } from "@/components/profile/ProfileDetails";
 import { WalletSummary } from "@/components/profile/WalletSummary";
@@ -11,9 +11,8 @@ import { KYCStatus } from "@/components/profile/KYCStatus";
 
 const Profile = () => {
   const { profile, loading: profileLoading } = useProfile();
-  const { wallets, loading: walletsLoading } = useWallets();
 
-  if (profileLoading || walletsLoading) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen bg-background">
         <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
@@ -68,7 +67,7 @@ const Profile = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ProfileDetails profile={profile} />
             <div className="space-y-6">
-              <WalletSummary wallets={wallets} />
+              <WalletSummary />
               <KYCStatus profile={profile} />
             </div>
           </div>

@@ -30,6 +30,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
 import { useSettings } from "@/hooks/useSettings";
 import { useTraderStats } from "@/hooks/useTraderStats";
+import { usePortfolio } from "@/hooks/usePortfolio";
 import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
 import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
@@ -47,7 +48,9 @@ const Dashboard = () => {
   const { unreadCount } = useNotifications();
   const { settings } = useSettings();
   const { stats: traderStats } = useTraderStats();
-  const preferredCurrency = settings?.preferred_currency || "KES";
+  const preferredCurrency = (settings?.preferred_currency || "KES") as import("@/hooks/usePortfolio").DisplayCurrency;
+  // Single source of truth for wallet balances + prices + totals.
+  const portfolio = usePortfolio(preferredCurrency);
   const { prices: cryptoPricesUSD, changes: priceChanges, loading: pricesLoading } = useCryptoPrices();
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [balanceHidden, setBalanceHidden] = useState(() => {
@@ -68,14 +71,7 @@ const Dashboard = () => {
     return value;
   };
 
-  // Currency symbols and conversion
-  const currencySymbols: Record<string, string> = {
-    USD: "$",
-    KES: "KES ",
-    EUR: "€",
-    GBP: "£",
-  };
-  const currencySymbol = currencySymbols[preferredCurrency] || preferredCurrency + " ";
+  const currencySymbol = portfolio.currencySymbol;
   const conversionRate = preferredCurrency === "USD" ? 1 : preferredCurrency === "KES" ? USD_TO_KES : 1;
 
   const handleSignOut = async () => {
@@ -83,16 +79,19 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  const totalValueKES = wallets.reduce((total, wallet) => {
-    const priceUSD = cryptoPricesUSD[wallet.crypto_type] || 0;
-    return total + wallet.balance * priceUSD * USD_TO_KES;
-  }, 0);
+  // Values come from the centralized portfolio; Total = sum of assets exactly.
+  const totalPortfolioValue = portfolio.totalValue;
+  const assetValueMap: Record<string, number> = Object.fromEntries(
+    portfolio.assets.map((a) => [a.crypto_type, a.valueInCurrency])
+  );
 
   const recentTrades = trades.slice(0, 5);
 
-  if (profileLoading || walletsLoading) {
+  if (profileLoading || walletsLoading || portfolio.loading) {
     return <DashboardSkeleton />;
   }
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -197,7 +196,7 @@ const Dashboard = () => {
                   </button>
                 </div>
                 <p className="text-xl sm:text-2xl md:text-3xl font-bold">
-                  KES {formatBalance(totalValueKES)}
+                  {currencySymbol}{formatBalance(totalPortfolioValue)}
                 </p>
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -260,8 +259,7 @@ const Dashboard = () => {
               {wallets.length > 0 ? (
                 wallets.map((wallet) => {
                   const info = cryptoInfo[wallet.crypto_type] || { name: wallet.crypto_type, icon: "?", color: "#888" };
-                  const priceUSD = cryptoPricesUSD[wallet.crypto_type] || 0;
-                  const valueKES = wallet.balance * priceUSD * USD_TO_KES;
+                  const valueInCurrency = assetValueMap[wallet.crypto_type] ?? 0;
                   
                   return (
                     <div
@@ -285,7 +283,7 @@ const Dashboard = () => {
                           {formatBalance(wallet.balance, wallet.crypto_type === "USDT" ? 2 : 6)}
                         </p>
                         <p className="text-[10px] sm:text-xs text-muted-foreground">
-                          KES {formatBalance(valueKES)}
+                          {currencySymbol}{formatBalance(valueInCurrency)}
                         </p>
                       </div>
                     </div>
