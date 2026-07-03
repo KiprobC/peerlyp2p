@@ -91,11 +91,6 @@ const Dashboard = () => {
   }
 
 
-  const recentTrades = trades.slice(0, 5);
-
-  if (profileLoading || walletsLoading) {
-    return <DashboardSkeleton />;
-  }
 
   return (
     <div className="min-h-screen bg-background">
