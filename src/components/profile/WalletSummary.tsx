@@ -1,23 +1,19 @@
-import { Wallet } from "@/hooks/useWallets";
 import { cryptoInfo } from "@/hooks/useWallets";
+import { usePortfolio } from "@/hooks/usePortfolio";
+import { useSettings } from "@/hooks/useSettings";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import type { DisplayCurrency } from "@/hooks/usePortfolio";
 
-interface WalletSummaryProps {
-  wallets: Wallet[];
-}
-
-const cryptoPrices: Record<string, number> = {
-  BTC: 8250000,
-  USDT: 152,
-  ETH: 425000,
-};
-
-export const WalletSummary = ({ wallets }: WalletSummaryProps) => {
-  const totalValueKES = wallets.reduce((total, wallet) => {
-    const price = cryptoPrices[wallet.crypto_type] || 0;
-    return total + wallet.balance * price;
-  }, 0);
+/**
+ * Wallet summary card for the Profile page.
+ * Reads from the SAME `usePortfolio` hook the Dashboard uses so the totals,
+ * per-asset values and price basis are identical everywhere.
+ */
+export const WalletSummary = () => {
+  const { settings } = useSettings();
+  const currency = (settings?.preferred_currency || "KES") as DisplayCurrency;
+  const portfolio = usePortfolio(currency);
 
   return (
     <div className="glass-card">
@@ -33,17 +29,25 @@ export const WalletSummary = ({ wallets }: WalletSummaryProps) => {
 
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">Total Balance</p>
-        <p className="text-2xl font-bold">KES {totalValueKES.toLocaleString()}</p>
+        {portfolio.loading ? (
+          <div className="flex items-center gap-2 text-muted-foreground h-8">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Loading…</span>
+          </div>
+        ) : (
+          <p className="text-2xl font-bold">
+            {portfolio.currencySymbol}
+            {portfolio.totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </p>
+        )}
       </div>
 
       <div className="space-y-3">
-        {wallets.map((wallet) => {
-          const info = cryptoInfo[wallet.crypto_type] || { name: wallet.crypto_type, icon: "?", color: "#888" };
-          const valueKES = wallet.balance * (cryptoPrices[wallet.crypto_type] || 0);
-          
+        {portfolio.assets.map((asset) => {
+          const info = cryptoInfo[asset.crypto_type] || { name: asset.crypto_type, icon: "?", color: "#888" };
           return (
             <div
-              key={wallet.id}
+              key={asset.crypto_type}
               className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg"
             >
               <div className="flex items-center gap-3">
@@ -54,16 +58,17 @@ export const WalletSummary = ({ wallets }: WalletSummaryProps) => {
                   {info.icon}
                 </div>
                 <div>
-                  <p className="font-medium text-sm">{wallet.crypto_type}</p>
+                  <p className="font-medium text-sm">{asset.crypto_type}</p>
                   <p className="text-xs text-muted-foreground">{info.name}</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="font-medium text-sm">
-                  {wallet.balance.toFixed(wallet.crypto_type === "USDT" ? 2 : 6)}
+                  {asset.balance.toFixed(asset.crypto_type === "USDT" ? 2 : 6)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  KES {valueKES.toLocaleString()}
+                  {portfolio.currencySymbol}
+                  {asset.valueInCurrency.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </p>
               </div>
             </div>
