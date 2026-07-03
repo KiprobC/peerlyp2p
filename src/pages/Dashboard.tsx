@@ -196,7 +196,7 @@ const Dashboard = () => {
                   </button>
                 </div>
                 <p className="text-xl sm:text-2xl md:text-3xl font-bold">
-                  KES {formatBalance(totalValueKES)}
+                  {currencySymbol}{formatBalance(totalPortfolioValue)}
                 </p>
               </div>
               <div className="flex gap-2 flex-wrap">
@@ -259,8 +259,7 @@ const Dashboard = () => {
               {wallets.length > 0 ? (
                 wallets.map((wallet) => {
                   const info = cryptoInfo[wallet.crypto_type] || { name: wallet.crypto_type, icon: "?", color: "#888" };
-                  const priceUSD = cryptoPricesUSD[wallet.crypto_type] || 0;
-                  const valueKES = wallet.balance * priceUSD * USD_TO_KES;
+                  const valueInCurrency = assetValueMap[wallet.crypto_type] ?? 0;
                   
                   return (
                     <div
@@ -284,7 +283,7 @@ const Dashboard = () => {
                           {formatBalance(wallet.balance, wallet.crypto_type === "USDT" ? 2 : 6)}
                         </p>
                         <p className="text-[10px] sm:text-xs text-muted-foreground">
-                          KES {formatBalance(valueKES)}
+                          {currencySymbol}{formatBalance(valueInCurrency)}
                         </p>
                       </div>
                     </div>
