@@ -30,6 +30,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
 import { useSettings } from "@/hooks/useSettings";
 import { useTraderStats } from "@/hooks/useTraderStats";
+import { usePortfolio } from "@/hooks/usePortfolio";
 import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
 import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
