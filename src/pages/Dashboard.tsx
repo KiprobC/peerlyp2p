@@ -47,7 +47,9 @@ const Dashboard = () => {
   const { unreadCount } = useNotifications();
   const { settings } = useSettings();
   const { stats: traderStats } = useTraderStats();
-  const preferredCurrency = settings?.preferred_currency || "KES";
+  const preferredCurrency = (settings?.preferred_currency || "KES") as import("@/hooks/usePortfolio").DisplayCurrency;
+  // Single source of truth for wallet balances + prices + totals.
+  const portfolio = usePortfolio(preferredCurrency);
   const { prices: cryptoPricesUSD, changes: priceChanges, loading: pricesLoading } = useCryptoPrices();
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [balanceHidden, setBalanceHidden] = useState(() => {
@@ -68,14 +70,7 @@ const Dashboard = () => {
     return value;
   };
 
-  // Currency symbols and conversion
-  const currencySymbols: Record<string, string> = {
-    USD: "$",
-    KES: "KES ",
-    EUR: "€",
-    GBP: "£",
-  };
-  const currencySymbol = currencySymbols[preferredCurrency] || preferredCurrency + " ";
+  const currencySymbol = portfolio.currencySymbol;
   const conversionRate = preferredCurrency === "USD" ? 1 : preferredCurrency === "KES" ? USD_TO_KES : 1;
 
   const handleSignOut = async () => {
@@ -83,10 +78,18 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  const totalValueKES = wallets.reduce((total, wallet) => {
-    const priceUSD = cryptoPricesUSD[wallet.crypto_type] || 0;
-    return total + wallet.balance * priceUSD * USD_TO_KES;
-  }, 0);
+  // Values come from the centralized portfolio; Total = sum of assets exactly.
+  const totalPortfolioValue = portfolio.totalValue;
+  const assetValueMap: Record<string, number> = Object.fromEntries(
+    portfolio.assets.map((a) => [a.crypto_type, a.valueInCurrency])
+  );
+
+  const recentTrades = trades.slice(0, 5);
+
+  if (profileLoading || walletsLoading || portfolio.loading) {
+    return <DashboardSkeleton />;
+  }
+
 
   const recentTrades = trades.slice(0, 5);
 
