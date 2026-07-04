@@ -182,7 +182,7 @@ export const MobileAdminSidebar = () => {
 // Desktop Sidebar
 export const AdminSidebar = () => {
   return (
-    <aside className="hidden lg:flex w-64 min-h-screen bg-card border-r border-border flex-col">
+    <aside className="hidden lg:flex w-64 h-screen sticky top-0 bg-card border-r border-border flex-col overflow-hidden">
       <SidebarContent />
     </aside>
   );
