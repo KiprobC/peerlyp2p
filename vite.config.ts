@@ -19,10 +19,15 @@ export default defineConfig(({ mode }) => ({
       devOptions: { enabled: false },
       includeAssets: [
         "favicon.ico",
+        "favicon-16.png",
+        "favicon-32.png",
+        "apple-touch-icon.png",
         "robots.txt",
         "icons/icon-192.png",
         "icons/icon-512.png",
         "icons/maskable-icon.png",
+        "icons/badge-72.png",
+        "icons/splash-*.png",
         "offline.html",
       ],
       manifest: {
