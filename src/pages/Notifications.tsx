@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { polishNotification } from "@/lib/treasuryCopy";
 
 const iconMap: Record<string, typeof Bell> = {
   trade: DollarSign,
@@ -112,6 +113,7 @@ const Notifications = () => {
                 const needsRating = data?.needs_rating === true;
                 const needsProfileSetup = data?.action === "complete_profile";
                 const Icon = needsRating ? Star : needsProfileSetup ? UserPlus : (iconMap[notification.type] || Bell);
+                const polished = polishNotification(notification.title, notification.message);
                 
                 return (
                   <div
@@ -141,7 +143,7 @@ const Notifications = () => {
                                 !notification.read ? "text-foreground" : "text-muted-foreground"
                               }`}
                             >
-                              {notification.title}
+                              {polished.title}
                             </h3>
                             {needsRating && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-accent/50 text-accent gap-1">
@@ -155,7 +157,7 @@ const Notifications = () => {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {notification.message}
+                          {polished.message}
                         </p>
                         {needsProfileSetup && (
                           <Button
