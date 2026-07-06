@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { polishNotification } from "@/lib/treasuryCopy";
 
 export const NotificationPopover = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
@@ -82,7 +83,8 @@ export const NotificationPopover = () => {
                 const data = notification.data as Record<string, any> | null;
                 const needsRating = data?.needs_rating === true;
                 const needsProfileSetup = data?.action === "complete_profile";
-                
+                const polished = polishNotification(notification.title, notification.message);
+
                 return (
                   <div
                     key={notification.id}
@@ -109,8 +111,8 @@ export const NotificationPopover = () => {
                         <span className="h-2 w-2 rounded-full bg-primary ml-auto flex-shrink-0 mt-1" />
                       )}
                     </div>
-                    <p className="font-medium text-sm mt-1">{notification.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notification.message}</p>
+                    <p className="font-medium text-sm mt-1">{polished.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{polished.message}</p>
                     {needsProfileSetup && (
                       <Button size="sm" className="mt-2 h-7 text-xs rounded-full" onClick={(e) => { e.stopPropagation(); handleNotificationClick(notification); }}>
                         <UserPlus className="w-3 h-3 mr-1" /> Complete Profile
