@@ -22,7 +22,6 @@ import {
   TrendingDown,
   AlertTriangle,
   Search,
-  BarChart3,
 } from "lucide-react";
 import { useMyOffers, Offer } from "@/hooks/useOffers";
 import { useTrades } from "@/hooks/useTrades";
