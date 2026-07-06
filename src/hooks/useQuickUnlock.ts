@@ -38,6 +38,16 @@ const readSettings = (): QuickUnlockSettings => {
   }
 };
 
+const writeSettings = (s: QuickUnlockSettings) => {
+  try {
+    localStorage.setItem(KEYS.enabled, String(s.enabled));
+    localStorage.setItem(KEYS.requireOnOpen, String(s.requireOnOpen));
+    localStorage.setItem(KEYS.idleMinutes, String(s.idleMinutes));
+  } catch {
+    /* noop */
+  }
+};
+
 export const isPWAInstalled = (): boolean => {
   if (typeof window === "undefined") return false;
   // iOS Safari
@@ -65,12 +75,28 @@ export const clearUnlock = () => {
   }
 };
 
+/**
+ * Startup recovery: if Quick Unlock is enabled but the account has no passkey,
+ * silently disable it so the user isn't locked out. Returns true if it had to
+ * reset settings (caller may show a toast).
+ */
+export const reconcileQuickUnlockWithPasskeys = (passkeyCount: number): boolean => {
+  const s = readSettings();
+  if (s.enabled && passkeyCount === 0) {
+    writeSettings({ ...s, enabled: false, requireOnOpen: false });
+    clearUnlock();
+    return true;
+  }
+  return false;
+};
+
 export const useQuickUnlock = () => {
   const [settings, setSettings] = useState<QuickUnlockSettings>(readSettings);
   const [needsUnlock, setNeedsUnlock] = useState<boolean>(false);
 
   const evaluate = useCallback(() => {
     const s = readSettings();
+    setSettings(s);
     if (!s.enabled) {
       setNeedsUnlock(false);
       return;
@@ -102,13 +128,7 @@ export const useQuickUnlock = () => {
 
   const updateSettings = useCallback((patch: Partial<QuickUnlockSettings>) => {
     const merged = { ...readSettings(), ...patch };
-    try {
-      localStorage.setItem(KEYS.enabled, String(merged.enabled));
-      localStorage.setItem(KEYS.requireOnOpen, String(merged.requireOnOpen));
-      localStorage.setItem(KEYS.idleMinutes, String(merged.idleMinutes));
-    } catch {
-      /* noop */
-    }
+    writeSettings(merged);
     setSettings(merged);
     if (!merged.enabled) {
       clearUnlock();

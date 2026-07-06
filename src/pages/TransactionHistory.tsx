@@ -33,6 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cryptoInfo } from "@/hooks/useWallets";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+import { polishTxDescription } from "@/lib/treasuryCopy";
 
 const PAGE_SIZE = 20;
 
@@ -356,7 +357,7 @@ const TransactionHistory = () => {
 
                 <div className="py-3 space-y-0.5">
                   {selectedTx.description && (
-                    <DetailRow label="Description" value={selectedTx.description} />
+                    <DetailRow label="Description" value={polishTxDescription(selectedTx.description)} />
                   )}
                   {selectedTx.reference && (
                     <DetailRow label="Reference" value={selectedTx.reference} copyable />

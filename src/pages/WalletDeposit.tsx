@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
 import { Badge } from "@/components/ui/badge";
+import { treasuryStatusLabel } from "@/lib/treasuryCopy";
 
 const NETWORKS: Record<string, { value: string; label: string }[]> = {
   BTC: [{ value: "bitcoin", label: "Bitcoin Network" }],
@@ -27,9 +28,14 @@ const statusBadge = (s: string) => {
   const map: Record<string, string> = {
     pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
     approved: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+    completed: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
     rejected: "bg-destructive/15 text-destructive border-destructive/30",
   };
-  return <Badge className={map[s] || ""} variant="outline">{s}</Badge>;
+  return (
+    <Badge className={map[s] || ""} variant="outline">
+      {treasuryStatusLabel(s, "deposit")}
+    </Badge>
+  );
 };
 
 const WalletDeposit = () => {
@@ -70,7 +76,10 @@ const WalletDeposit = () => {
         amount: parsed,
         txHash: txHash.trim() || undefined,
       });
-      toast.success("Deposit submitted", { description: "Admins have been notified. You'll be credited after verification." });
+      toast.success("Deposit In Progress", {
+        description:
+          "Your transaction has entered the Network Confirmation Process. Your wallet balance will be updated once the required blockchain confirmations and deposit processing have been completed.",
+      });
       setAmount("");
       setTxHash("");
       setConfirmOpen(false);
@@ -99,9 +108,9 @@ const WalletDeposit = () => {
           <div className="flex items-start gap-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <Wallet className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium">Manual deposit — admin verified</p>
+              <p className="text-sm font-medium">Blockchain Deposit</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Send funds to the address shown, then click "I've Sent Funds". Admins will verify and credit your wallet.
+                Send funds to the address shown, then tap "I've Sent Funds". Your deposit will enter the Network Confirmation Process and be credited automatically.
               </p>
             </div>
           </div>
@@ -144,7 +153,7 @@ const WalletDeposit = () => {
               <CardTitle className="text-lg" style={{ color: selectedInfo.color }}>
                 Send {selectedCrypto} to this address
               </CardTitle>
-              <CardDescription>Admin-controlled receiving wallet</CardDescription>
+              <CardDescription>Peerly network receiving wallet</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {addrLoading ? (
@@ -234,8 +243,22 @@ const WalletDeposit = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm deposit submission</AlertDialogTitle>
-            <AlertDialogDescription>
-              You're telling us you sent <b>{parsed} {selectedCrypto}</b> on <b>{selectedNetwork}</b>. Admins will verify on-chain before crediting. Submitting false claims may result in account restrictions.
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  You are confirming that you've initiated a blockchain transfer of{" "}
+                  <b>{parsed} {selectedCrypto}</b> on <b>{selectedNetwork}</b>.
+                </p>
+                <p>Your transaction has entered the Network Confirmation Process.</p>
+                <p>
+                  Once the required blockchain confirmations have been completed and the
+                  deposit has been processed, your Peerly wallet will be credited.
+                </p>
+                <p className="text-muted-foreground">
+                  Please ensure the transaction details are accurate. False deposit claims
+                  may result in temporary account restrictions.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
