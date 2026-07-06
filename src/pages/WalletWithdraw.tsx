@@ -70,8 +70,9 @@ const WalletWithdraw = () => {
         fee,
         destinationAddress: address,
       });
-      toast.success("Withdrawal request submitted", {
-        description: `${parsedAmount} ${selectedCrypto} locked and pending admin processing.`,
+      toast.success("Withdrawal Received", {
+        description:
+          "Your withdrawal request has been received. Your transfer will be prepared and broadcast to the blockchain. You'll receive a notification once the transaction has been successfully broadcast.",
       });
       navigate("/dashboard");
     } catch (e: any) {
@@ -297,7 +298,7 @@ const WalletWithdraw = () => {
           </Card>
 
           <p className="text-xs text-center text-muted-foreground">
-            Withdrawals are processed within 1-24 hours after security verification.
+            Withdrawals are broadcast to the blockchain shortly after security verification.
           </p>
         </div>
       </main>
