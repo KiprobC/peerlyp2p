@@ -177,12 +177,6 @@ const MyOffers = () => {
               <h1 className="text-xl font-bold">My Offers</h1>
             </div>
             <div className="flex items-center gap-2">
-              <Link to="/offer-analytics">
-                <Button variant="outline" size="sm">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Analytics
-                </Button>
-              </Link>
               <Link to="/create-offer">
                 <Button size="sm">
                   <Plus className="w-4 h-4 mr-2" />
