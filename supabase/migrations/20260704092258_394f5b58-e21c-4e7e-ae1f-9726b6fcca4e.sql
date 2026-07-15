@@ -61,11 +61,20 @@ BEGIN
             jsonb_build_object('amount',v_amount,'crypto_type',v_req.crypto_type,'user_id',v_req.user_id));
 
   PERFORM public.create_notification(
-    v_req.user_id, 'system'::notification_type,
-    'Deposit credited',
-    format('Your %s %s deposit has been credited.', v_amount, v_req.crypto_type),
-    jsonb_build_object('kind','deposit_request','request_id',v_req.id,'status','approved')
-  );
+    v_req.user_id,
+    'system'::notification_type,
+    'Deposit Confirmed',
+    format(
+        'Your %s %s deposit has completed blockchain confirmations and has been credited to your wallet.',
+        v_amount,
+        v_req.crypto_type
+    ),
+    jsonb_build_object(
+        'kind','deposit_request',
+        'request_id',v_req.id,
+        'status','approved'
+    )
+);
 END $$;
 
 -- Fix admin_mark_withdrawal_sent to use correct wallet_transactions columns

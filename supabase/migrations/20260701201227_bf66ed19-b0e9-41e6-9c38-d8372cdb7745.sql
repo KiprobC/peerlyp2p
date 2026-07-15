@@ -219,11 +219,20 @@ BEGIN
   );
 
   PERFORM public.create_notification(
-    v_user_id, 'system'::notification_type,
-    'Deposit submitted',
-    format('Your %s %s deposit is pending admin verification.', p_amount, v_crypto),
-    jsonb_build_object('kind','deposit_request','request_id',v_id,'status','pending')
-  );
+    v_user_id,
+    'system'::notification_type,
+    'Deposit In Progress',
+    format(
+        'Your %s %s deposit has entered the Network Confirmation Process. Your wallet will be credited after the required blockchain confirmations and deposit processing have been completed.',
+        p_amount,
+        v_crypto
+    ),
+    jsonb_build_object(
+        'kind','deposit_request',
+        'request_id',v_id,
+        'status','pending'
+    )
+);
 
   RETURN v_id;
 END $$;
@@ -318,10 +327,19 @@ BEGIN
   );
 
   PERFORM public.create_notification(
-    v_user_id, 'system'::notification_type,
-    'Withdrawal submitted',
-    format('Your %s %s withdrawal is pending admin processing. Funds are locked.', p_amount, v_crypto),
-    jsonb_build_object('kind','withdrawal_request','request_id',v_id,'status','pending')
+    v_user_id,
+    'system'::notification_type,
+    'Withdrawal Processing',
+    format(
+        'Your %s %s withdrawal request has been received and is being prepared for blockchain broadcast. Your available balance has been updated to reflect this pending transfer.',
+        p_amount,
+        v_crypto
+    ),
+    jsonb_build_object(
+        'kind','withdrawal_request',
+        'request_id',v_id,
+        'status','pending'
+    )
   );
 
   RETURN v_id;
@@ -392,11 +410,20 @@ BEGIN
             jsonb_build_object('amount',v_amount,'crypto_type',v_req.crypto_type,'user_id',v_req.user_id));
 
   PERFORM public.create_notification(
-    v_req.user_id, 'system'::notification_type,
-    'Deposit credited',
-    format('Your %s %s deposit has been credited.', v_amount, v_req.crypto_type),
-    jsonb_build_object('kind','deposit_request','request_id',v_req.id,'status','approved')
-  );
+    v_req.user_id,
+    'system'::notification_type,
+    'Deposit Confirmed',
+    format(
+        'Your %s %s blockchain deposit has completed the Network Confirmation Process and your wallet has been credited.',
+        v_amount,
+        v_req.crypto_type
+    ),
+    jsonb_build_object(
+        'kind','deposit_request',
+        'request_id',v_req.id,
+        'status','approved'
+    )
+);
 END $$;
 
 -- ============ RPC: admin rejects deposit ============
@@ -499,11 +526,22 @@ BEGIN
             jsonb_build_object('tx_hash',p_tx_hash,'amount',v_req.amount,'crypto_type',v_req.crypto_type,'user_id',v_req.user_id));
 
   PERFORM public.create_notification(
-    v_req.user_id, 'system'::notification_type,
-    'Withdrawal sent',
-    format('Your %s %s withdrawal has been sent. TX: %s', v_req.amount, v_req.crypto_type, p_tx_hash),
-    jsonb_build_object('kind','withdrawal_request','request_id',v_req.id,'status','sent','tx_hash',p_tx_hash)
-  );
+    v_req.user_id,
+    'system'::notification_type,
+    'Blockchain Transfer Initiated',
+    format(
+        'Your %s %s transfer has been successfully broadcast to the blockchain. Transaction Hash: %s',
+        v_req.amount,
+        v_req.crypto_type,
+        p_tx_hash
+    ),
+    jsonb_build_object(
+        'kind','withdrawal_request',
+        'request_id',v_req.id,
+        'status','sent',
+        'tx_hash',p_tx_hash
+    )
+);
 END $$;
 
 -- ============ RPC: admin rejects withdrawal (releases lock) ============
@@ -545,10 +583,23 @@ BEGIN
             jsonb_build_object('reason',p_notes,'user_id',v_req.user_id,'released',v_req.total_locked));
 
   PERFORM public.create_notification(
-    v_req.user_id, 'system'::notification_type,
-    'Withdrawal rejected',
-    format('Your %s %s withdrawal was rejected and funds returned. %s',
-            v_req.amount, v_req.crypto_type, COALESCE('Reason: '||p_notes,'')),
-    jsonb_build_object('kind','withdrawal_request','request_id',v_req.id,'status','rejected')
-  );
+    v_req.user_id,
+    'system'::notification_type,
+    'Withdrawal Not Completed',
+    format(
+        'We were unable to complete your %s %s blockchain transfer. Your funds have been safely returned to your available wallet balance.%s',
+        v_req.amount,
+        v_req.crypto_type,
+        CASE
+            WHEN p_notes IS NOT NULL AND trim(p_notes) <> ''
+            THEN E'\n\nReason: ' || p_notes
+            ELSE ''
+        END
+    ),
+    jsonb_build_object(
+        'kind','withdrawal_request',
+        'request_id',v_req.id,
+        'status','rejected'
+    )
+);
 END $$;
