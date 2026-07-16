@@ -220,12 +220,31 @@ BEGIN
         v_network;
   END IF; 
 
-  INSERT INTO public.deposit_requests(
-    user_id, crypto_type, network, amount, admin_address_id, deposit_address, memo, tx_hash, confirmations,required_confirmations
-  ) VALUES (
-    v_user_id, v_crypto, v_network, p_amount, v_addr.id, v_addr.address,
-    COALESCE(p_memo, v_addr.memo), NULLIF(trim(p_tx_hash), v_required_confirmations, '')
-  ) RETURNING id INTO v_id;
+INSERT INTO public.deposit_requests(
+    user_id,
+    crypto_type,
+    network,
+    amount,
+    admin_address_id,
+    deposit_address,
+    memo,
+    tx_hash,
+    confirmations,
+    required_confirmations
+)
+VALUES (
+    v_user_id,
+    v_crypto,
+    v_network,
+    p_amount,
+    v_addr.id,
+    v_addr.address,
+    COALESCE(p_memo, v_addr.memo),
+    NULLIF(trim(p_tx_hash), ''),
+    0,
+    v_required_confirmations
+)
+RETURNING id INTO v_id;
 
   PERFORM public.notify_admins(
     'system'::notification_type,
