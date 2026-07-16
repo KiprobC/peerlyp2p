@@ -192,6 +192,7 @@ DECLARE
   v_network TEXT := lower(trim(p_network));
   v_addr RECORD;
   v_id UUID;
+  v_required_confirmations INTEGER;
 BEGIN
   IF v_user_id IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
   IF p_amount IS NULL OR p_amount <= 0 THEN RAISE EXCEPTION 'invalid amount'; END IF;
@@ -203,12 +204,27 @@ BEGIN
   IF p_amount < v_addr.min_deposit THEN
     RAISE EXCEPTION 'amount below minimum of % %', v_addr.min_deposit, v_crypto;
   END IF;
+  
+  SELECT required_confirmations
+  INTO v_required_confirmations
+  FROM public.network_confirmation_rules
+  WHERE crypto_type = v_crypto
+    AND network = v_network
+    AND enabled = true
+  LIMIT 1;
+
+  IF v_required_confirmations IS NULL THEN
+    RAISE EXCEPTION
+        'No confirmation rule configured for % on %',
+        v_crypto,
+        v_network;
+  END IF; 
 
   INSERT INTO public.deposit_requests(
-    user_id, crypto_type, network, amount, admin_address_id, deposit_address, memo, tx_hash
+    user_id, crypto_type, network, amount, admin_address_id, deposit_address, memo, tx_hash, confirmations,required_confirmations
   ) VALUES (
     v_user_id, v_crypto, v_network, p_amount, v_addr.id, v_addr.address,
-    COALESCE(p_memo, v_addr.memo), NULLIF(trim(p_tx_hash),'')
+    COALESCE(p_memo, v_addr.memo), NULLIF(trim(p_tx_hash), v_required_confirmations, '')
   ) RETURNING id INTO v_id;
 
   PERFORM public.notify_admins(
