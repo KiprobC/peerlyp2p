@@ -23,9 +23,9 @@ export const QuickUnlockSettingsCard = () => {
    useEffect(() => {
     console.log("QuickUnlock passkeys:", passkeys);
     console.log("Loading:", loading);
-    console.log("Has passkey:", passkeys.length > 0);
+    console.log("Has passkey:", passkeys.length);
    }, [passkeys, loading]);
-  const hasPasskey = passkeys.length > 0;
+  const hasPasskey = !loading && passkeys.length > 0;
    console.log("===== QUICK UNLOCK =====");
    console.log(passkeys);
    console.log(passkeys.length);
@@ -44,12 +44,22 @@ export const QuickUnlockSettingsCard = () => {
   }, [enableAfterRegister, hasPasskey, updateSettings]);
 
   // Safety net: if settings say enabled but no passkey exists, keep them off.
-  useEffect(() => {
-    if (!loading && !hasPasskey && (settings.enabled || settings.requireOnOpen)) {
-      updateSettings({ enabled: false, requireOnOpen: false });
-    }
-  }, [loading, hasPasskey, settings.enabled, settings.requireOnOpen, updateSettings]);
+ useEffect(() => {
+  if (loading) return;
 
+  if (!hasPasskey && (settings.enabled || settings.requireOnOpen)) {
+    updateSettings({
+      enabled: false,
+      requireOnOpen: false,
+    });
+  }
+}, [
+  loading,
+  hasPasskey,
+  settings.enabled,
+  settings.requireOnOpen,
+  updateSettings,
+ ]);
   const handleEnableToggle = (v: boolean) => {
     if (v && !hasPasskey) {
       setShowRegisterPrompt(true);
@@ -74,10 +84,10 @@ export const QuickUnlockSettingsCard = () => {
         </div>
       </div>
 
-      {!hasPasskey && (
-        <p className="text-xs text-amber-500">
-          Quick Unlock requires a registered passkey.
-        </p>
+      {!loading && !hasPasskey && (
+      <p className="text-xs text-amber-500">
+       Quick Unlock requires a registered passkey.
+      </p>
       )}
 
       <div className="flex items-center justify-between">
