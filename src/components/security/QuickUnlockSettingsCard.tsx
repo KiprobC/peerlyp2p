@@ -20,6 +20,11 @@ import { PasskeySetupDialog } from "@/components/security/PasskeySetupDialog";
 export const QuickUnlockSettingsCard = () => {
   const { settings, updateSettings } = useQuickUnlock();
   const { passkeys, loading } = usePasskeys();
+   useEffect(() => {
+    console.log("QuickUnlock passkeys:", passkeys);
+    console.log("Loading:", loading);
+    console.log("Has passkey:", passkeys.length > 0);
+   }, [passkeys, loading]);
   const hasPasskey = passkeys.length > 0;
 
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(false);
