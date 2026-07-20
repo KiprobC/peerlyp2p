@@ -17,7 +17,7 @@ export interface Passkey {
 
 export const usePasskeys = () => {
   const [passkeys, setPasskeys] = useState<Passkey[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchPasskeys = useCallback(async () => {
     setLoading(true);

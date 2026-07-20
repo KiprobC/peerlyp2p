@@ -26,6 +26,10 @@ export const QuickUnlockSettingsCard = () => {
     console.log("Has passkey:", passkeys.length > 0);
    }, [passkeys, loading]);
   const hasPasskey = passkeys.length > 0;
+   console.log("===== QUICK UNLOCK =====");
+   console.log(passkeys);
+   console.log(passkeys.length);
+   console.log(hasPasskey);
 
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
