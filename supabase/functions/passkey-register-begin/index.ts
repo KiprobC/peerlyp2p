@@ -7,9 +7,10 @@ const corsHeaders = {
 };
 
 function rpFromOrigin(origin: string | null): { rpID: string; origin: string } {
-  const o = origin || "https://peerlyp2p.lovable.app";
-  const url = new URL(o);
-  return { rpID: url.hostname, origin: o };
+  return {
+    rpID: "peerlyp2p.lovable.app",
+    origin: origin || "https://peerlyp2p.lovable.app",
+  };
 }
 
 Deno.serve(async (req) => {
