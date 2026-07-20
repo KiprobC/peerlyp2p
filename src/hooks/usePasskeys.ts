@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
+import {
+  startRegistration,
+  startAuthentication,
+  browserSupportsWebAuthn,
+} from "@simplewebauthn/browser";
 import { toast } from "sonner";
 
 export interface Passkey {
@@ -17,12 +21,57 @@ export const usePasskeys = () => {
 
   const fetchPasskeys = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("passkeys" as any)
-      .select("id, credential_id, device_name, last_used_at, created_at")
-      .order("created_at", { ascending: false });
-    if (!error && data) setPasskeys(data as any);
-    setLoading(false);
+
+    try {
+      if (!browserSupportsWebAuthn()) {
+        setPasskeys([]);
+        setLoading(false);
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.warn("No authenticated user.");
+        setPasskeys([]);
+        setLoading(false);
+        return;
+      }
+
+      console.group("PASSKEY FETCH");
+      console.log("Current user:", user.id);
+
+      const { data, error } = await supabase
+        .from("passkeys")
+        .select(`
+          id,
+          credential_id,
+          device_name,
+          last_used_at,
+          created_at
+        `)
+        .eq("user_id", user.id);
+
+      console.log("Rows:", data?.length ?? 0);
+      console.log("Data:", data);
+      console.log("Error:", error);
+      console.groupEnd();
+
+      if (error) {
+        console.error(error);
+        toast.error("Unable to load passkeys.");
+        setPasskeys([]);
+      } else {
+        setPasskeys(data ?? []);
+      }
+    } catch (err) {
+      console.error(err);
+      setPasskeys([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -35,23 +84,93 @@ export const usePasskeys = () => {
         toast.error("Your browser doesn't support passkeys");
         return false;
       }
+
       try {
-        const { data: begin, error: bErr } = await supabase.functions.invoke("passkey-register-begin");
-        if (bErr || !begin?.options) throw new Error(bErr?.message || "Failed to start registration");
-        const attestation = await startRegistration({ optionsJSON: begin.options });
-        const { data: finish, error: fErr } = await supabase.functions.invoke("passkey-register-finish", {
-          body: { response: attestation, deviceName },
+        console.group("PASSKEY REGISTER");
+
+        const { data: begin, error: bErr } =
+          await supabase.functions.invoke("passkey-register-begin");
+
+        console.log("Begin response:", begin);
+        console.log("Begin error:", bErr);
+
+        if (bErr || !begin?.options) {
+          throw new Error(
+            bErr?.message || "Failed to start passkey registration"
+          );
+        }
+
+        console.log("Starting WebAuthn registration...");
+
+        const attestation = await startRegistration({
+          optionsJSON: begin.options,
         });
-        if (fErr || !finish?.verified) throw new Error(fErr?.message || finish?.error || "Verification failed");
-        toast.success("Passkey registered");
+
+        console.log("Attestation:", attestation);
+
+        const { data: finish, error: fErr } =
+          await supabase.functions.invoke(
+            "passkey-register-finish",
+            {
+              body: {
+                response: attestation,
+                deviceName,
+              },
+            }
+          );
+
+        console.log("Finish response:", finish);
+        console.log("Finish error:", fErr);
+
+        console.groupEnd();
+
+        if (fErr || !finish?.verified) {
+          throw new Error(
+            fErr?.message ||
+              finish?.error ||
+              "Passkey verification failed"
+          );
+        }
+
+        toast.success("Passkey registered successfully");
+
         await fetchPasskeys();
+
         return true;
       } catch (e: any) {
-        if (e.name === "NotAllowedError") {
-          toast.error("Registration cancelled");
-        } else {
-          toast.error(e.message || "Failed to register passkey");
+        console.groupEnd();
+
+        console.error("REGISTER ERROR:", e);
+
+        switch (e.name) {
+          case "NotAllowedError":
+            toast.error("Registration cancelled.");
+            break;
+
+          case "InvalidStateError":
+            toast.error("This passkey is already registered.");
+            break;
+
+          case "UnknownError":
+            toast.error(
+              "Credential Manager returned an unknown error."
+            );
+            break;
+
+          case "SecurityError":
+            toast.error("Security error while creating passkey.");
+            break;
+
+          case "NotSupportedError":
+            toast.error("Passkeys are not supported on this device.");
+            break;
+
+          default:
+            toast.error(
+              e.message || "Failed to register passkey."
+            );
         }
+
         return false;
       }
     },
@@ -60,12 +179,20 @@ export const usePasskeys = () => {
 
   const renamePasskey = useCallback(
     async (id: string, name: string) => {
-      const { error } = await supabase.from("passkeys" as any).update({ device_name: name }).eq("id", id);
+      const { error } = await supabase
+        .from("passkeys")
+        .update({
+          device_name: name,
+        })
+        .eq("id", id);
+
       if (error) {
-        toast.error("Failed to rename");
+        toast.error("Failed to rename passkey");
         return;
       }
-      toast.success("Renamed");
+
+      toast.success("Passkey renamed");
+
       fetchPasskeys();
     },
     [fetchPasskeys]
@@ -73,67 +200,157 @@ export const usePasskeys = () => {
 
   const deletePasskey = useCallback(
     async (id: string) => {
-      const { error } = await supabase.from("passkeys" as any).delete().eq("id", id);
+      const { error } = await supabase
+        .from("passkeys")
+        .delete()
+        .eq("id", id);
+
       if (error) {
-        toast.error("Failed to remove");
+        toast.error("Failed to remove passkey");
         return;
       }
+
       toast.success("Passkey removed");
+
       fetchPasskeys();
     },
     [fetchPasskeys]
   );
 
-  /** Step-up auth using passkey. Returns true if verified. */
   const stepUpVerify = useCallback(async (): Promise<boolean> => {
     if (!browserSupportsWebAuthn()) return false;
+
     try {
-      const { data: begin, error: bErr } = await supabase.functions.invoke("passkey-auth-begin", {
-        body: { purpose: "step_up" },
-      });
-      if (bErr || !begin?.hasPasskey || !begin?.options) return false;
-      const assertion = await startAuthentication({ optionsJSON: begin.options });
-      const { data: finish, error: fErr } = await supabase.functions.invoke("passkey-auth-finish", {
-        body: { response: assertion, purpose: "step_up" },
-      });
-      if (fErr || !finish?.verified) {
-        toast.error(fErr?.message || "Passkey verification failed");
+      const { data: begin, error: bErr } =
+        await supabase.functions.invoke(
+          "passkey-auth-begin",
+          {
+            body: {
+              purpose: "step_up",
+            },
+          }
+        );
+
+      if (bErr || !begin?.hasPasskey || !begin?.options) {
         return false;
       }
+
+      const assertion = await startAuthentication({
+        optionsJSON: begin.options,
+      });
+
+      const { data: finish, error: fErr } =
+        await supabase.functions.invoke(
+          "passkey-auth-finish",
+          {
+            body: {
+              response: assertion,
+              purpose: "step_up",
+            },
+          }
+        );
+
+      if (fErr || !finish?.verified) {
+        toast.error(
+          fErr?.message || "Passkey verification failed"
+        );
+        return false;
+      }
+
       return true;
     } catch (e: any) {
-      if (e.name !== "NotAllowedError") toast.error(e.message || "Passkey verification failed");
+      console.error("STEP UP ERROR", e);
+
+      if (e.name !== "NotAllowedError") {
+        toast.error(
+          e.message || "Passkey verification failed"
+        );
+      }
+
       return false;
     }
   }, []);
 
-  return { passkeys, loading, fetchPasskeys, registerPasskey, renamePasskey, deletePasskey, stepUpVerify };
+  return {
+    passkeys,
+    loading,
+    fetchPasskeys,
+    registerPasskey,
+    renamePasskey,
+    deletePasskey,
+    stepUpVerify,
+  };
 };
 
-/** Login-time passkey: verifies and returns true if user proven by passkey. */
-export const loginWithPasskey = async (email: string): Promise<{ verified: boolean; userId?: string }> => {
-  if (!browserSupportsWebAuthn()) return { verified: false };
-  const { data: begin } = await supabase.functions.invoke("passkey-auth-begin", {
-    body: { email, purpose: "authentication" },
-  });
-  if (!begin?.hasPasskey || !begin?.options) return { verified: false };
-  try {
-    const assertion = await startAuthentication({ optionsJSON: begin.options });
-    const { data: finish, error } = await supabase.functions.invoke("passkey-auth-finish", {
-      body: { response: assertion, email, purpose: "authentication" },
-    });
-    if (error || !finish?.verified) return { verified: false };
-    return { verified: true, userId: finish.userId };
-  } catch {
+export const loginWithPasskey = async (
+  email: string
+): Promise<{ verified: boolean; userId?: string }> => {
+  if (!browserSupportsWebAuthn()) {
     return { verified: false };
+  }
+
+  const { data: begin } =
+    await supabase.functions.invoke(
+      "passkey-auth-begin",
+      {
+        body: {
+          email,
+          purpose: "authentication",
+        },
+      }
+    );
+
+  if (!begin?.hasPasskey || !begin?.options) {
+    return { verified: false };
+  }
+
+  try {
+    const assertion = await startAuthentication({
+      optionsJSON: begin.options,
+    });
+
+    const { data: finish, error } =
+      await supabase.functions.invoke(
+        "passkey-auth-finish",
+        {
+          body: {
+            response: assertion,
+            email,
+            purpose: "authentication",
+          },
+        }
+      );
+
+    if (error || !finish?.verified) {
+      return { verified: false };
+    }
+
+    return {
+      verified: true,
+      userId: finish.userId,
+    };
+  } catch {
+    return {
+      verified: false,
+    };
   }
 };
 
-export const checkHasPasskey = async (email: string): Promise<boolean> => {
+export const checkHasPasskey = async (
+  email: string
+): Promise<boolean> => {
   try {
-    const { data } = await supabase.functions.invoke("passkey-auth-begin", {
-      body: { email, purpose: "authentication" },
-    });
+    const { data } =
+      await supabase.functions.invoke(
+        "passkey-auth-begin",
+        {
+          body: {
+            email,
+            purpose: "authentication",
+          },
+        }
+      );
+
     return !!data?.hasPasskey;
   } catch {
     return false;
