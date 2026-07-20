@@ -68,6 +68,7 @@ import AdminTreasuryOverview from "./pages/admin/AdminTreasuryOverview";
 import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
+import { PasskeyProvider } from "@/contexts/PasskeyContext";
 
 const queryClient = new QueryClient();
 
@@ -271,20 +272,22 @@ const AppRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <BrowserRouter>
+      <AuthProvider>
+        <PasskeyProvider>
           <QuickUnlockGate>
             <AppRoutes />
             <MobileBottomNav />
             <InstallPrompt />
           </QuickUnlockGate>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+        </PasskeyProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </TooltipProvider>
+</QueryClientProvider>
 );
 
 export default App;
