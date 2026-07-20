@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Fingerprint } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -44,8 +44,12 @@ export const QuickUnlockSettingsCard = () => {
   }, [enableAfterRegister, hasPasskey, updateSettings]);
 
   // Safety net: if settings say enabled but no passkey exists, keep them off.
- useEffect(() => {
-  if (loading) return;
+const checkedRef = useRef(false);
+
+useEffect(() => {
+  if (loading || checkedRef.current) return;
+
+  checkedRef.current = true;
 
   if (!hasPasskey && (settings.enabled || settings.requireOnOpen)) {
     updateSettings({
@@ -59,7 +63,8 @@ export const QuickUnlockSettingsCard = () => {
   settings.enabled,
   settings.requireOnOpen,
   updateSettings,
- ]);
+]);
+
   const handleEnableToggle = (v: boolean) => {
     if (v && !hasPasskey) {
       setShowRegisterPrompt(true);
