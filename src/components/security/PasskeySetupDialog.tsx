@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Fingerprint, Loader2 } from "lucide-react";
-import { usePasskeys } from "@/hooks/usePasskeys";
+import { usePasskeysContext } from "@/contexts/PasskeyContext";
 
 interface Props {
   open: boolean;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const PasskeySetupDialog = ({ open, onOpenChange }: Props) => {
-  const { registerPasskey } = usePasskeys();
+  const { registerPasskey } = usePasskeysContext();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 

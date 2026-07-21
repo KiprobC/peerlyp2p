@@ -6,8 +6,7 @@ import {
   useQuickUnlock,
   markUnlocked,
   reconcileQuickUnlockWithPasskeys,
-} from "@/hooks/useQuickUnlock";
-import { usePasskeys } from "@/hooks/usePasskeys";
+import { usePasskeysContext } from "@/contexts/PasskeyContext";
 import { toast } from "sonner";
 
 /**
@@ -24,7 +23,7 @@ import { toast } from "sonner";
 export const QuickUnlockGate = ({ children }: { children: React.ReactNode }) => {
   const { authState, user, signOut } = useAuth();
   const { needsUnlock, settings, evaluate } = useQuickUnlock();
-  const { passkeys, stepUpVerify, loading: passkeysLoading } = usePasskeys();
+  const { passkeys, stepUpVerify, loading: passkeysLoading } = usePasskeysContext();
   const [verifying, setVerifying] = useState(false);
   const [autoTried, setAutoTried] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);

@@ -14,12 +14,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useQuickUnlock } from "@/hooks/useQuickUnlock";
-import { usePasskeys } from "@/hooks/usePasskeys";
+import { usePasskeysContext } from "@/contexts/PasskeyContext";
 import { PasskeySetupDialog } from "@/components/security/PasskeySetupDialog";
 
 export const QuickUnlockSettingsCard = () => {
   const { settings, updateSettings } = useQuickUnlock();
-  const { passkeys, loading } = usePasskeys();
+  const { passkeys, loading } = usePasskeysContext();
    useEffect(() => {
     console.log("QuickUnlock passkeys:", passkeys);
     console.log("Loading:", loading);

@@ -23,7 +23,7 @@ export const PasskeyVerifyDialog = ({
   title = "Confirm with passkey",
   description = "Use fingerprint or face to continue",
 }: Props) => {
-  const { stepUpVerify } = usePasskeys();
+  const { stepUpVerify } = usePasskeysContext();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
