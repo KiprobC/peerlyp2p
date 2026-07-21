@@ -52,6 +52,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+import { usePasskeyContext } from "@/contexts/PasskeyContext";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -59,7 +60,9 @@ const Settings = () => {
   const { profile } = useProfile();
   const { settings, loading, updateSettings, refetch } = useSettings();
   const { factors, isEnabled, loading: mfaLoading, disableMFA, fetchFactors } = useMFA();
-  
+  const { passkeys } = usePasskeyContext();
+  const hasPasskey = passkeys.length > 0;
+
   // Refresh MFA status when component mounts and security dialog opens
   useEffect(() => {
     fetchFactors();
