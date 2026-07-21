@@ -36,6 +36,17 @@ export const PasskeyDeviceList = () => {
     }
     setEditingId(null);
   };
+  
+  const handleDeletePasskey = async () => {
+   if (!deleteId) return;
+
+   try {
+    await deletePasskey(deleteId);
+   } finally {
+    setDeleteId(null);
+    setPendingDeleteId(null);
+   }
+  };
 
   return (
     <div className="space-y-3">
@@ -152,15 +163,7 @@ export const PasskeyDeviceList = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async() => {
-                if (deleteId) { 
-                  await deletePasskey(deleteId);
-                }
-                setDeleteId(null);
-                setPendingDeleteId(null);
-              }}
-            >
+            <AlertDialogAction onClick={handleDeletePasskey}>
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
