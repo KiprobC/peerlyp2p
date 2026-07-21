@@ -194,7 +194,7 @@ const Settings = () => {
   const executePasswordChange = async () => {
     setIsChangingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      console.log("executePasswordChange()");
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword,
       });
