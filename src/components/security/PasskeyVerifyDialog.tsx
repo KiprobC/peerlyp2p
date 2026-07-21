@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Fingerprint, Loader2, ShieldCheck } from "lucide-react";
-import { usePasskeys } from "@/hooks/usePasskeys";
+import { usePasskeyContext } from "@/contexts/PasskeyContext";
 
 interface Props {
   open: boolean;
@@ -23,7 +23,7 @@ export const PasskeyVerifyDialog = ({
   title = "Confirm with passkey",
   description = "Use fingerprint or face to continue",
 }: Props) => {
-  const { stepUpVerify } = usePasskeysContext();
+  const { stepUpVerify } = usePasskeyContext();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

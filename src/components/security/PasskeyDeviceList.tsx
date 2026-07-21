@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { usePasskeysContext } from "@/contexts/PasskeyContext";
+import { usePasskeyContext } from "@/contexts/PasskeyContext";
 import { Button } from "@/components/ui/button";
 import { Fingerprint, Trash2, Pencil, Plus, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const PasskeyDeviceList = () => {
-  const { passkeys, loading, renamePasskey, deletePasskey } = usePasskeysContext();
+  const { passkeys, loading, renamePasskey, deletePasskey } = usePasskeyContext();
   const [setupOpen, setSetupOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
