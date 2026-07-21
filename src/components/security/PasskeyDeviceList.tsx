@@ -5,6 +5,7 @@ import { Fingerprint, Trash2, Pencil, Plus, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PasskeySetupDialog } from "./PasskeySetupDialog";
 import { formatDistanceToNow } from "date-fns";
+import { PasskeyVerifyDialog } from "./PasskeyVerifyDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,7 +23,9 @@ export const PasskeyDeviceList = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
+  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  
   const startEdit = (id: string, current: string) => {
     setEditingId(id);
     setEditValue(current);
@@ -90,21 +93,56 @@ export const PasskeyDeviceList = () => {
             </div>
             {editingId !== p.id && (
               <>
-                <Button variant="ghost" size="icon" onClick={() => startEdit(p.id, p.device_name)}>
-                  <Pencil className="w-4 h-4" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => startEdit(p.id, p.device_name)}
+                 >
+                 <Pencil className="w-4 h-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setDeleteId(p.id)}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
+
+                <Button
+                 variant="ghost"
+                 size="icon"
+                 onClick={() => {
+                   setPendingDeleteId(p.id);
+                   setShowVerifyDialog(true);
+                  }}
+                 >
+                 <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>
-              </>
+             </>
             )}
           </div>
         ))}
       </div>
 
       <PasskeySetupDialog open={setupOpen} onOpenChange={setSetupOpen} />
+     
+      <PasskeyVerifyDialog
+        open={showVerifyDialog}
+        onOpenChange={setShowVerifyDialog}
+        title="Verify Before Removing Passkey"
+        description="Confirm your identity before removing this passkey."
+        onVerified={() => {
+          setShowVerifyDialog(false);
 
-      <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
+          if (pendingDeleteId) {
+            setDeleteId(pendingDeleteId);
+            setPendingDeleteId(null);
+          }
+       }}
+      />
+
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={(v) => {
+         if (!v) {
+           setDeleteId(null);
+           setPendingDeleteId(null);
+         }
+        }}
+       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove passkey?</AlertDialogTitle>
@@ -115,9 +153,12 @@ export const PasskeyDeviceList = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (deleteId) deletePasskey(deleteId);
+              onClick={async() => {
+                if (deleteId) { 
+                  await deletePasskey(deleteId);
+                }
                 setDeleteId(null);
+                setPendingDeleteId(null);
               }}
             >
               Remove
