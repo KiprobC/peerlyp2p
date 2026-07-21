@@ -28,6 +28,8 @@ import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import KYCUpload from "./pages/KYCUpload";
 import MyOffers from "./pages/MyOffers";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -117,7 +119,16 @@ const AppRoutes = () => {
       <Route path="/how-it-works" element={<HowItWorks />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
-      
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
+
+      <Route
+        path="/reset-password"
+        element={<ResetPassword />}
+      /> 
+
       {/* Protected routes */}
       <Route
         path="/wallet/deposit"
