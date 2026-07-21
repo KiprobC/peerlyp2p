@@ -19,13 +19,14 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, useWallets, cryptoInfo } from "@/hooks/useWallets";
+import { Wallet, cryptoInfo } from "@/hooks/useWallets";
 import { useInternalTransfer, RecipientPreview } from "@/hooks/useInternalTransfer";
 import { useMFA } from "@/hooks/useMFA";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
-import { Send, CheckCircle, Star, Shield, AlertCircle, Loader2, AtSign, Mail } from "lucide-react";
+import { Send, CheckCircle, Star, Shield, AlertCircle, Loader2, AtSign, Mail, Fingerprint, } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
+import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+import { usePasskeyContext } from "@/contexts/PasskeyContext";
 
 interface SendCryptoDialogProps {
   open: boolean;
@@ -46,12 +47,15 @@ export const SendCryptoDialog = ({
   const [amount, setAmount] = useState("");
   const [debouncedUsername, setDebouncedUsername] = useState("");
   const [showOTPVerify, setShowOTPVerify] = useState(false);
+  const [showPasskeyVerify, setShowPasskeyVerify] = useState(false);
 
   const { loading, recipientPreview, recipientError, lookupUsername, executeTransfer, clearRecipientPreview } =
     useInternalTransfer();
   
   const { isEnabled: mfaEnabled, fetchFactors } = useMFA();
-  
+  const { passkeys } = usePasskeyContext();
+  const hasPasskey = passkeys.length > 0;
+
   // Refresh MFA status when dialog opens
   useEffect(() => {
     if (open) {
@@ -88,8 +92,11 @@ export const SendCryptoDialog = ({
     setUsername("");
     setAmount("");
     setCryptoType("BTC");
+
     clearRecipientPreview();
+
     setShowOTPVerify(false);
+    setShowPasskeyVerify(false);
   };
 
   const handleClose = (open: boolean) => {
@@ -104,7 +111,11 @@ export const SendCryptoDialog = ({
   };
 
   const handleConfirmTransfer = () => {
-    // Always require OTP verification for crypto transfers
+    if (hasPasskey) {
+     setShowPasskeyVerify(true);
+     return;
+    }
+
     setShowOTPVerify(true);
   };
 
@@ -119,9 +130,14 @@ export const SendCryptoDialog = ({
     }
   };
 
-  const handleOTPVerified = () => {
-    setShowOTPVerify(false);
-    executeTransferAction();
+  const handleOTPVerified = async () => {
+   setShowOTPVerify(false);
+   await executeTransferAction();
+  };
+
+  const handlePasskeyVerified = async () => {
+    setShowPasskeyVerify(false);
+    await executeTransferAction();
   };
 
   const getInitials = (username: string) => {
@@ -324,9 +340,15 @@ export const SendCryptoDialog = ({
 
               <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                 <p className="text-sm text-primary flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  You'll receive a verification code to confirm this transfer.
-                  {mfaEnabled && " Your authenticator app will also be required."}
+                  {hasPasskey ? (
+                    <Fingerprint className="h-4 w-4" />
+                  ) : (
+                    <Mail className="h-4 w-4" />
+                  )}
+
+                  {hasPasskey
+                    ? "You'll verify this transfer using your registered passkey."
+                    : "You'll receive a verification code to confirm this transfer."}
                 </p>
               </div>
             </div>
@@ -356,8 +378,10 @@ export const SendCryptoDialog = ({
                   ) : (
                     <>
                       <Send className="h-4 w-4 mr-2" />
-                      {mfaEnabled ? "Verify & Send" : "Confirm Transfer"}
-                    </>
+                      {hasPasskey
+                         ? "Verify with Passkey"
+                         : "Verify with OTP"}
+                    </>     
                   )}
                 </Button>
               </>
@@ -373,10 +397,18 @@ export const SendCryptoDialog = ({
         onVerified={handleOTPVerified}
         actionType="crypto_send"
         title="Verify Transfer"
-        description="For your security, please verify your identity to confirm this transfer"
+        description="Enter the one-time verification code sent to your account."
         actionLabel="Confirm Transfer"
-        requireMFA={mfaEnabled}
+        requireMFA={false}
       />
+      
+      <PasskeyVerifyDialog
+        open={showPasskeyVerify}
+        onOpenChange={setShowPasskeyVerify}
+        title="Confirm Crypto Transfer"
+        description="Use your fingerprint, Face ID, or device PIN to authorize this crypto transfer."
+        onVerified={handlePasskeyVerified}
+     />
     </>
   );
 };

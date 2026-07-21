@@ -20,7 +20,7 @@
  import { Input } from "@/components/ui/input";
  import { AlertTriangle, Unlock, Loader2, ShieldAlert } from "lucide-react";
  import { cn } from "@/lib/utils";
-   import { usePasskeys } from "@/hooks/usePasskeys";
+   import { usePasskeyContext } from "@/contexts/PasskeyContext";
    import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
    import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
    import { useConnectivity } from "@/hooks/useConnectivity";
@@ -53,7 +53,7 @@ export const ReleaseCryptoDialog = ({
    const [canInteract, setCanInteract] = useState(false);
    const [showPasskey, setShowPasskey] = useState(false);
    const [showOtpFallback, setShowOtpFallback] = useState(false);
-   const { passkeys } = usePasskeys();
+   const { passkeys } = usePasskeyContext();
    const { status: connectivityStatus } = useConnectivity();
    const connectivityBlocked = connectivityStatus !== "online";
  

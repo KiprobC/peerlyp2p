@@ -11,7 +11,7 @@ import { usePlatformFees } from "@/hooks/usePlatformFees";
 import { useMFA } from "@/hooks/useMFA";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
-import { usePasskeys } from "@/hooks/usePasskeys";
+import { usePasskeyContext } from "@/contexts/PasskeyContext";
 import { toast } from "sonner";
 import { useConnectivity } from "@/hooks/useConnectivity";
 import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
@@ -27,7 +27,7 @@ const WalletWithdraw = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOTPVerify, setShowOTPVerify] = useState(false);
   const [showPasskey, setShowPasskey] = useState(false);
-  const { passkeys } = usePasskeys();
+  const { passkeys } = usePasskeyContext();
   const { status: connectivityStatus } = useConnectivity();
   const connectivityBlocked = connectivityStatus !== "online";
 
