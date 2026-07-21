@@ -149,6 +149,9 @@ const Settings = () => {
   };
 
  const handlePasswordChange = async () => {
+   console.log("Update Password clicked");
+   console.log("hasPasskey:", hasPasskey);
+
   if (passwordData.newPassword !== passwordData.confirmPassword) {
     toast.error("Passwords do not match");
     return;
@@ -165,7 +168,7 @@ const Settings = () => {
     setShowPasskeyVerify(true);
     return;
   }
-
+  
   // Otherwise fallback to OTP
   setShowPasswordDialog(false);
   setShowOTPForPassword(true);
@@ -183,6 +186,7 @@ const Settings = () => {
   };
 
   const handlePasswordPasskeyVerified = async () => {
+   console.log("PASSKEY VERIFIED");
    setShowPasskeyVerify(false);
    await executePasswordChange();
   };
@@ -190,6 +194,7 @@ const Settings = () => {
   const executePasswordChange = async () => {
     setIsChangingPassword(true);
     try {
+      const { error } = await supabase.auth.updateUser({
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword,
       });
