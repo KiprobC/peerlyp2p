@@ -402,12 +402,16 @@ export const SendCryptoDialog = ({
         requireMFA={false}
       />
       
-      <PasskeyVerifyDialog
-        open={showPasskeyVerify}
-        onOpenChange={setShowPasskeyVerify}
-        title="Confirm Crypto Transfer"
-        description="Use your fingerprint, Face ID, or device PIN to authorize this crypto transfer."
-        onVerified={handlePasskeyVerified}
+     <PasskeyVerifyDialog
+       open={showPasskeyVerify}
+       onOpenChange={setShowPasskeyVerify}
+       title="Confirm Crypto Transfer"
+       description="Use your fingerprint, Face ID, or device PIN to authorize this crypto transfer."
+       onVerified={handlePasskeyVerified}
+       onUseOTP={() => {
+         setShowPasskeyVerify(false);
+         setShowOTPVerify(true);
+       }}
      />
     </>
   );

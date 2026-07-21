@@ -1,27 +1,29 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, Loader2, ShieldCheck } from "lucide-react";
+import { Fingerprint, Loader2, ShieldCheck, Mail } from "lucide-react";
 import { usePasskeyContext } from "@/contexts/PasskeyContext";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  title?: string;
+  description?: string;
   /** Called once verification succeeds */
   onVerified: () => void;
   /** Optional fallback (e.g. email OTP) */
   onFallback?: () => void;
-  title?: string;
-  description?: string;
+  onUseOTP?: () => void;
 }
 
 export const PasskeyVerifyDialog = ({
   open,
   onOpenChange,
   onVerified,
-  onFallback,
   title = "Confirm with passkey",
   description = "Use fingerprint or face to continue",
+  onFallback,
+  onUseOTP,
 }: Props) => {
   const { stepUpVerify } = usePasskeyContext();
   const [busy, setBusy] = useState(false);
@@ -65,20 +67,28 @@ export const PasskeyVerifyDialog = ({
         </DialogHeader>
 
         {error && (
-          <div className="text-sm text-destructive text-center">{error}</div>
-        )}
+           <div className="space-y-3">
+            <div className="text-sm text-destructive text-center">
+              {error}
+            </div>
+
+           {onUseOTP && (
+            <Button
+             variant="outline"
+             className="w-full"
+             onClick={() => {
+              onOpenChange(false);
+              onUseOTP();
+             }}
+            > 
+             <Mail className="w-4 h-4 mr-2"/>
+              Use Email OTP Instead
+            </Button>
+           )}
+           </div>
+         )}
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          {onFallback && (
-            <Button variant="ghost" onClick={() => { onOpenChange(false); onFallback(); }} disabled={busy}>
-              <ShieldCheck className="w-4 h-4 mr-2" />
-              Use another method
-            </Button>
-          )}
-          <Button onClick={verify} disabled={busy} className="flex-1">
-            {busy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Fingerprint className="w-4 h-4 mr-2" />}
-            Try again
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
