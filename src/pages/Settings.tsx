@@ -78,7 +78,8 @@ const Settings = () => {
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
   const [showPasskeyVerify, setShowPasskeyVerify] = useState(false);
-  
+  const [showDeletePasskeyVerify, setShowDeletePasskeyVerify] = useState(false);
+
   // Re-fetch MFA when security dialog opens
   useEffect(() => {
     if (showSecurityDialog) {
@@ -98,7 +99,19 @@ const Settings = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showMFAVerifyForPassword, setShowMFAVerifyForPassword] = useState(false);
   const [showMFAVerifyForDisable, setShowMFAVerifyForDisable] = useState(false);
-  
+  const [showMFAVerifyForDelete, setShowMFAVerifyForDelete] = useState(false);
+ 
+  <MFAVerifyDialog
+    open={showMFAVerifyForDelete}
+    onOpenChange={setShowMFAVerifyForDelete}
+    title="Verify Before Deleting Account"
+    description="Enter the code from your authenticator app."
+    onVerified={async () => {
+      setShowMFAVerifyForDelete(false);
+      await executeDeleteAccount();
+    }}
+  />
+
   // Disable MFA verification state
   const [disableMFAPassword, setDisableMFAPassword] = useState("");
 
@@ -243,14 +256,41 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = async () => {
-    // Require OTP verification before deleting account
-    setShowDeleteDialog(false);
-    setShowOTPForDelete(true);
+    // Prefer Passkey
+    if (hasPasskey) {
+       setShowDeleteDialog(false);
+       setShowDeletePasskeyVerify(true)
+       return;
+    }
+
+    //Otherwise use OTP
+       setShowDeleteDialog(false);
+       setShowOTPForDelete(true);
+  };
+
+  const handleDeletePasskeyVerified = async () => {
+    setShowDeletePasskeyVerify(false);
+
+    if (isEnabled) {
+     setShowOTPForDelete(true);
+    } else {
+    await executeDeleteAccount();
+    }
   };
 
   const handleDeleteOTPVerified = async () => {
-    setShowOTPForDelete(false);
+   setShowOTPForDelete(false);
+
+   if (isEnabled) {
+    setShowMFAVerifyForDelete(true);
+   } else {
     await executeDeleteAccount();
+   }
+  };
+
+  const handleDeleteMFAVerified = async () => {
+   setShowMFAVerifyForDelete(false);
+   await executeDeleteAccount();
   };
 
   const executeDisableMFA = async () => {
@@ -863,6 +903,16 @@ const Settings = () => {
         actionLabel="Verify & Disable 2FA"
       />
 
+      <MFAVerifyDialog
+        open={showMFAVerifyForDelete}
+        onOpenChange={setShowMFAVerifyForDelete}
+        onVerified={async () => {
+          setShowMFAVerifyForDelete(false);
+          await executeDeleteAccount();
+       }}
+      />
+
+
       {/* Delete Account Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
@@ -902,6 +952,7 @@ const Settings = () => {
         onOpenChange={setShowSupportChat} 
       />
       
+      {/* Password Change Verification */}
       <PasskeyVerifyDialog
           open={showPasskeyVerify}
           onOpenChange={setShowPasskeyVerify}
@@ -913,7 +964,20 @@ const Settings = () => {
              setShowOTPForPassword(true);
           }}
       />
-
+ 
+      {/* Delete Account Verification */}
+      <PasskeyVerifyDialog
+         open={showDeletePasskeyVerify}
+         onOpenChange={setShowDeletePasskeyVerify}
+         title="Verify Account Deletion"
+         description="Use your fingerprint, Face ID, or device PIN to authorize account deletion."
+         onVerified={handleDeletePasskeyVerified}
+         onUseOTP={() => {
+            setShowDeletePasskeyVerify(false);
+            setShowOTPForDelete(true);
+         }}
+      />
+  
       {/* OTP Verification Dialogs */}
       <OTPVerificationDialog
         open={showOTPForPassword}

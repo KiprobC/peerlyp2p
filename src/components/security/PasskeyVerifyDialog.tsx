@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, Loader2, ShieldCheck, Mail } from "lucide-react";
+import { Fingerprint, Loader2, Mail } from "lucide-react";
 import { usePasskeyContext } from "@/contexts/PasskeyContext";
 
 interface Props {
