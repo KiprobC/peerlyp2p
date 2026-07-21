@@ -73,6 +73,7 @@ const Settings = () => {
   const [showPreferencesDialog, setShowPreferencesDialog] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
+  const [showPasskeyVerify, setShowPasskeyVerify] = useState(false);
   
   // Re-fetch MFA when security dialog opens
   useEffect(() => {
@@ -146,21 +147,28 @@ const Settings = () => {
     }
   };
 
-  const handlePasswordChange = async () => {
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
+ const handlePasswordChange = async () => {
+  if (passwordData.newPassword !== passwordData.confirmPassword) {
+    toast.error("Passwords do not match");
+    return;
+  }
 
-    if (passwordData.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
+  if (passwordData.newPassword.length < 6) {
+    toast.error("Password must be at least 6 characters");
+    return;
+  }
 
-    // Always require OTP verification for password changes
+  // Prefer passkey if available
+  if (hasPasskey) {
     setShowPasswordDialog(false);
-    setShowOTPForPassword(true);
-  };
+    setShowPasskeyVerify(true);
+    return;
+  }
+
+  // Otherwise fallback to OTP
+  setShowPasswordDialog(false);
+  setShowOTPForPassword(true);
+ };
 
   const handlePasswordOTPVerified = async () => {
     setShowOTPForPassword(false);
@@ -171,6 +179,11 @@ const Settings = () => {
     } else {
       await executePasswordChange();
     }
+  };
+
+  const handlePasswordPasskeyVerified = async () => {
+   setShowPasskeyVerify(false);
+   await executePasswordChange();
   };
 
   const executePasswordChange = async () => {
@@ -878,6 +891,18 @@ const Settings = () => {
       <SupportChatDialog 
         open={showSupportChat} 
         onOpenChange={setShowSupportChat} 
+      />
+      
+      <PasskeyVerifyDialog
+          open={showPasskeyVerify}
+          onOpenChange={setShowPasskeyVerify}
+          title="Verify Password Change"
+          description="Use your fingerprint, Face ID, or device PIN to authorize this password change."
+          onVerified={handlePasswordPasskeyVerified}
+          onUseOTP={() => {
+             setShowPasskeyVerify(false);
+             setShowOTPForPassword(true);
+          }}
       />
 
       {/* OTP Verification Dialogs */}
