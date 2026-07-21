@@ -16,10 +16,10 @@ import { Badge } from "@/components/ui/badge";
 import { treasuryStatusLabel } from "@/lib/treasuryCopy";
 
 const NETWORKS: Record<string, { value: string; label: string }[]> = {
-  BTC: [{ value: "bitcoin", label: "Bitcoin Network" }],
-  ETH: [{ value: "ethereum", label: "Ethereum (ERC-20)" }],
+  BTC: [{ value: "bitcoin", label: "Bitcoin" }],
+  ETH: [{ value: "ethereum", label: "Ethereum (ERC20)" }],
   USDT: [
-    { value: "tron", label: "Tron (TRC-20)" },
+    { value: "bep20", label: "BNB Smart Chain (BEP20)" },
     { value: "ethereum", label: "Ethereum (ERC-20)" },
   ],
 };

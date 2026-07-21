@@ -13,6 +13,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminTreasuryQueue, adminApproveDeposit, adminRejectDeposit, adminMarkWithdrawalSent, adminRejectWithdrawal } from "@/hooks/useManualTreasury";
 import { RefreshCw, Check, X, Send, Plus, Wallet, RotateCw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AdminManualTreasury = () => {
   const { addresses, pendingDeposits, pendingWithdrawals, loading, refetch } = useAdminTreasuryQueue();
@@ -276,14 +283,66 @@ const AdminManualTreasury = () => {
           <DialogHeader><DialogTitle>Add Deposit Address</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Asset</Label><Input value={newAddr.crypto_type} onChange={e => setNewAddr({ ...newAddr, crypto_type: e.target.value })} /></div>
-              <div><Label>Network</Label><Input value={newAddr.network} onChange={e => setNewAddr({ ...newAddr, network: e.target.value })} /></div>
-            </div>
-            <div><Label>Address</Label><Input value={newAddr.address} onChange={e => setNewAddr({ ...newAddr, address: e.target.value })} /></div>
-            <div><Label>Memo (optional)</Label><Input value={newAddr.memo} onChange={e => setNewAddr({ ...newAddr, memo: e.target.value })} /></div>
-            <div className="flex items-center gap-2"><Switch checked={newAddr.memo_required} onCheckedChange={c => setNewAddr({ ...newAddr, memo_required: c })} /><span className="text-sm">Memo required</span></div>
-            <div><Label>Min deposit</Label><Input type="number" step="any" value={newAddr.min_deposit} onChange={e => setNewAddr({ ...newAddr, min_deposit: e.target.value })} /></div>
-            <div><Label>Label</Label><Input value={newAddr.label} onChange={e => setNewAddr({ ...newAddr, label: e.target.value })} /></div>
+              <div>
+               <Label>Asset</Label>
+
+              <Select
+                value={newAddr.crypto_type}
+                onValueChange={(value) => {
+
+                  let network = "";
+
+                  switch (value) {
+                   case "BTC":
+                    network = "bitcoin";
+                    break;
+
+                   case "ETH":
+                    network = "ethereum";
+                    break;
+
+                   case "USDT":
+                    network = "bep20";
+                    break;
+                }
+
+                setNewAddr({
+                  ...newAddr,
+                  crypto_type: value,
+                  network,
+                });
+
+               }}
+           >
+
+              <SelectTrigger>
+               <SelectValue placeholder="Select asset" />
+              </SelectTrigger>
+
+              <SelectContent>
+               <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
+               <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
+               <SelectItem value="USDT">
+                USDT (BEP20)
+                </SelectItem>
+              </SelectContent>
+
+          </Select>
+
+        </div>
+
+        <div>
+          <Label>Network</Label>
+
+          <Input
+            value={newAddr.network}
+            readOnly
+            className="bg-muted"
+          />
+
+      </div>
+
+     </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
