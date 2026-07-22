@@ -308,18 +308,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    
     console.log(">>> Setting MFA challenge");
 
-    setMfaChallenge({
+    const challenge = {
      factorId: verifiedFactor.id,
      email,
-    });
-    
-    console.log(">>> mfaRequired = true");
+    };
+
+    console.log("Setting challenge:", challenge);
+
+    setMfaChallenge(challenge);
+
+    setTimeout(() => {
+     console.log("mfaChallenge after timeout:", challenge);
+    }, 0);
 
     return {
      error: null,
      mfaRequired: true,
     };
-  }
+   }
 
     // Check if user has a passkey registered → require passkey verification
     try {

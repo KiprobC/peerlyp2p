@@ -45,6 +45,12 @@ const Login = () => {
     
     const { error, mfaRequired, passkeyRequired } = await signIn(email, password);
     
+    console.log("signIn returned:", {
+     error,
+     mfaRequired,
+     passkeyRequired,
+    }); 
+
     if (error) {
       toast.error(error.message || "Invalid email or password");
       setIsLoading(false);
