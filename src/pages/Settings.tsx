@@ -79,6 +79,7 @@ const Settings = () => {
   const [showSessionsDialog, setShowSessionsDialog] = useState(false);
   const [showPasskeyVerify, setShowPasskeyVerify] = useState(false);
   const [showDeletePasskeyVerify, setShowDeletePasskeyVerify] = useState(false);
+  const [showEnable2FAPasskey, setShowEnable2FAPasskey] = useState(false);
 
   // Re-fetch MFA when security dialog opens
   useEffect(() => {
@@ -100,17 +101,6 @@ const Settings = () => {
   const [showMFAVerifyForPassword, setShowMFAVerifyForPassword] = useState(false);
   const [showMFAVerifyForDisable, setShowMFAVerifyForDisable] = useState(false);
   const [showMFAVerifyForDelete, setShowMFAVerifyForDelete] = useState(false);
- 
-  <MFAVerifyDialog
-    open={showMFAVerifyForDelete}
-    onOpenChange={setShowMFAVerifyForDelete}
-    title="Verify Before Deleting Account"
-    description="Enter the code from your authenticator app."
-    onVerified={async () => {
-      setShowMFAVerifyForDelete(false);
-      await executeDeleteAccount();
-    }}
-  />
 
   // Disable MFA verification state
   const [disableMFAPassword, setDisableMFAPassword] = useState("");
@@ -207,6 +197,11 @@ const Settings = () => {
    await executePasswordChange();
   };
 
+  const handleEnable2FAPasskeyVerified = () => {
+   setShowEnable2FAPasskey(false);
+   setShowEnrollDialog(true);
+  };
+
   const executePasswordChange = async () => {
     setIsChangingPassword(true);
     try {
@@ -245,9 +240,13 @@ const Settings = () => {
   };
 
   const handleEnable2FA = () => {
-    setShowSecurityDialog(false);
-    // Require OTP verification before enabling 2FA
-    setShowOTPForEnable2FA(true);
+   setShowSecurityDialog(false);
+
+   if (hasPasskey) {
+     setShowEnable2FAPasskey(true);
+   } else {
+     setShowOTPForEnable2FA(true);
+   }
   };
 
   const handleEnable2FAOTPVerified = () => {
@@ -965,6 +964,19 @@ const Settings = () => {
           }}
       />
  
+      {/* Password Change Verification 2fa */}
+      <PasskeyVerifyDialog
+          open={showEnable2FAPasskey}
+          onOpenChange={setShowEnable2FAPasskey}
+          title="Verify Before Enabling 2FA"
+          description="Use your fingerprint, Face ID, or device PIN to before enabling two-factor authentication."
+          onVerified={handleEnable2FAPasskeyVerified}
+          onUseOTP={() => {
+             setShowEnable2FAPasskey(false);
+             setShowOTPForEnable2FA(true);
+          }}
+      />
+
       {/* Delete Account Verification */}
       <PasskeyVerifyDialog
          open={showDeletePasskeyVerify}
