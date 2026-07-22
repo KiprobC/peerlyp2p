@@ -22,6 +22,7 @@ const Login = () => {
   const [passkeyError, setPasskeyError] = useState("");
   const [showOtpFallback, setShowOtpFallback] = useState(false);
   const [autoTriggered, setAutoTriggered] = useState(false);
+  const [trustDevice, setTrustDevice] = useState(true);
 
   // Get redirect destination from session storage
   const getRedirectPath = () => {
@@ -94,7 +95,10 @@ const Login = () => {
     setIsLoading(true);
     setMfaError("");
 
-    const { error } = await completeMFAChallenge(mfaCode);
+    const { error } = await completeMFAChallenge(
+      code,
+      trustDevice
+    );
 
     if (error) {
       const newAttempts = attempts + 1;
@@ -235,6 +239,22 @@ const Login = () => {
                   {5 - attempts} attempts remaining
                 </p>
               )}
+
+              <div className="flex items-center space-x-2">
+                <input
+                  id="trust-device"
+                  type="checkbox"
+                  checked={trustDevice}
+                  onChange={(e)=>setTrustDevice(e.target.checked)}
+                />  
+
+                <label 
+                 htmlFor="trust-device"
+                 className="text-sm text-muted-foreground cursor-pointer"
+                >
+                 Trust this device for 7 days
+                </label>
+              </div>
 
               <Button 
                 variant="hero" 

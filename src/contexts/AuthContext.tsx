@@ -256,7 +256,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
-  const signIn = async (email: string, password: string) => {
+   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -266,22 +266,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error };
     }
 
-    // Check if MFA is required
-    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    
-    if (aal?.nextLevel === "aal2" && aal?.currentLevel === "aal1") {
-      // MFA is required but not yet completed
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const verifiedFactor = factors?.totp.find(f => f.status === "verified");
-      
-      if (verifiedFactor) {
-        setMfaChallenge({
-          factorId: verifiedFactor.id,
-          email,
-        });
-        return { error: null, mfaRequired: true };
-      }
+    // Check whether THIS USER actually enabled 2FA
+
+    const { data: settings } = await supabase
+     .from("user_settings")
+     .select("two_factor_enabled")
+     .eq("user_id", data.user.id)
+     .single();
+
+    const { data: factors } =
+     await supabase.auth.mfa.listFactors();
+
+    const verifiedFactor =
+     factors?.totp.find(f => f.status === "verified");
+
+    if (
+       settings?.two_factor_enabled &&
+       verifiedFactor
+    ) {
+
+    const trustedUntil =
+     Number(localStorage.getItem("trusted_device_until") || 0);
+
+    const trusted =
+     trustedUntil > Date.now();
+
+    if (trusted) {
+     return {
+        error:null,
+        mfaRequired:false
+      };
     }
+
+    setMfaChallenge({
+     factorId: verifiedFactor.id,
+     email,
+    });
+  
+    return {
+     error: null,
+     mfaRequired: true,
+    };
+  }
 
     // Check if user has a passkey registered → require passkey verification
     try {
@@ -324,7 +350,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.signOut();
   };
 
-  const completeMFAChallenge = async (code: string) => {
+  const completeMFAChallenge = async (
+    code: string,
+    trustDevice:boolean
+    ) => {
     if (!mfaChallenge) {
       return { error: new Error("No MFA challenge pending") };
     }
@@ -345,6 +374,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (verifyError) throw verifyError;
+
+      //Trust this device for 7 days
+      if (trustDevice) {
+
+        localStorage.setItem(
+          "trusted_device_until",
+          String(
+            Date.now() +
+            7 * 24 * 60 * 60 * 1000
+          )
+        )
+      }
 
       setMfaChallenge(null);
       return { error: null };
