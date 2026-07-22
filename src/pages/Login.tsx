@@ -12,6 +12,7 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 const Login = () => {
   const navigate = useNavigate();
   const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge, acceptPasskeyFallback } = useAuth();
+  console.log("Login render - mfaChallenge:", mfaChallenge);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +34,10 @@ const Login = () => {
     }
     return "/dashboard";
   };
+  
+  useEffect(() => {
+    console.log("MFA challenge changed:", mfaChallenge);
+  }, [mfaChallenge]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +101,7 @@ const Login = () => {
     setMfaError("");
 
     const { error } = await completeMFAChallenge(
-      code,
+      mfaCode,
       trustDevice
     );
 

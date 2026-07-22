@@ -305,12 +305,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         mfaRequired:false
       };
     }
+   
+    console.log(">>> Setting MFA challenge");
 
     setMfaChallenge({
      factorId: verifiedFactor.id,
      email,
     });
-  
+    
+    console.log(">>> mfaRequired = true");
+
     return {
      error: null,
      mfaRequired: true,
