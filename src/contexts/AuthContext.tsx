@@ -280,6 +280,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const verifiedFactor =
      factors?.totp.find(f => f.status === "verified");
 
+   // TEMPORARY DEBUG LOGS
+   console.log("2FA enabled:", settings?.two_factor_enabled);
+   console.log("Factors:", factors);
+   console.log("Verified factor:", verifiedFactor);
+
     if (
        settings?.two_factor_enabled &&
        verifiedFactor
