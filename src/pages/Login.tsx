@@ -24,6 +24,7 @@ const Login = () => {
   const [showOtpFallback, setShowOtpFallback] = useState(false);
   const [autoTriggered, setAutoTriggered] = useState(false);
   const [trustDevice, setTrustDevice] = useState(true);
+  const [showMfa, setShowMfa] = useState(false);
 
   // Get redirect destination from session storage
   const getRedirectPath = () => {
@@ -57,7 +58,13 @@ const Login = () => {
       return;
     }
 
-    if (mfaRequired || passkeyRequired) {
+    if (mfaRequired) {
+      setShowMfa(true);
+      setIsLoading(false);
+      return;
+    }
+ 
+    if (passkeyRequired) {
       setIsLoading(false);
       return;
     }
@@ -128,11 +135,13 @@ const Login = () => {
     }
 
     toast.success("Welcome back!");
+    setShowMfa(false);
     navigate(getRedirectPath());
     setIsLoading(false);
   };
 
   const handleCancelMFA = () => {
+    setShowMfa(false);
     cancelMFAChallenge();
     setMfaCode("");
     setMfaError("");
@@ -199,7 +208,7 @@ const Login = () => {
   }
 
   // Show MFA challenge screen
-  if (mfaChallenge) {
+  if (showMfa) {
     return (
       <div className="min-h-screen bg-background flex">
         <div className="flex-1 flex items-center justify-center p-8">

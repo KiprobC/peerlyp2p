@@ -52,6 +52,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [mfaChallenge, setMfaChallenge] = useState<MFAChallenge | null>(null);
+  
+  useEffect(() => {
+   console.log("AuthProvider mfaChallenge:", mfaChallenge);
+  }, [mfaChallenge]);
+
   const [passkeyChallenge, setPasskeyChallenge] = useState<PasskeyChallenge | null>(null);
   const [initialized, setInitialized] = useState(false);
 
