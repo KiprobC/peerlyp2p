@@ -295,6 +295,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const trusted =
      trustedUntil > Date.now();
+    
+    console.log("trustedUntil:", trustedUntil);
+    console.log("trusted:", trusted);
 
     if (trusted) {
      return {
