@@ -12,7 +12,6 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 const Login = () => {
   const navigate = useNavigate();
   const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge, acceptPasskeyFallback } = useAuth();
-  console.log("Login render - mfaChallenge:", mfaChallenge);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

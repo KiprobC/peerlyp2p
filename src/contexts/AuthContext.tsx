@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // Explicit auth states
-export type AuthState = "loading" | "authenticated" | "unauthenticated";
+export type AuthState = "loading" | "authenticated" |"pending_mfa"| "unauthenticated";
 
 interface MFAChallenge {
   factorId: string;
@@ -24,7 +24,10 @@ interface AuthContextType {
   passkeyChallenge: PasskeyChallenge | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
-  completeMFAChallenge: (code: string) => Promise<{ error: Error | null }>;
+  completeMFAChallenge: (
+    code: string,
+    trustDevice: boolean
+  ) => Promise<{ error: Error | null }>;
   completePasskeyChallenge: () => Promise<{ error: Error | null }>;
   acceptPasskeyFallback: () => void;
   cancelMFAChallenge: () => void;
@@ -60,12 +63,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [passkeyChallenge, setPasskeyChallenge] = useState<PasskeyChallenge | null>(null);
   const [initialized, setInitialized] = useState(false);
 
-  // Handle session state updates
-  const updateAuthState = useCallback((newSession: Session | null, newUser: User | null) => {
-    setSession(newSession);
-    setUser(newUser);
-    setAuthState(newUser ? "authenticated" : "unauthenticated");
+  const setPendingMFA = useCallback(() => {
+    setAuthState("pending_mfa");
   }, []);
+
+  const setAuthenticated = useCallback(
+   (newSession: Session, newUser: User) => {
+     setSession(newSession);
+     setUser(newUser);
+     setAuthState("authenticated");
+   },
+   []
+  );
+
+ const clearAuth = useCallback(() => {
+   setSession(null);
+   setUser(null);
+   setAuthState("unauthenticated");
+ }, []);
+
+  const cancelPasskeyChallenge = async () => {
+   setPasskeyChallenge(null);
+   setMfaChallenge(null);
+   clearAuth();
+   await supabase.auth.signOut();
+  };
 
   // Check for token expiration
   const checkTokenExpiration = useCallback((session: Session | null) => {
@@ -88,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Clear session
     await supabase.auth.signOut();
-    updateAuthState(null, null);
+    clearAuth();
     
     // Show toast notification
     toast.error("Your session has expired. Please log in again.", {
@@ -97,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Broadcast to other tabs
     localStorage.setItem(SESSION_EXPIRED_KEY, Date.now().toString());
-  }, [updateAuthState]);
+  }, [clearAuth]);
 
   // Refresh session manually
   const refreshSession = useCallback(async () => {
@@ -109,12 +131,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       if (data.session) {
-        updateAuthState(data.session, data.session.user);
+        setAuthenticated(data.session, data.session.user);
       }
     } catch (error) {
       console.error("Session refresh failed:", error);
     }
-  }, [updateAuthState, handleSessionExpired]);
+  }, [setAuthenticated, handleSessionExpired]);
 
   // Initialize auth state - runs once before rendering UI
   useEffect(() => {
@@ -128,7 +150,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error) {
           console.error("Error getting session:", error);
           if (mounted) {
-            updateAuthState(null, null);
+            clearAuth();
             setInitialized(true);
           }
           return;
@@ -146,10 +168,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
           if (mounted) {
-            updateAuthState(refreshData.session, refreshData.session.user);
+            setAuthenticated(refreshData.session, refreshData.session.user);
           }
         } else if (mounted) {
-          updateAuthState(currentSession, currentSession?.user ?? null);
+         if (currentSession){
+          setAuthenticated(currentSession, currentSession.user);
+         } else{
+          clearAuth();
+         }
         }
 
         if (mounted) {
@@ -158,7 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Auth initialization error:", error);
         if (mounted) {
-          updateAuthState(null, null);
+          clearAuth();
           setInitialized(true);
         }
       }
@@ -169,7 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       mounted = false;
     };
-  }, [updateAuthState, checkTokenExpiration, handleSessionExpired]);
+  }, [clearAuth, setAuthenticated,  checkTokenExpiration, handleSessionExpired]);
 
   // Set up auth state listener after initialization
   useEffect(() => {
@@ -180,18 +206,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.log("Auth state change:", event);
 
         if (event === "SIGNED_OUT") {
-          updateAuthState(null, null);
+          clearAuth();
           // Broadcast logout to other tabs
           localStorage.setItem(AUTH_STORAGE_KEY, `logout_${Date.now()}`);
         } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           if (newSession) {
-            updateAuthState(newSession, newSession.user);
-            // Broadcast sign in to other tabs
-            localStorage.setItem(AUTH_STORAGE_KEY, `login_${Date.now()}`);
+
+            // Don't promote to authenticated while an MFA challenge is active.
+            if (authState === "pending_mfa") {
+              console.log("Waiting for MFA...");
+              return;
+            }
+              setAuthenticated(newSession,newSession.user);
+            
+            localStorage.setItem(
+              AUTH_STORAGE_KEY,
+               `login_${Date.now()}`
+            );
           }
         } else if (event === "USER_UPDATED") {
           if (newSession) {
-            updateAuthState(newSession, newSession.user);
+            setAuthenticated(newSession, newSession.user);
           }
         }
       }
@@ -200,7 +235,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [initialized, updateAuthState]);
+  }, [
+    initialized,
+    authState,
+    clearAuth,
+    setAuthenticated
+   ]);
 
   // Cross-tab logout synchronization
   useEffect(() => {
@@ -209,17 +249,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const value = e.newValue;
         if (value?.startsWith("logout_")) {
           // Another tab logged out - clear local state
-          updateAuthState(null, null);
+          clearAuth();
         } else if (value?.startsWith("login_")) {
           // Another tab logged in - refresh session
           const { data } = await supabase.auth.getSession();
           if (data.session) {
-            updateAuthState(data.session, data.session.user);
+            setAuthenticated(data.session, data.session.user);
           }
         }
       } else if (e.key === SESSION_EXPIRED_KEY) {
         // Session expired in another tab
-        updateAuthState(null, null);
+        clearAuth();
         toast.error("Your session has expired. Please log in again.", {
           duration: 5000,
         });
@@ -230,7 +270,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [updateAuthState]);
+  }, [clearAuth, setAuthenticated]);
 
   // Periodic token expiration check
   useEffect(() => {
@@ -262,6 +302,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
    const signIn = async (email: string, password: string) => {
+    // 1. sign in with Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -271,7 +312,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error };
     }
 
-    // Check whether THIS USER actually enabled 2FA
+    // 2. Check whether THIS USER actually enabled 2FA
 
     const { data: settings } = await supabase
      .from("user_settings")
@@ -279,75 +320,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
      .eq("user_id", data.user.id)
      .single();
 
-    const { data: factors } =
-     await supabase.auth.mfa.listFactors();
+    const { data: factors } =await supabase.auth.mfa.listFactors();
 
     const verifiedFactor =
      factors?.totp.find(f => f.status === "verified");
 
-   // TEMPORARY DEBUG LOGS
-   console.log("2FA enabled:", settings?.two_factor_enabled);
-   console.log("Factors:", factors);
-   console.log("Verified factor:", verifiedFactor);
+    console.log("2FA enabled:", settings?.two_factor_enabled);
+    console.log("Verified factor:", verifiedFactor);
 
-    if (
-       settings?.two_factor_enabled &&
-       verifiedFactor
-    ) {
+    // 3. Handle MFA first
+    if (settings?.two_factor_enabled && verifiedFactor) {
+     const trustedUntil = Number(
+      localStorage.getItem("trusted_device_until") || 0);
 
-    const trustedUntil =
-     Number(localStorage.getItem("trusted_device_until") || 0);
-
-    const trusted =
-     trustedUntil > Date.now();
+     const trusted = trustedUntil > Date.now();
     
-    console.log("trustedUntil:", trustedUntil);
-    console.log("trusted:", trusted);
 
-    if (trusted) {
+     if (!trusted) {
+      const challenge = {
+        factorId: verifiedFactor.id,
+        email,
+      }
+
+      setMfaChallenge(challenge);
+      setPendingMFA();
+
      return {
         error:null,
-        mfaRequired:false
+        mfaRequired:true
       };
     }
-   
-    console.log(">>> Setting MFA challenge");
+     const { data: sessionData } = await supabase.auth.getSession();
 
-    const challenge = {
-     factorId: verifiedFactor.id,
-     email,
+      if (sessionData.session) {
+      setAuthenticated(sessionData.session, sessionData.session.user);
+    }
+
+    return{
+      error: null,
+      mfaRequired: false,
+      passkeyRequired: false,
     };
-
-    console.log("Setting challenge:", challenge);
-
-    setMfaChallenge(challenge);
-
-    setTimeout(() => {
-     console.log("mfaChallenge after timeout:", challenge);
-    }, 0);
-
-    return {
-     error: null,
-     mfaRequired: true,
-    };
-   }
-
-    // Check if user has a passkey registered → require passkey verification
+  }
+    // 4.Check if user has a passkey registered → require passkey verification
     try {
       const { checkHasPasskey } = await import("@/hooks/usePasskeys");
-      const hasPk = await checkHasPasskey(email);
-      if (hasPk) {
+      const hasPasskey = await checkHasPasskey(email);
+      if (hasPasskey) {
         setPasskeyChallenge({ email });
         return { error: null, passkeyRequired: true };
       }
-    } catch {
-      // ignore — fall through to normal sign-in
+    } catch(err) {
+      console.error("Passkey Check failed", err);
     }
 
-    // Collect fingerprint on login (non-blocking)
-    import("@/lib/fingerprint").then(({ collectFingerprint }) => collectFingerprint("login")).catch(() => {});
+    // 5.Collect fingerprint on login (non-blocking)
+    import("@/lib/fingerprint")
+     .then(({ collectFingerprint }) => collectFingerprint("login"))
+     .catch(() => {});
 
-    return { error: null, mfaRequired: false };
+    //6. Login complete
+    return { 
+      error: null, 
+      mfaRequired: false,
+      passkeyRequired: false,    
+    };
   };
 
   const completePasskeyChallenge = async () => {
@@ -356,21 +393,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { loginWithPasskey } = await import("@/hooks/usePasskeys");
       const result = await loginWithPasskey(passkeyChallenge.email);
       if (!result.verified) return { error: new Error("Passkey verification failed") };
-      setPasskeyChallenge(null);
+     setPasskeyChallenge(null);
+
+     const { data } = await supabase.auth.getSession();
+
+     if (data.session) {
+        setAuthenticated(data.session, data.session.user);
+      }
       return { error: null };
     } catch (e: any) {
       return { error: e };
     }
   };
-
+  
   const acceptPasskeyFallback = () => {
     // User completed alternative verification (e.g. email OTP) — clear challenge but keep session.
     setPasskeyChallenge(null);
   };
 
-  const cancelPasskeyChallenge = () => {
+  const cancelMFAChallenge = async () => {
+    setMfaChallenge(null);
     setPasskeyChallenge(null);
-    supabase.auth.signOut();
+    clearAuth();
+    await supabase.auth.signOut();
   };
 
   const completeMFAChallenge = async (
@@ -411,20 +456,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setMfaChallenge(null);
+      setPasskeyChallenge(null);
+
+      const { data } = await supabase.auth.getSession();
+
+      if (data.session) {
+         setAuthenticated(data.session, data.session.user);
+      }
+
       return { error: null };
+
     } catch (error: any) {
       return { error };
     }
   };
 
-  const cancelMFAChallenge = () => {
-    setMfaChallenge(null);
-    // Sign out the partial session
-    supabase.auth.signOut();
-  };
-
   const signOut = async () => {
     setMfaChallenge(null);
+    clearAuth();
     await supabase.auth.signOut();
     // Cross-tab sync is handled in the auth state listener
   };
