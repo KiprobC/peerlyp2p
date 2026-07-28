@@ -62,10 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const [passkeyChallenge, setPasskeyChallenge] = useState<PasskeyChallenge | null>(null);
   const [initialized, setInitialized] = useState(false);
-
-  const setPendingMFA = useCallback(() => {
-    setAuthState("pending_mfa");
-  }, []);
+  
 
   const setAuthenticated = useCallback(
    (newSession: Session, newUser: User) => {
@@ -171,14 +168,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setAuthenticated(refreshData.session, refreshData.session.user);
           }
         } else if (mounted) {
-         if (currentSession){
-          setAuthenticated(currentSession, currentSession.user);
-         } else{
+         if (currentSession) {
+            setAuthenticated(currentSession, currentSession.user);
+          } else {
           clearAuth();
-         }
-        }
+          } 
 
-        if (mounted) {
           setInitialized(true);
         }
       } catch (error) {
@@ -213,10 +208,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (newSession) {
 
             // Don't promote to authenticated while an MFA challenge is active.
-            if (authState === "pending_mfa") {
-              console.log("Waiting for MFA...");
-              return;
-            }
               setAuthenticated(newSession,newSession.user);
             
             localStorage.setItem(
@@ -237,7 +228,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [
     initialized,
-    authState,
     clearAuth,
     setAuthenticated
    ]);
@@ -330,21 +320,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // 3. Handle MFA first
     if (settings?.two_factor_enabled && verifiedFactor) {
-     const trustedUntil = Number(
-      localStorage.getItem("trusted_device_until") || 0);
+     const isTrustedDevice = () => {}
+      const trustedUntil = Number(
+      localStorage.getItem("trusted_device_until") || 0
+    );
 
-     const trusted = trustedUntil > Date.now();
-    
+     return trustedUntil > Date.now();
+    };
 
      if (!trusted) {
-      const challenge = {
+      setMfaChallenge({
         factorId: verifiedFactor.id,
         email,
-      }
+      });
 
-      setMfaChallenge(challenge);
-      setPendingMFA();
-
+      setAuthState("pending_mfa");
+     
      return {
         error:null,
         mfaRequired:true
@@ -394,6 +385,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const result = await loginWithPasskey(passkeyChallenge.email);
       if (!result.verified) return { error: new Error("Passkey verification failed") };
      setPasskeyChallenge(null);
+     setAuthenticated("authenticated");
 
      const { data } = await supabase.auth.getSession();
 
@@ -412,8 +404,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const cancelMFAChallenge = async () => {
-    setMfaChallenge(null);
     setPasskeyChallenge(null);
+    setMfaChallenge(null);
+    setAuthState("unauthenticated");
     clearAuth();
     await supabase.auth.signOut();
   };
@@ -454,9 +447,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           )
         )
       }
-
+      
       setMfaChallenge(null);
       setPasskeyChallenge(null);
+      setAuthState("authenticated");
 
       const { data } = await supabase.auth.getSession();
 
@@ -472,9 +466,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    setMfaChallenge(null);
-    clearAuth();
     await supabase.auth.signOut();
+
+    setMfaChallenge(null);
+    setPasskeyChallenge(null);
+    clearAuth();
+    
     // Cross-tab sync is handled in the auth state listener
   };
 
