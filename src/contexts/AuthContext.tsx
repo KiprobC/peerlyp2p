@@ -318,41 +318,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log("2FA enabled:", settings?.two_factor_enabled);
     console.log("Verified factor:", verifiedFactor);
 
-    // 3. Handle MFA first
-    if (settings?.two_factor_enabled && verifiedFactor) {
-     const isTrustedDevice = () => {}
-      const trustedUntil = Number(
-      localStorage.getItem("trusted_device_until") || 0
-    );
+  // 3. Handle MFA first
+if (settings?.two_factor_enabled && verifiedFactor) {
+  const trustedUntil = Number(
+    localStorage.getItem("trusted_device_until") || 0
+  );
 
-     return trustedUntil > Date.now();
-    };
+  const trusted = trustedUntil > Date.now();
 
-     if (!trusted) {
-      setMfaChallenge({
-        factorId: verifiedFactor.id,
-        email,
-      });
+  if (!trusted) {
+    setMfaChallenge({
+      factorId: verifiedFactor.id,
+      email,
+    });
 
-      setAuthState("pending_mfa");
-     
-     return {
-        error:null,
-        mfaRequired:true
-      };
-    }
-     const { data: sessionData } = await supabase.auth.getSession();
+    setAuthState("pending_mfa");
 
-      if (sessionData.session) {
-      setAuthenticated(sessionData.session, sessionData.session.user);
-    }
-
-    return{
+    return {
       error: null,
-      mfaRequired: false,
-      passkeyRequired: false,
+      mfaRequired: true,
     };
   }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+
+  if (sessionData.session) {
+    setAuthenticated(sessionData.session, sessionData.session.user);
+  }
+
+  return {
+    error: null,
+    mfaRequired: false,
+    passkeyRequired: false,
+  };
+}
     // 4.Check if user has a passkey registered → require passkey verification
     try {
       const { checkHasPasskey } = await import("@/hooks/usePasskeys");
