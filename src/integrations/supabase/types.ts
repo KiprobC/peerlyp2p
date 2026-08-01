@@ -391,6 +391,8 @@ export type Database = {
           admin_address_id: string | null
           admin_notes: string | null
           amount: number
+          confirmations: number
+          confirmed_at: string | null
           created_at: string
           credited_amount: number | null
           crypto_type: string
@@ -400,6 +402,7 @@ export type Database = {
           network: string
           processed_at: string | null
           processed_by: string | null
+          required_confirmations: number
           status: Database["public"]["Enums"]["deposit_request_status"]
           tx_hash: string | null
           updated_at: string
@@ -409,6 +412,8 @@ export type Database = {
           admin_address_id?: string | null
           admin_notes?: string | null
           amount: number
+          confirmations?: number
+          confirmed_at?: string | null
           created_at?: string
           credited_amount?: number | null
           crypto_type: string
@@ -418,6 +423,7 @@ export type Database = {
           network: string
           processed_at?: string | null
           processed_by?: string | null
+          required_confirmations?: number
           status?: Database["public"]["Enums"]["deposit_request_status"]
           tx_hash?: string | null
           updated_at?: string
@@ -427,6 +433,8 @@ export type Database = {
           admin_address_id?: string | null
           admin_notes?: string | null
           amount?: number
+          confirmations?: number
+          confirmed_at?: string | null
           created_at?: string
           credited_amount?: number | null
           crypto_type?: string
@@ -436,6 +444,7 @@ export type Database = {
           network?: string
           processed_at?: string | null
           processed_by?: string | null
+          required_confirmations?: number
           status?: Database["public"]["Enums"]["deposit_request_status"]
           tx_hash?: string | null
           updated_at?: string
@@ -803,6 +812,36 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      network_confirmation_rules: {
+        Row: {
+          created_at: string
+          crypto_type: string
+          enabled: boolean
+          id: string
+          network: string
+          required_confirmations: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          crypto_type: string
+          enabled?: boolean
+          id?: string
+          network: string
+          required_confirmations: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          crypto_type?: string
+          enabled?: boolean
+          id?: string
+          network?: string
+          required_confirmations?: number
+          updated_at?: string
         }
         Relationships: []
       }
