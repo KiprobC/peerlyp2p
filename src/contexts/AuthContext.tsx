@@ -1,10 +1,39 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isTrustedDevice, trustThisDevice, clearTrustedDevice } from "@/lib/trustedDevice";
+import { checkHasPasskey, loginWithPasskey } from "@/lib/passkeyAuth";
 
-// Explicit auth states
-export type AuthState = "loading" | "authenticated" |"pending_mfa"| "unauthenticated";
+/**
+ * Deterministic authentication state machine.
+ *
+ * loading ─────────► unauthenticated
+ *    │                  │  signIn()
+ *    │                  ▼
+ *    │            pending_mfa ──completeMFAChallenge()──┐
+ *    │                  │                               │
+ *    │            pending_passkey ─completePasskey()────┤
+ *    │                  │                               ▼
+ *    └──────────────────┴──────────────────────────► authenticated
+ *
+ * There is exactly ONE function that transitions into "authenticated":
+ * `promoteToAuthenticated()`. Nothing else may set that state.
+ */
+export type AuthState =
+  | "loading"
+  | "unauthenticated"
+  | "pending_mfa"
+  | "pending_passkey"
+  | "authenticated";
 
 interface MFAChallenge {
   factorId: string;
@@ -19,35 +48,67 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   authState: AuthState;
-  loading: boolean; // Keep for backward compatibility
+  loading: boolean;
   mfaChallenge: MFAChallenge | null;
   passkeyChallenge: PasskeyChallenge | null;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
-  completeMFAChallenge: (
-    code: string,
-    trustDevice: boolean
-  ) => Promise<{ error: Error | null }>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
+  completeMFAChallenge: (code: string, trustDevice: boolean) => Promise<{ error: Error | null }>;
   completePasskeyChallenge: () => Promise<{ error: Error | null }>;
   acceptPasskeyFallback: () => void;
-  cancelMFAChallenge: () => void;
-  cancelPasskeyChallenge: () => void;
+  cancelMFAChallenge: () => Promise<void>;
+  cancelPasskeyChallenge: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Storage key for cross-tab sync
 const AUTH_STORAGE_KEY = "auth_session_sync";
 const SESSION_EXPIRED_KEY = "session_expired";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
   return context;
+};
+
+/** True when the session token is expired or within the 60s refresh buffer. */
+const isExpiring = (session: Session | null): boolean => {
+  if (!session?.expires_at) return false;
+  return Date.now() >= session.expires_at * 1000 - 60_000;
+};
+
+/**
+ * Decides whether a valid Supabase session still needs second-factor
+ * verification. Pure read — never mutates state.
+ */
+const resolveRequiredVerification = async (
+  userId: string
+): Promise<{ kind: "mfa"; factorId: string } | { kind: "none" }> => {
+  try {
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("two_factor_enabled")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!settings?.two_factor_enabled) return { kind: "none" };
+
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verified = factors?.totp?.find((f) => f.status === "verified");
+    if (!verified) return { kind: "none" };
+
+    if (isTrustedDevice()) return { kind: "none" };
+
+    return { kind: "mfa", factorId: verified.id };
+  } catch (e) {
+    console.error("[auth] verification resolution failed", e);
+    return { kind: "none" };
+  }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -55,431 +116,319 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [authState, setAuthState] = useState<AuthState>("loading");
   const [mfaChallenge, setMfaChallenge] = useState<MFAChallenge | null>(null);
-  
-  useEffect(() => {
-   console.log("AuthProvider mfaChallenge:", mfaChallenge);
-  }, [mfaChallenge]);
-
   const [passkeyChallenge, setPasskeyChallenge] = useState<PasskeyChallenge | null>(null);
   const [initialized, setInitialized] = useState(false);
-  
 
-  const setAuthenticated = useCallback(
-   (newSession: Session, newUser: User) => {
-     setSession(newSession);
-     setUser(newUser);
-     setAuthState("authenticated");
-   },
-   []
-  );
-
- const clearAuth = useCallback(() => {
-   setSession(null);
-   setUser(null);
-   setAuthState("unauthenticated");
- }, []);
-
-  const cancelPasskeyChallenge = async () => {
-   setPasskeyChallenge(null);
-   setMfaChallenge(null);
-   clearAuth();
-   await supabase.auth.signOut();
-  };
-
-  // Check for token expiration
-  const checkTokenExpiration = useCallback((session: Session | null) => {
-    if (!session?.expires_at) return false;
-    
-    const expiresAt = session.expires_at * 1000; // Convert to ms
-    const now = Date.now();
-    const bufferMs = 60 * 1000; // 1 minute buffer
-    
-    return now >= expiresAt - bufferMs;
+  // Mirror of authState readable inside async callbacks / listeners.
+  const stateRef = useRef<AuthState>("loading");
+  const setState = useCallback((next: AuthState) => {
+    stateRef.current = next;
+    setAuthState(next);
   }, []);
 
-  // Handle session expiration
+  /** THE single transition into "authenticated". */
+  const promoteToAuthenticated = useCallback(
+    (newSession: Session) => {
+      setSession(newSession);
+      setUser(newSession.user);
+      setMfaChallenge(null);
+      setPasskeyChallenge(null);
+      setState("authenticated");
+    },
+    [setState]
+  );
+
+  const clearAuth = useCallback(() => {
+    setSession(null);
+    setUser(null);
+    setMfaChallenge(null);
+    setPasskeyChallenge(null);
+    setState("unauthenticated");
+  }, [setState]);
+
+  /** Pulls the current session and promotes. Used after a challenge succeeds. */
+  const promoteFromCurrentSession = useCallback(async (): Promise<boolean> => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return false;
+    promoteToAuthenticated(data.session);
+    return true;
+  }, [promoteToAuthenticated]);
+
   const handleSessionExpired = useCallback(async () => {
-    // Store flag for redirect preservation
     const currentPath = window.location.pathname;
-    if (currentPath !== "/" && currentPath !== "/login" && currentPath !== "/signup") {
+    if (!["/", "/login", "/signup"].includes(currentPath)) {
       sessionStorage.setItem("redirectAfterLogin", currentPath);
     }
-    
-    // Clear session
     await supabase.auth.signOut();
     clearAuth();
-    
-    // Show toast notification
-    toast.error("Your session has expired. Please log in again.", {
-      duration: 5000,
-    });
-    
-    // Broadcast to other tabs
+    toast.error("Your session has expired. Please log in again.", { duration: 5000 });
     localStorage.setItem(SESSION_EXPIRED_KEY, Date.now().toString());
   }, [clearAuth]);
 
-  // Refresh session manually
   const refreshSession = useCallback(async () => {
+    // Refresh must never promote a pending user.
+    if (stateRef.current !== "authenticated") return;
     try {
       const { data, error } = await supabase.auth.refreshSession();
-      if (error) {
-        console.error("Error refreshing session:", error);
+      if (error || !data.session) {
         await handleSessionExpired();
         return;
       }
-      if (data.session) {
-        setAuthenticated(data.session, data.session.user);
-      }
-    } catch (error) {
-      console.error("Session refresh failed:", error);
+      promoteToAuthenticated(data.session);
+    } catch (e) {
+      console.error("[auth] session refresh failed", e);
     }
-  }, [setAuthenticated, handleSessionExpired]);
+  }, [handleSessionExpired, promoteToAuthenticated]);
 
-  // Initialize auth state - runs once before rendering UI
+  // ── Initialization ────────────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        // Get existing session
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error getting session:", error);
-          if (mounted) {
-            clearAuth();
-            setInitialized(true);
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        let current = data.session;
+
+        if (current && isExpiring(current)) {
+          const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshed.session) {
+            if (mounted) await handleSessionExpired();
+            return;
           }
+          current = refreshed.session;
+        }
+
+        if (!mounted) return;
+
+        if (!current) {
+          clearAuth();
           return;
         }
 
-        // Check if session is expired or about to expire
-        if (currentSession && checkTokenExpiration(currentSession)) {
-          // Try to refresh
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !refreshData.session) {
-            if (mounted) {
-              handleSessionExpired();
-              setInitialized(true);
-            }
-            return;
-          }
-          if (mounted) {
-            setAuthenticated(refreshData.session, refreshData.session.user);
-          }
-        } else if (mounted) {
-         if (currentSession) {
-            setAuthenticated(currentSession, currentSession.user);
-          } else {
-          clearAuth();
-          } 
+        // A session alone is NOT authentication — re-check the second factor.
+        const required = await resolveRequiredVerification(current.user.id);
+        if (!mounted) return;
 
-          setInitialized(true);
+        if (required.kind === "mfa") {
+          setSession(current);
+          setUser(current.user);
+          setMfaChallenge({ factorId: required.factorId, email: current.user.email ?? "" });
+          setState("pending_mfa");
+          return;
         }
-      } catch (error) {
-        console.error("Auth initialization error:", error);
-        if (mounted) {
-          clearAuth();
-          setInitialized(true);
-        }
+
+        promoteToAuthenticated(current);
+      } catch (e) {
+        console.error("[auth] initialization error", e);
+        if (mounted) clearAuth();
+      } finally {
+        if (mounted) setInitialized(true);
       }
     };
 
     initializeAuth();
-
     return () => {
       mounted = false;
     };
-  }, [clearAuth, setAuthenticated,  checkTokenExpiration, handleSessionExpired]);
+  }, [clearAuth, handleSessionExpired, promoteToAuthenticated, setState]);
 
-  // Set up auth state listener after initialization
+  // ── Auth state listener ───────────────────────────────────────────────────
   useEffect(() => {
     if (!initialized) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log("Auth state change:", event);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      const pending =
+        stateRef.current === "pending_mfa" || stateRef.current === "pending_passkey";
 
-        if (event === "SIGNED_OUT") {
-          clearAuth();
-          // Broadcast logout to other tabs
-          localStorage.setItem(AUTH_STORAGE_KEY, `logout_${Date.now()}`);
-        } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-          if (newSession) {
+      if (event === "SIGNED_OUT") {
+        clearAuth();
+        localStorage.setItem(AUTH_STORAGE_KEY, `logout_${Date.now()}`);
+        return;
+      }
 
-            // Don't promote to authenticated while an MFA challenge is active.
-              setAuthenticated(newSession,newSession.user);
-            
-            localStorage.setItem(
-              AUTH_STORAGE_KEY,
-               `login_${Date.now()}`
-            );
-          }
-        } else if (event === "USER_UPDATED") {
-          if (newSession) {
-            setAuthenticated(newSession, newSession.user);
-          }
+      if (event === "TOKEN_REFRESHED") {
+        // Only authenticated users may be re-promoted by a refresh.
+        if (newSession && stateRef.current === "authenticated") {
+          promoteToAuthenticated(newSession);
+        } else if (newSession) {
+          setSession(newSession);
+        }
+        return;
+      }
+
+      if (event === "SIGNED_IN" || event === "USER_UPDATED") {
+        if (!newSession) return;
+        if (pending) {
+          // Keep the raw session but do NOT authenticate — a challenge is open.
+          setSession(newSession);
+          setUser(newSession.user);
+          return;
+        }
+        promoteToAuthenticated(newSession);
+        if (event === "SIGNED_IN") {
+          localStorage.setItem(AUTH_STORAGE_KEY, `login_${Date.now()}`);
         }
       }
-    );
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [
-    initialized,
-    clearAuth,
-    setAuthenticated
-   ]);
+    return () => subscription.unsubscribe();
+  }, [initialized, clearAuth, promoteToAuthenticated]);
 
-  // Cross-tab logout synchronization
+  // ── Cross-tab synchronization ─────────────────────────────────────────────
   useEffect(() => {
     const handleStorageChange = async (e: StorageEvent) => {
       if (e.key === AUTH_STORAGE_KEY) {
-        const value = e.newValue;
-        if (value?.startsWith("logout_")) {
-          // Another tab logged out - clear local state
+        if (e.newValue?.startsWith("logout_")) {
           clearAuth();
-        } else if (value?.startsWith("login_")) {
-          // Another tab logged in - refresh session
+        } else if (e.newValue?.startsWith("login_")) {
+          if (stateRef.current === "pending_mfa" || stateRef.current === "pending_passkey") return;
           const { data } = await supabase.auth.getSession();
-          if (data.session) {
-            setAuthenticated(data.session, data.session.user);
+          if (!data.session) return;
+          const required = await resolveRequiredVerification(data.session.user.id);
+          if (required.kind === "mfa") {
+            setMfaChallenge({ factorId: required.factorId, email: data.session.user.email ?? "" });
+            setState("pending_mfa");
+            return;
           }
+          promoteToAuthenticated(data.session);
         }
       } else if (e.key === SESSION_EXPIRED_KEY) {
-        // Session expired in another tab
         clearAuth();
-        toast.error("Your session has expired. Please log in again.", {
-          duration: 5000,
-        });
+        toast.error("Your session has expired. Please log in again.", { duration: 5000 });
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [clearAuth, setAuthenticated]);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [clearAuth, promoteToAuthenticated, setState]);
 
-  // Periodic token expiration check
+  // ── Periodic expiry check ─────────────────────────────────────────────────
   useEffect(() => {
     if (authState !== "authenticated" || !session) return;
-
-    const checkExpiration = () => {
-      if (checkTokenExpiration(session)) {
-        refreshSession();
-      }
-    };
-
-    // Check every minute
-    const interval = setInterval(checkExpiration, 60 * 1000);
+    const interval = setInterval(() => {
+      if (isExpiring(session)) refreshSession();
+    }, 60_000);
     return () => clearInterval(interval);
-  }, [authState, session, checkTokenExpiration, refreshSession]);
+  }, [authState, session, refreshSession]);
 
+  // ── Public API ────────────────────────────────────────────────────────────
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
-        data: { full_name: fullName }
-      }
+        emailRedirectTo: `${window.location.origin}/`,
+        data: { full_name: fullName },
+      },
     });
     return { error };
   };
 
-   const signIn = async (email: string, password: string) => {
-    // 1. sign in with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+  const signIn = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error };
+    if (!data.session) return { error: new Error("No session returned") };
 
-    if (error) {
-      return { error };
+    // 1. MFA always takes precedence over passkeys.
+    const required = await resolveRequiredVerification(data.user.id);
+    if (required.kind === "mfa") {
+      setSession(data.session);
+      setUser(data.user);
+      setMfaChallenge({ factorId: required.factorId, email });
+      setState("pending_mfa");
+      return { error: null, mfaRequired: true, passkeyRequired: false };
     }
 
-    // 2. Check whether THIS USER actually enabled 2FA
-
-    const { data: settings } = await supabase
-     .from("user_settings")
-     .select("two_factor_enabled")
-     .eq("user_id", data.user.id)
-     .single();
-
-    const { data: factors } =await supabase.auth.mfa.listFactors();
-
-    const verifiedFactor =
-     factors?.totp.find(f => f.status === "verified");
-
-    console.log("2FA enabled:", settings?.two_factor_enabled);
-    console.log("Verified factor:", verifiedFactor);
-
-  // 3. Handle MFA first
-if (settings?.two_factor_enabled && verifiedFactor) {
-  const trustedUntil = Number(
-    localStorage.getItem("trusted_device_until") || 0
-  );
-
-  const trusted = trustedUntil > Date.now();
-
-  if (!trusted) {
-    setMfaChallenge({
-      factorId: verifiedFactor.id,
-      email,
-    });
-
-    setAuthState("pending_mfa");
-
-    return {
-      error: null,
-      mfaRequired: true,
-    };
-  }
-
-  const { data: sessionData } = await supabase.auth.getSession();
-
-  if (sessionData.session) {
-    setAuthenticated(sessionData.session, sessionData.session.user);
-  }
-
-  return {
-    error: null,
-    mfaRequired: false,
-    passkeyRequired: false,
-  };
-}
-    // 4.Check if user has a passkey registered → require passkey verification
-    try {
-      const { checkHasPasskey } = await import("@/hooks/usePasskeys");
-      const hasPasskey = await checkHasPasskey(email);
-      if (hasPasskey) {
-        setPasskeyChallenge({ email });
-        return { error: null, passkeyRequired: true };
-      }
-    } catch(err) {
-      console.error("Passkey Check failed", err);
+    // 2. Passkey gate (only when MFA is not required/configured/trusted).
+    const hasPasskey = await checkHasPasskey(email);
+    if (hasPasskey) {
+      setSession(data.session);
+      setUser(data.user);
+      setPasskeyChallenge({ email });
+      setState("pending_passkey");
+      return { error: null, mfaRequired: false, passkeyRequired: true };
     }
 
-    // 5.Collect fingerprint on login (non-blocking)
+    // 3. Fully authenticated.
     import("@/lib/fingerprint")
-     .then(({ collectFingerprint }) => collectFingerprint("login"))
-     .catch(() => {});
+      .then(({ collectFingerprint }) => collectFingerprint("login"))
+      .catch(() => {});
 
-    //6. Login complete
-    return { 
-      error: null, 
-      mfaRequired: false,
-      passkeyRequired: false,    
-    };
+    promoteToAuthenticated(data.session);
+    return { error: null, mfaRequired: false, passkeyRequired: false };
   };
 
-  const completePasskeyChallenge = async () => {
-    if (!passkeyChallenge) return { error: new Error("No passkey challenge pending") };
-    try {
-      const { loginWithPasskey } = await import("@/hooks/usePasskeys");
-      const result = await loginWithPasskey(passkeyChallenge.email);
-      if (!result.verified) return { error: new Error("Passkey verification failed") };
-     setPasskeyChallenge(null);
-     setAuthenticated("authenticated");
-
-     const { data } = await supabase.auth.getSession();
-
-     if (data.session) {
-        setAuthenticated(data.session, data.session.user);
-      }
-      return { error: null };
-    } catch (e: any) {
-      return { error: e };
-    }
-  };
-  
-  const acceptPasskeyFallback = () => {
-    // User completed alternative verification (e.g. email OTP) — clear challenge but keep session.
-    setPasskeyChallenge(null);
-  };
-
-  const cancelMFAChallenge = async () => {
-    setPasskeyChallenge(null);
-    setMfaChallenge(null);
-    setAuthState("unauthenticated");
-    clearAuth();
-    await supabase.auth.signOut();
-  };
-
-  const completeMFAChallenge = async (
-    code: string,
-    trustDevice:boolean
-    ) => {
-    if (!mfaChallenge) {
-      return { error: new Error("No MFA challenge pending") };
-    }
+  const completeMFAChallenge = async (code: string, trustDevice: boolean) => {
+    if (!mfaChallenge) return { error: new Error("No MFA challenge pending") };
 
     try {
-      // Create challenge
       const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
         factorId: mfaChallenge.factorId,
       });
-
       if (challengeError) throw challengeError;
 
-      // Verify
       const { error: verifyError } = await supabase.auth.mfa.verify({
         factorId: mfaChallenge.factorId,
         challengeId: challengeData.id,
         code,
       });
-
       if (verifyError) throw verifyError;
 
-      //Trust this device for 7 days
-      if (trustDevice) {
+      if (trustDevice) trustThisDevice();
 
-        localStorage.setItem(
-          "trusted_device_until",
-          String(
-            Date.now() +
-            7 * 24 * 60 * 60 * 1000
-          )
-        )
-      }
-      
-      setMfaChallenge(null);
-      setPasskeyChallenge(null);
-      setAuthState("authenticated");
-
-      const { data } = await supabase.auth.getSession();
-
-      if (data.session) {
-         setAuthenticated(data.session, data.session.user);
-      }
+      const promoted = await promoteFromCurrentSession();
+      if (!promoted) throw new Error("Session unavailable after verification");
 
       return { error: null };
-
     } catch (error: any) {
       return { error };
     }
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const completePasskeyChallenge = async () => {
+    if (!passkeyChallenge) return { error: new Error("No passkey challenge pending") };
+    try {
+      const result = await loginWithPasskey(passkeyChallenge.email);
+      if (!result.verified) return { error: new Error(result.error || "Authentication failed") };
 
-    setMfaChallenge(null);
-    setPasskeyChallenge(null);
-    clearAuth();
-    
-    // Cross-tab sync is handled in the auth state listener
+      const promoted = await promoteFromCurrentSession();
+      if (!promoted) throw new Error("Session unavailable after verification");
+
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
   };
 
-  // Don't render children until auth is initialized
+  /** Alternative verification (email OTP) satisfied the passkey gate. */
+  const acceptPasskeyFallback = () => {
+    if (stateRef.current !== "pending_passkey") return;
+    void promoteFromCurrentSession();
+  };
+
+  const abandonChallenge = useCallback(async () => {
+    clearTrustedDevice();
+    clearAuth();
+    await supabase.auth.signOut();
+  }, [clearAuth]);
+
+  const cancelMFAChallenge = abandonChallenge;
+  const cancelPasskeyChallenge = abandonChallenge;
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    clearAuth();
+  };
+
   if (!initialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
           <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -487,23 +436,25 @@ if (settings?.two_factor_enabled && verifiedFactor) {
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      authState,
-      loading: authState === "loading", // Backward compatibility
-      mfaChallenge,
-      passkeyChallenge,
-      signUp, 
-      signIn, 
-      completeMFAChallenge,
-      completePasskeyChallenge,
-      acceptPasskeyFallback,
-      cancelMFAChallenge,
-      cancelPasskeyChallenge,
-      signOut,
-      refreshSession
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        authState,
+        loading: authState === "loading",
+        mfaChallenge,
+        passkeyChallenge,
+        signUp,
+        signIn,
+        completeMFAChallenge,
+        completePasskeyChallenge,
+        acceptPasskeyFallback,
+        cancelMFAChallenge,
+        cancelPasskeyChallenge,
+        signOut,
+        refreshSession,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
