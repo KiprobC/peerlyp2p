@@ -2,8 +2,8 @@ import { useState } from "react";
 import { usePasskeyContext } from "@/contexts/PasskeyContext";
 import { useMFA } from "@/hooks/useMFA";
 
-import { PasskeyVerifyDialog } from "./PasskeyVerifyDialog";
-import { OTPVerificationDialog } from "./OTPVerificationDialog";
+import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
+import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 
 interface SensitiveActionGuardProps {
   open: boolean;
