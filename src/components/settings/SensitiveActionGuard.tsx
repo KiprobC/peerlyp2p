@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { usePasskeyContext } from "@/contexts/PasskeyContext";
 import { useMFA } from "@/hooks/useMFA";
+import type { OTPActionType } from "@/hooks/useOTPVerification";
 
 import { PasskeyVerifyDialog } from "@/components/security/PasskeyVerifyDialog";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
@@ -12,7 +13,7 @@ interface SensitiveActionGuardProps {
   title: string;
   description: string;
 
-  actionType: string;
+  actionType: OTPActionType;
 
   onVerified: () => Promise<void> | void;
 }
