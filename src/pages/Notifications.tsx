@@ -16,6 +16,7 @@ import {
 import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { polishNotification } from "@/lib/treasuryCopy";
+import { resolveNotificationRoute } from "@/lib/notificationRoutes";
 
 const iconMap: Record<string, typeof Bell> = {
   trade: DollarSign,
@@ -34,44 +35,7 @@ const Notifications = () => {
     if (!notification.read) {
       await markAsRead(notification.id);
     }
-    
-    // Navigate based on notification type and data
-    const data = notification.data as Record<string, any> | null;
-    
-    // Handle special actions first
-    if (data?.action === "complete_profile") {
-      navigate("/profile-setup");
-      return;
-    }
-    
-    switch (notification.type) {
-      case "trade":
-      case "message":
-        if (data?.trade_id) {
-          navigate(`/trade/${data.trade_id}`);
-        } else {
-          navigate("/trades");
-        }
-        break;
-      case "payment":
-        if (data?.transfer_id || notification.title?.toLowerCase().includes("transfer")) {
-          navigate("/wallet/history");
-        } else {
-          navigate("/wallet-deposit");
-        }
-        break;
-      case "kyc":
-        if (data?.status === "rejected" || data?.status === "pending") {
-          navigate("/kyc-upload");
-        } else {
-          navigate("/profile");
-        }
-        break;
-      case "system":
-      default:
-        navigate("/dashboard");
-        break;
-    }
+    navigate(resolveNotificationRoute(notification));
   };
 
   return (

@@ -30,6 +30,7 @@ import { useTrades, Trade } from "@/hooks/useTrades";
 import { useTradeMessages } from "@/hooks/useTradeMessages";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useTradeRatings } from "@/hooks/useTradeRatings";
+import { useTraderReview } from "@/hooks/useTraderReview";
 import { useTradeEvidence } from "@/hooks/useTradeEvidence";
 import { useDisputeModerator } from "@/hooks/useDisputeModerator";
 import { useModeratorRole } from "@/hooks/useModeratorRole";
@@ -76,7 +77,7 @@ const TradePageContent = () => {
   const { trades, updateTrade, refetch: refetchTrades } = useTrades();
   const { messages, sendMessage, loading: messagesLoading } = useTradeMessages(id || "");
   const { releaseEscrow } = useEscrow();
-  const { hasRated, refetch: refetchRatings } = useTradeRatings(id);
+  const { refetch: refetchRatings } = useTradeRatings(id);
 
   const [trade, setTrade] = useState<Trade | null>(null);
   const [counterparty, setCounterparty] = useState<TraderProfile | null>(null);
@@ -119,17 +120,28 @@ const TradePageContent = () => {
   const isSeller = trade?.seller_id === user?.id;
   const counterpartyId = isBuyer ? trade?.seller_id : trade?.buyer_id;
 
+  // One review per trader relationship (server-enforced)
+  const {
+    hasReviewed: hasReviewedCounterparty,
+    loading: reviewCheckLoading,
+    refetch: refetchTraderReview,
+  } = useTraderReview(counterpartyId);
+
+  const canRateCounterparty =
+    !reviewCheckLoading && hasReviewedCounterparty === false && !!counterpartyId;
+
   useEffect(() => {
     const foundTrade = trades.find((t) => t.id === id);
     if (foundTrade) {
       setTrade(foundTrade);
-      
-      // Auto-open rating dialog when trade is completed and user hasn't rated
-      if (foundTrade.status === "completed" && !hasRated) {
+
+      // Auto-open the rating dialog only if this reviewer has never reviewed
+      // this trader before (regardless of how many trades they've completed).
+      if (foundTrade.status === "completed" && canRateCounterparty) {
         setRatingDialogOpen(true);
       }
     }
-  }, [trades, id, hasRated]);
+  }, [trades, id, canRateCounterparty]);
 
   // Fetch counterparty profile
   useEffect(() => {
@@ -576,7 +588,7 @@ const TradePageContent = () => {
               {["completed", "cancelled"].includes(trade.status) && (
                 <TradeStatusBanner
                   status={trade.status}
-                  hasRated={hasRated}
+                  hasRated={!canRateCounterparty}
                   onRate={() => setRatingDialogOpen(true)}
                 />
               )}
@@ -722,10 +734,11 @@ const TradePageContent = () => {
 
       {/* Rating Dialog */}
       <RatingDialog
-        open={ratingDialogOpen}
+        open={ratingDialogOpen && canRateCounterparty}
         onClose={() => {
           setRatingDialogOpen(false);
           refetchRatings();
+          refetchTraderReview();
         }}
         tradeId={trade.id}
         raterId={user?.id || ""}

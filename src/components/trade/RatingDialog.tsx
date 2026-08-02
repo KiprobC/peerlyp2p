@@ -52,8 +52,10 @@ export const RatingDialog = ({
       });
 
       if (error) {
+        // Unique violation: one review per reviewer/trader relationship.
         if (error.code === "23505") {
-          toast.error("You have already rated this trade");
+          toast.info("You have already reviewed this trader");
+          onClose();
         } else {
           throw error;
         }

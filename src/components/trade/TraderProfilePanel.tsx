@@ -180,7 +180,9 @@ export const TraderProfilePanel = ({ targetUserId, open, onOpenChange }: TraderP
                     icon={<Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
                     label="Rating"
                     value={avgRating > 0 ? avgRating.toFixed(1) : "N/A"}
-                    sub={ratingCount > 0 ? `${ratingCount} reviews` : undefined}
+                    sub={ratingCount > 0
+                      ? `${metrics?.uniqueReviewers ?? ratingCount} trader${(metrics?.uniqueReviewers ?? ratingCount) === 1 ? "" : "s"}`
+                      : undefined}
                   />
                 </div>
               </div>
@@ -190,8 +192,11 @@ export const TraderProfilePanel = ({ targetUserId, open, onOpenChange }: TraderP
               {/* Reviews */}
               <div className="py-6">
                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-1.5">
-                  <Star className="w-3.5 h-3.5" /> Reviews ({reviews.length})
+                  <Star className="w-3.5 h-3.5" /> Reviews ({metrics?.uniqueReviewers ?? reviews.length})
                 </h4>
+                <p className="text-xs text-muted-foreground -mt-2 mb-4">
+                  One review per trader — repeat trades don&apos;t inflate scores.
+                </p>
                 <Tabs value={reviewTab} onValueChange={setReviewTab}>
                   <TabsList className="w-full h-9 mb-4">
                     <TabsTrigger value="all" className="text-xs flex-1">All</TabsTrigger>

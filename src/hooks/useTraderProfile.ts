@@ -23,6 +23,10 @@ export interface TraderMetrics {
   volumeCurrency: string;
   avgRating: number;
   ratingCount: number;
+  uniqueReviewers: number;
+  positiveCount: number;
+  neutralCount: number;
+  negativeCount: number;
 }
 
 export interface TraderReview {
@@ -102,6 +106,10 @@ export const useTraderProfile = () => {
           volumeCurrency: (s.volumeCurrency as string) || "KES",
           avgRating: Number(s.avgRating) || 0,
           ratingCount: Number(s.ratingCount) || 0,
+          uniqueReviewers: Number(s.uniqueReviewers) || 0,
+          positiveCount: Number(s.positiveCount) || 0,
+          neutralCount: Number(s.neutralCount) || 0,
+          negativeCount: Number(s.negativeCount) || 0,
         });
       }
 

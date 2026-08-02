@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute, PublicRoute } from "@/components/auth";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -234,6 +234,22 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Legacy / alias routes — never let a link or notification 404 */}
+      <Route path="/wallet" element={<Navigate to="/wallet/deposit" replace />} />
+      <Route path="/wallet-deposit" element={<Navigate to="/wallet/deposit" replace />} />
+      <Route path="/wallet-withdraw" element={<Navigate to="/wallet/withdraw" replace />} />
+      <Route path="/wallet-history" element={<Navigate to="/wallet/history" replace />} />
+      <Route path="/deposit" element={<Navigate to="/wallet/deposit" replace />} />
+      <Route path="/withdraw" element={<Navigate to="/wallet/withdraw" replace />} />
+      <Route path="/wallet/deposits" element={<Navigate to="/wallet/history?type=deposit" replace />} />
+      <Route path="/wallet/withdrawals" element={<Navigate to="/wallet/history?type=withdrawal" replace />} />
+      <Route path="/transactions" element={<Navigate to="/wallet/history" replace />} />
+      <Route path="/kyc-upload" element={<Navigate to="/profile/kyc" replace />} />
+      <Route path="/kyc" element={<Navigate to="/profile/kyc" replace />} />
+      <Route path="/security" element={<Navigate to="/settings" replace />} />
+      <Route path="/offers" element={<Navigate to="/my-offers" replace />} />
+
       
       {/* Admin routes - AdminLayout handles role check internally */}
       <Route path="/admin" element={<AdminLayout />}>
