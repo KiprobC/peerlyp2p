@@ -30,6 +30,7 @@ import { useTrades, Trade } from "@/hooks/useTrades";
 import { useTradeMessages } from "@/hooks/useTradeMessages";
 import { useEscrow } from "@/hooks/useEscrow";
 import { useTradeRatings } from "@/hooks/useTradeRatings";
+import { useTraderReview } from "@/hooks/useTraderReview";
 import { useTradeEvidence } from "@/hooks/useTradeEvidence";
 import { useDisputeModerator } from "@/hooks/useDisputeModerator";
 import { useModeratorRole } from "@/hooks/useModeratorRole";
