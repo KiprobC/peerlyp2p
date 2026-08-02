@@ -195,10 +195,8 @@ export const TraderProfilePanel = ({ targetUserId, open, onOpenChange }: TraderP
                   <Star className="w-3.5 h-3.5" /> Reviews ({metrics?.uniqueReviewers ?? reviews.length})
                 </h4>
                 <p className="text-xs text-muted-foreground -mt-2 mb-4">
-                  One review per trader — repeat trades don't inflate scores.
+                  One review per trader — repeat trades don&apos;t inflate scores.
                 </p>
-                <h4 className="hidden">
-                </h4>
                 <Tabs value={reviewTab} onValueChange={setReviewTab}>
                   <TabsList className="w-full h-9 mb-4">
                     <TabsTrigger value="all" className="text-xs flex-1">All</TabsTrigger>
