@@ -11,6 +11,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { polishNotification } from "@/lib/treasuryCopy";
+import { resolveNotificationRoute } from "@/lib/notificationRoutes";
 
 export const NotificationPopover = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading } = useNotifications();
@@ -30,21 +31,7 @@ export const NotificationPopover = () => {
 
   const handleNotificationClick = (notification: any) => {
     if (!notification.read) markAsRead(notification.id);
-    const data = notification.data as Record<string, any> | null;
-    if (data?.action === "complete_profile") { navigate("/profile-setup"); return; }
-    switch (notification.type) {
-      case "trade":
-      case "message":
-        if (data?.trade_id) navigate(`/trade/${data.trade_id}`);
-        else navigate("/trades");
-        break;
-      case "payment": navigate("/dashboard"); break;
-      case "kyc":
-        if (data?.status === "rejected" || data?.status === "pending") navigate("/kyc-upload");
-        else navigate("/profile");
-        break;
-      default: navigate("/dashboard"); break;
-    }
+    navigate(resolveNotificationRoute(notification));
   };
 
   return (
