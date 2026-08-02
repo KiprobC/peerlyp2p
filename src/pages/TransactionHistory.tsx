@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,14 +70,41 @@ const statusIcons: Record<string, typeof CheckCircle2> = {
 
 const TransactionHistory = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialType = (searchParams.get("type") || "all") as TxType;
+  const initialStatus = (searchParams.get("status") || "all") as TxStatus;
+  const deepLinkTxId = searchParams.get("tx");
+
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [typeFilter, setTypeFilter] = useState<TxType>("all");
-  const [statusFilter, setStatusFilter] = useState<TxStatus>("all");
+  const [typeFilter, setTypeFilter] = useState<TxType>(initialType);
+  const [statusFilter, setStatusFilter] = useState<TxStatus>(initialStatus);
   const [cryptoFilter, setCryptoFilter] = useState<string>("all");
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
+
+  // Deep link: open the exact transaction referenced by a notification.
+  useEffect(() => {
+    const openDeepLink = async () => {
+      if (!deepLinkTxId || !user) return;
+      const local = transactions.find((t) => t.id === deepLinkTxId);
+      if (local) {
+        setSelectedTx(local);
+        return;
+      }
+      const { data } = await supabase
+        .from("wallet_transactions")
+        .select("*")
+        .eq("id", deepLinkTxId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) setSelectedTx(data);
+    };
+    openDeepLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkTxId, user, transactions.length]);
+
 
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
