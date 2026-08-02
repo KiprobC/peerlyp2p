@@ -1945,6 +1945,42 @@ export type Database = {
           },
         ]
       }
+      trade_ratings_archive: {
+        Row: {
+          archive_reason: string
+          archived_at: string
+          comment: string | null
+          created_at: string | null
+          id: string
+          rated_id: string | null
+          rater_id: string | null
+          rating: number | null
+          trade_id: string | null
+        }
+        Insert: {
+          archive_reason?: string
+          archived_at?: string
+          comment?: string | null
+          created_at?: string | null
+          id: string
+          rated_id?: string | null
+          rater_id?: string | null
+          rating?: number | null
+          trade_id?: string | null
+        }
+        Update: {
+          archive_reason?: string
+          archived_at?: string
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          rated_id?: string | null
+          rater_id?: string | null
+          rating?: number | null
+          trade_id?: string | null
+        }
+        Relationships: []
+      }
       trader_behavior_metrics: {
         Row: {
           average_release_time_minutes: number | null
@@ -2989,6 +3025,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Database["public"]["Enums"]["kyc_tier"]
       }
+      has_reviewed_trader: { Args: { p_rated_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
