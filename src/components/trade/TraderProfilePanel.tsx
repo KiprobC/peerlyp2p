@@ -37,6 +37,24 @@ const RiskBadge = ({ userId }: { userId: string }) => {
   );
 };
 
+const formatAccountAge = (createdAt: string) => {
+  const created = new Date(createdAt);
+  const months =
+    (new Date().getFullYear() - created.getFullYear()) * 12 +
+    (new Date().getMonth() - created.getMonth());
+  if (months < 1) {
+    const days = Math.max(1, Math.floor((Date.now() - created.getTime()) / 86_400_000));
+    return `${days} day${days === 1 ? "" : "s"}`;
+  }
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  return rest === 0
+    ? `${years} year${years === 1 ? "" : "s"}`
+    : `${years}y ${rest}m`;
+};
+
+
 interface TraderProfilePanelProps {
   targetUserId: string;
   open: boolean;
