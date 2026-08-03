@@ -203,16 +203,16 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
       </div>
 
       {/* Floating filter container */}
-      <div className="bg-card/80 backdrop-blur-md border border-border/30 rounded-3xl p-3 shadow-lg">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="bg-card/80 backdrop-blur-md border border-border/30 rounded-3xl p-3 shadow-lg overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {/* Crypto pills */}
-          <div className="flex gap-1 p-0.5 bg-secondary/40 rounded-2xl">
+          <div className="flex gap-1 p-0.5 bg-secondary/40 rounded-2xl shrink-0">
             {cryptos.map((c) => (
               <button
                 key={c.value}
                 onClick={() => setSelectedCrypto(c.value)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-medium rounded-xl transition-all duration-150",
+                  "px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-xl transition-all duration-150",
                   selectedCrypto === c.value
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -225,7 +225,7 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
 
           {/* Payment method */}
           <Select value={selectedPayment} onValueChange={setSelectedPayment}>
-            <SelectTrigger className="w-[120px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3">
+            <SelectTrigger className="w-[104px] sm:w-[120px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3 shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -238,13 +238,13 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </Select>
 
           {/* Amount */}
-          <div className="relative">
+          <div className="relative flex-1 min-w-[100px] sm:flex-none">
             <Input
               type="number"
               placeholder="Amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-[110px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3 pr-9"
+              className="w-full sm:w-[110px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3 pr-9"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium">
               KES
@@ -252,7 +252,8 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </div>
 
           {/* Spacer */}
-          <div className="flex-1" />
+          <div className="hidden sm:block flex-1" />
+
 
           {/* Advanced toggle */}
           <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
