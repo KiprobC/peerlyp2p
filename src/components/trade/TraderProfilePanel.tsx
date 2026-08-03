@@ -117,24 +117,33 @@ export const TraderProfilePanel = ({ targetUserId, open, onOpenChange }: TraderP
                     online ? "bg-green-500" : "bg-muted-foreground/40"
                   )} />
                 </div>
-                <div className="flex items-center justify-center gap-2 mb-1">
+                <div className="flex items-center justify-center gap-2 mb-1.5">
                   <h2 className="font-bold text-xl">@{profile.username || "Anonymous"}</h2>
                   {profile.is_verified && <Shield className="w-5 h-5 text-primary" />}
                 </div>
-                <RiskBadge userId={targetUserId} />
-                {profile.full_name && (
-                  <p className="text-sm text-muted-foreground mt-1">{profile.full_name}</p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <RiskBadge userId={targetUserId} />
+                  {isTrusted && (
+                    <Badge
+                      title="You marked this trader as trusted. Trusted traders are highlighted in your marketplace."
+                      className="gap-1.5 rounded-xl px-3 py-1 text-xs font-semibold bg-green-500/15 text-green-500 border border-green-500/30 hover:bg-green-500/20"
+                    >
+                      <Heart className="w-4 h-4 fill-current" />
+                      Trusted
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2" title={`Joined ${format(new Date(profile.created_at), "d MMM yyyy")}`}>
                   {online ? (
-                    <span className="text-green-500 font-medium">Online</span>
+                    <span className="text-green-500 font-medium">Online now</span>
                   ) : profile.last_seen ? (
-                    <>Last seen {formatDistanceToNow(new Date(profile.last_seen), { addSuffix: true })}</>
+                    <>Active {formatDistanceToNow(new Date(profile.last_seen), { addSuffix: true })}</>
                   ) : (
                     "Offline"
                   )}
-                  {" · "}Member since {format(new Date(profile.created_at), "MMM yyyy")}
+                  {" · "}Account age: {formatAccountAge(profile.created_at)}
                 </p>
+
               </div>
 
               <Separator />
