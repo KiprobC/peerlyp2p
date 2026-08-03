@@ -112,6 +112,13 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
       minCompletionRate,
     });
   }, [type, selectedCrypto, selectedPayment, amount, minRating, onlineOnly, minPrice, maxPrice, sortBy, minTierLevel, minCompletionRate]);
+  // Sync externally-driven type changes (e.g. Home page Buy/Sell entry points)
+  useEffect(() => {
+    const external = initialFilters?.type ?? null;
+    setType((prev) => (prev === external ? prev : external));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFilters?.type]);
+
 
   const clearFilters = () => {
     setType(null);
