@@ -141,13 +141,13 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
   ].filter(Boolean).length;
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 w-full min-w-0">
       {/* Segmented Buy/Sell Toggle */}
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex p-1 bg-secondary/60 rounded-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 min-w-0">
+        <div className="flex p-1 bg-secondary/60 rounded-2xl shrink-0">
           <button
             className={cn(
-              "px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
+              "px-4 sm:px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
               type === "sell"
                 ? "bg-primary text-primary-foreground shadow-md"
                 : "text-muted-foreground hover:text-foreground"
@@ -158,7 +158,7 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </button>
           <button
             className={cn(
-              "px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
+              "px-4 sm:px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
               type === "buy"
                 ? "bg-destructive text-destructive-foreground shadow-md"
                 : "text-muted-foreground hover:text-foreground"
@@ -169,9 +169,9 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </button>
         </div>
 
-        {/* Online toggle + filter count */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary/40">
+        {/* Online toggle + clear */}
+        <div className="flex items-center gap-1.5 flex-wrap justify-end min-w-0">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-secondary/40 shrink-0">
             <div className={cn(
               "w-2 h-2 rounded-full transition-colors",
               onlineOnly ? "bg-success" : "bg-muted-foreground/30"
@@ -190,14 +190,16 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive rounded-xl"
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive rounded-xl shrink-0"
               onClick={clearFilters}
             >
-              <X className="w-3.5 h-3.5 mr-1" />
-              Clear
+              <X className="w-3.5 h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">Clear</span>
+              <span className="sr-only">Clear filters</span>
             </Button>
           )}
         </div>
+
       </div>
 
       {/* Floating filter container */}
