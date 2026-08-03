@@ -43,15 +43,15 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-            <Link to="/signup">
+            <Link to="/marketplace?intent=buy">
               <Button variant="hero" size="xl" className="w-full sm:w-auto">
-                Start Trading
+                Buy Crypto
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-            <Link to="/marketplace">
+            <Link to="/marketplace?intent=sell">
               <Button variant="glass" size="xl" className="w-full sm:w-auto">
-                Browse Offers
+                Sell Crypto
               </Button>
             </Link>
           </div>
