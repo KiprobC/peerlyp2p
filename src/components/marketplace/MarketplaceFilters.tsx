@@ -112,6 +112,13 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
       minCompletionRate,
     });
   }, [type, selectedCrypto, selectedPayment, amount, minRating, onlineOnly, minPrice, maxPrice, sortBy, minTierLevel, minCompletionRate]);
+  // Sync externally-driven type changes (e.g. Home page Buy/Sell entry points)
+  useEffect(() => {
+    const external = initialFilters?.type ?? null;
+    setType((prev) => (prev === external ? prev : external));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFilters?.type]);
+
 
   const clearFilters = () => {
     setType(null);
@@ -141,13 +148,13 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
   ].filter(Boolean).length;
 
   return (
-    <div className="mb-4">
+    <div className="mb-4 w-full min-w-0">
       {/* Segmented Buy/Sell Toggle */}
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="flex p-1 bg-secondary/60 rounded-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3 min-w-0">
+        <div className="flex p-1 bg-secondary/60 rounded-2xl shrink-0">
           <button
             className={cn(
-              "px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
+              "px-4 sm:px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
               type === "sell"
                 ? "bg-primary text-primary-foreground shadow-md"
                 : "text-muted-foreground hover:text-foreground"
@@ -158,7 +165,7 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </button>
           <button
             className={cn(
-              "px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
+              "px-4 sm:px-6 py-2 text-sm font-semibold rounded-xl transition-all duration-200",
               type === "buy"
                 ? "bg-destructive text-destructive-foreground shadow-md"
                 : "text-muted-foreground hover:text-foreground"
@@ -169,9 +176,9 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </button>
         </div>
 
-        {/* Online toggle + filter count */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary/40">
+        {/* Online toggle + clear */}
+        <div className="flex items-center gap-1.5 flex-wrap justify-end min-w-0">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-secondary/40 shrink-0">
             <div className={cn(
               "w-2 h-2 rounded-full transition-colors",
               onlineOnly ? "bg-success" : "bg-muted-foreground/30"
@@ -190,27 +197,29 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive rounded-xl"
+              className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive rounded-xl shrink-0"
               onClick={clearFilters}
             >
-              <X className="w-3.5 h-3.5 mr-1" />
-              Clear
+              <X className="w-3.5 h-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">Clear</span>
+              <span className="sr-only">Clear filters</span>
             </Button>
           )}
         </div>
+
       </div>
 
       {/* Floating filter container */}
-      <div className="bg-card/80 backdrop-blur-md border border-border/30 rounded-3xl p-3 shadow-lg">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="bg-card/80 backdrop-blur-md border border-border/30 rounded-3xl p-3 shadow-lg overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {/* Crypto pills */}
-          <div className="flex gap-1 p-0.5 bg-secondary/40 rounded-2xl">
+          <div className="flex gap-1 p-0.5 bg-secondary/40 rounded-2xl shrink-0">
             {cryptos.map((c) => (
               <button
                 key={c.value}
                 onClick={() => setSelectedCrypto(c.value)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-medium rounded-xl transition-all duration-150",
+                  "px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-xl transition-all duration-150",
                   selectedCrypto === c.value
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
@@ -223,7 +232,7 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
 
           {/* Payment method */}
           <Select value={selectedPayment} onValueChange={setSelectedPayment}>
-            <SelectTrigger className="w-[120px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3">
+            <SelectTrigger className="w-[104px] sm:w-[120px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3 shrink-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -236,13 +245,13 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </Select>
 
           {/* Amount */}
-          <div className="relative">
+          <div className="relative flex-1 min-w-[100px] sm:flex-none">
             <Input
               type="number"
               placeholder="Amount"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-[110px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3 pr-9"
+              className="w-full sm:w-[110px] h-8 text-xs bg-secondary/40 border-0 rounded-xl px-3 pr-9"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium">
               KES
@@ -250,7 +259,8 @@ const MarketplaceFilters = ({ onFilterChange, initialFilters, globalToggle }: Ma
           </div>
 
           {/* Spacer */}
-          <div className="flex-1" />
+          <div className="hidden sm:block flex-1" />
+
 
           {/* Advanced toggle */}
           <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>

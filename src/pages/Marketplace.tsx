@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -47,8 +48,17 @@ const Marketplace = () => {
     return Array.from(uniqueCurrencies.values());
   }, [countries]);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ?intent=buy → user wants to BUY crypto → show SELL offers (and vice versa)
+  const intentToOfferType = (intent: string | null): "buy" | "sell" | null => {
+    if (intent === "buy") return "sell";
+    if (intent === "sell") return "buy";
+    return null;
+  };
+
   const [filters, setFilters] = useState({
-    type: null as "buy" | "sell" | null,
+    type: intentToOfferType(searchParams.get("intent")),
     crypto: "All",
     paymentMethod: "All",
     amount: "",
@@ -60,6 +70,19 @@ const Marketplace = () => {
     minTierLevel: null as TraderTier | null,
     minCompletionRate: 0,
   });
+
+  // Keep filter state in sync when arriving with a new intent (Home Buy/Sell)
+  useEffect(() => {
+    const intent = searchParams.get("intent");
+    if (!intent) return;
+    const mapped = intentToOfferType(intent);
+    setFilters((prev) => (prev.type === mapped ? prev : { ...prev, type: mapped }));
+    const next = new URLSearchParams(searchParams);
+    next.delete("intent");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tradeDialogOpen, setTradeDialogOpen] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<OfferWithProfile | null>(null);
