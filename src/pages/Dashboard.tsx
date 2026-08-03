@@ -150,13 +150,13 @@ const Dashboard = () => {
             
             {/* Quick Actions - Grid layout to prevent scroll */}
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:gap-3 gap-2">
-              <Link to="/marketplace">
+              <Link to="/marketplace?intent=buy">
                 <Button variant="outline" size="sm" className="w-full h-8 text-[10px] sm:text-xs sm:h-9 px-2 sm:px-3">
                   <ArrowDownLeft className="w-3 h-3 mr-1" />
                   <span className="truncate">Buy</span>
                 </Button>
               </Link>
-              <Link to="/create-offer">
+              <Link to="/marketplace?intent=sell">
                 <Button variant="outline" size="sm" className="w-full h-8 text-[10px] sm:text-xs sm:h-9 px-2 sm:px-3">
                   <ArrowUpRight className="w-3 h-3 mr-1" />
                   <span className="truncate">Sell</span>
