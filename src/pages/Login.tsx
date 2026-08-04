@@ -486,19 +486,37 @@ const Login = () => {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-border bg-secondary" />
-                <span className="text-sm text-muted-foreground">Remember me</span>
+                <input
+                  type="checkbox"
+                  className="rounded border-border bg-secondary"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span className="text-sm text-muted-foreground">Keep me signed in</span>
               </label>
               <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                 Forgot password?
               </Link>
             </div>
 
+            {!rememberMe && (
+              <p className="text-xs text-muted-foreground -mt-2">
+                You'll be signed out when you close your browser.
+              </p>
+            )}
+
             <Button variant="hero" size="lg" className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
               <ArrowRight className="w-5 h-5" />
             </Button>
+
+            <div className="text-center">
+              <Link to="/account-recovery" className="text-sm text-primary hover:underline">
+                Can't sign in?
+              </Link>
+            </div>
           </form>
+
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
