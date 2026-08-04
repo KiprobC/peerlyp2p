@@ -12,6 +12,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isTrustedDevice, trustThisDevice, clearTrustedDevice } from "@/lib/trustedDevice";
 import { checkHasPasskey, loginWithPasskey } from "@/lib/passkeyAuth";
+import {
+  setRememberMe,
+  clearRememberMe,
+  shouldDiscardStoredSession,
+} from "@/lib/rememberMe";
 
 /**
  * Deterministic authentication state machine.
@@ -54,10 +59,12 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signIn: (
     email: string,
-    password: string
+    password: string,
+    rememberMe?: boolean
   ) => Promise<{ error: Error | null; mfaRequired?: boolean; passkeyRequired?: boolean }>;
   completeMFAChallenge: (code: string, trustDevice: boolean) => Promise<{ error: Error | null }>;
   completePasskeyChallenge: () => Promise<{ error: Error | null }>;
+  redeemRecoveryCode: (code: string) => Promise<{ error: Error | null }>;
   acceptPasskeyFallback: () => void;
   cancelMFAChallenge: () => Promise<void>;
   cancelPasskeyChallenge: () => Promise<void>;
@@ -165,20 +172,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(SESSION_EXPIRED_KEY, Date.now().toString());
   }, [clearAuth]);
 
+  /**
+   * Refreshes with one retry. A single failed call is usually a transient
+   * network blip — treating it as an expiry is what bounced signed-in users
+   * back to /login at random.
+   */
+  const attemptRefresh = useCallback(async (): Promise<Session | null> => {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (!error && data.session) return data.session;
+        // Definitive rejection — no point retrying.
+        const status = (error as { status?: number } | null)?.status;
+        if (status && status >= 400 && status < 500) return null;
+      } catch (e) {
+        console.error("[auth] refresh attempt failed", e);
+      }
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+    }
+    return null;
+  }, []);
+
   const refreshSession = useCallback(async () => {
     // Refresh must never promote a pending user.
     if (stateRef.current !== "authenticated") return;
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error || !data.session) {
-        await handleSessionExpired();
-        return;
-      }
-      promoteToAuthenticated(data.session);
-    } catch (e) {
-      console.error("[auth] session refresh failed", e);
+    const refreshed = await attemptRefresh();
+    if (!refreshed) {
+      await handleSessionExpired();
+      return;
     }
-  }, [handleSessionExpired, promoteToAuthenticated]);
+    promoteToAuthenticated(refreshed);
+  }, [attemptRefresh, handleSessionExpired, promoteToAuthenticated]);
 
   // ── Initialization ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -191,13 +215,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         let current = data.session;
 
+        // "Remember me" was off and the browser session has ended.
+        if (current && shouldDiscardStoredSession()) {
+          await supabase.auth.signOut();
+          clearRememberMe();
+          if (mounted) clearAuth();
+          return;
+        }
+
         if (current && isExpiring(current)) {
-          const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !refreshed.session) {
+          const refreshed = await attemptRefresh();
+          if (!refreshed) {
             if (mounted) await handleSessionExpired();
             return;
           }
-          current = refreshed.session;
+          current = refreshed;
         }
 
         if (!mounted) return;
@@ -232,7 +264,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       mounted = false;
     };
-  }, [clearAuth, handleSessionExpired, promoteToAuthenticated, setState]);
+  }, [attemptRefresh, clearAuth, handleSessionExpired, promoteToAuthenticated, setState]);
 
   // ── Auth state listener ───────────────────────────────────────────────────
   useEffect(() => {
@@ -328,10 +360,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error };
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe = true) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error };
     if (!data.session) return { error: new Error("No session returned") };
+
+    // Record the persistence preference before any challenge screen appears.
+    setRememberMe(rememberMe);
+
 
     // 1. MFA always takes precedence over passkeys.
     const required = await resolveRequiredVerification(data.user.id);
@@ -410,8 +446,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     void promoteFromCurrentSession();
   };
 
+  /**
+   * Redeems a one-time recovery code for a pending MFA challenge.
+   * The edge function validates the code, invalidates the remaining set and
+   * removes every enrolled authenticator — only then is the user promoted.
+   */
+  const redeemRecoveryCode = async (code: string) => {
+    if (stateRef.current !== "pending_mfa") {
+      return { error: new Error("No two-factor challenge pending") };
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("mfa-recovery-redeem", {
+        body: { code },
+      });
+      if (error) {
+        return { error: new Error("Invalid or already-used recovery code") };
+      }
+      if (!data?.success) {
+        return { error: new Error(data?.error || "Invalid or already-used recovery code") };
+      }
+
+      clearTrustedDevice();
+      setMfaChallenge(null);
+      const promoted = await promoteFromCurrentSession();
+      if (!promoted) return { error: new Error("Session unavailable after recovery") };
+      return { error: null };
+    } catch (e) {
+      return { error: e instanceof Error ? e : new Error("Recovery failed") };
+    }
+  };
+
+
   const abandonChallenge = useCallback(async () => {
     clearTrustedDevice();
+    clearRememberMe();
     clearAuth();
     await supabase.auth.signOut();
   }, [clearAuth]);
@@ -421,6 +489,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    clearRememberMe();
     clearAuth();
   };
 
@@ -448,6 +517,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signIn,
         completeMFAChallenge,
         completePasskeyChallenge,
+        redeemRecoveryCode,
         acceptPasskeyFallback,
         cancelMFAChallenge,
         cancelPasskeyChallenge,

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle, Fingerprint } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle, Fingerprint, KeyRound } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import peerlyLogo from "@/assets/peerly-logo.png";
@@ -11,10 +11,11 @@ import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge, acceptPasskeyFallback } = useAuth();
+  const { signIn, mfaChallenge, completeMFAChallenge, cancelMFAChallenge, passkeyChallenge, completePasskeyChallenge, cancelPasskeyChallenge, acceptPasskeyFallback, redeemRecoveryCode } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [mfaCode, setMfaCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [mfaError, setMfaError] = useState("");
@@ -24,6 +25,8 @@ const Login = () => {
   const [autoTriggered, setAutoTriggered] = useState(false);
   const [trustDevice, setTrustDevice] = useState(true);
   const [showMfa, setShowMfa] = useState(false);
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
 
   // Get redirect destination from session storage
   const getRedirectPath = () => {
@@ -35,21 +38,12 @@ const Login = () => {
     return "/dashboard";
   };
   
-  useEffect(() => {
-    console.log("MFA challenge changed:", mfaChallenge);
-  }, [mfaChallenge]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    const { error, mfaRequired, passkeyRequired } = await signIn(email, password);
-    
-    console.log("signIn returned:", {
-     error,
-     mfaRequired,
-     passkeyRequired,
-    }); 
+
+    const { error, mfaRequired, passkeyRequired } = await signIn(email, password, rememberMe);
+
 
     if (error) {
       toast.error(error.message || "Invalid email or password");
@@ -139,10 +133,32 @@ const Login = () => {
     setIsLoading(false);
   };
 
+  const handleRecoverySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMfaError("");
+
+    const { error } = await redeemRecoveryCode(recoveryCode);
+    setIsLoading(false);
+
+    if (error) {
+      setMfaError(error.message || "Invalid recovery code");
+      return;
+    }
+
+    setRecoveryCode("");
+    setUseRecoveryCode(false);
+    setShowMfa(false);
+    toast.success("Two-factor authentication reset. Set up a new authenticator in Settings.");
+    navigate("/settings");
+  };
+
   const handleCancelMFA = () => {
     setShowMfa(false);
     cancelMFAChallenge();
     setMfaCode("");
+    setRecoveryCode("");
+    setUseRecoveryCode(false);
     setMfaError("");
     setAttempts(0);
   };
@@ -220,95 +236,176 @@ const Login = () => {
             <div className="mb-8">
               <div className="flex items-center gap-2 mb-2">
                 <Shield className="h-6 w-6 text-primary" />
-                <h1 className="text-3xl font-bold">Two-Factor Authentication</h1>
+                <h1 className="text-3xl font-bold">
+                  {useRecoveryCode ? "Use a recovery code" : "Two-Factor Authentication"}
+                </h1>
               </div>
               <p className="text-muted-foreground">
-                Enter the 6-digit code from your authenticator app
+                {useRecoveryCode
+                  ? "Enter one of the recovery codes you saved when you enabled two-factor authentication"
+                  : "Enter the 6-digit code from your authenticator app"}
               </p>
             </div>
 
-            <form onSubmit={handleMFASubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium mb-2">Verification Code</label>
-                <Input
-                  type="text"
-                  placeholder="Enter 6-digit code"
-                  value={mfaCode}
-                  onChange={(e) => {
-                    setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+            {useRecoveryCode ? (
+              <form onSubmit={handleRecoverySubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Recovery Code</label>
+                  <Input
+                    type="text"
+                    placeholder="XXXX-XXXX"
+                    value={recoveryCode}
+                    onChange={(e) => {
+                      setRecoveryCode(e.target.value.toUpperCase().slice(0, 9));
+                      setMfaError("");
+                    }}
+                    className="text-center text-2xl tracking-widest font-mono uppercase"
+                    maxLength={9}
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                {mfaError && (
+                  <div className="flex items-center gap-2 text-destructive text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    {mfaError}
+                  </div>
+                )}
+
+                <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+                  Using a recovery code turns off two-factor authentication, invalidates every
+                  remaining code, and asks you to set up a new authenticator.
+                </div>
+
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full"
+                  disabled={isLoading || recoveryCode.length < 8}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      Use recovery code
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setUseRecoveryCode(false);
                     setMfaError("");
                   }}
-                  className="text-center text-2xl tracking-widest font-mono"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  autoFocus
-                  required
-                />
-              </div>
-
-              {mfaError && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  {mfaError}
-                </div>
-              )}
-
-              {attempts > 0 && attempts < 5 && (
-                <p className="text-xs text-muted-foreground text-center">
-                  {5 - attempts} attempts remaining
-                </p>
-              )}
-
-              <div className="flex items-center space-x-2">
-                <input
-                  id="trust-device"
-                  type="checkbox"
-                  checked={trustDevice}
-                  onChange={(e)=>setTrustDevice(e.target.checked)}
-                />  
-
-                <label 
-                 htmlFor="trust-device"
-                 className="text-sm text-muted-foreground cursor-pointer"
                 >
-                 Trust this device for 7 days
-                </label>
-              </div>
+                  Back to authenticator code
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleMFASubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Verification Code</label>
+                  <Input
+                    type="text"
+                    placeholder="Enter 6-digit code"
+                    value={mfaCode}
+                    onChange={(e) => {
+                      setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                      setMfaError("");
+                    }}
+                    className="text-center text-2xl tracking-widest font-mono"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                    autoFocus
+                    required
+                  />
+                </div>
 
-              <Button 
-                variant="hero" 
-                size="lg" 
-                className="w-full" 
-                disabled={isLoading || mfaCode.length !== 6}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Verifying...
-                  </>
-                ) : (
-                  <>
-                    Verify Code
-                    <ArrowRight className="w-5 h-5" />
-                  </>
+                {mfaError && (
+                  <div className="flex items-center gap-2 text-destructive text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    {mfaError}
+                  </div>
                 )}
-              </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={handleCancelMFA}
-              >
-                Cancel and sign in with a different account
-              </Button>
-            </form>
+                {attempts > 0 && attempts < 5 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {5 - attempts} attempts remaining
+                  </p>
+                )}
 
-            <div className="mt-6 p-4 rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground text-center">
-                Open your authenticator app (Google Authenticator, Authy, etc.) and enter the current code.
-              </p>
+                <div className="flex items-center space-x-2">
+                  <input
+                    id="trust-device"
+                    type="checkbox"
+                    checked={trustDevice}
+                    onChange={(e) => setTrustDevice(e.target.checked)}
+                  />
+                  <label
+                    htmlFor="trust-device"
+                    className="text-sm text-muted-foreground cursor-pointer"
+                  >
+                    Trust this device for 7 days
+                  </label>
+                </div>
+
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full"
+                  disabled={isLoading || mfaCode.length !== 6}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      Verify Code
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setUseRecoveryCode(true);
+                    setMfaError("");
+                  }}
+                >
+                  <KeyRound className="w-4 h-4 mr-2" />
+                  Lost your phone? Use a recovery code
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={handleCancelMFA}
+                >
+                  Cancel and sign in with a different account
+                </Button>
+              </form>
+            )}
+
+            <div className="mt-6 text-center">
+              <Link to="/account-recovery" className="text-sm text-primary hover:underline">
+                Can't sign in?
+              </Link>
             </div>
+
           </div>
         </div>
 

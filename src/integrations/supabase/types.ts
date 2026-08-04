@@ -92,6 +92,48 @@ export type Database = {
         }
         Relationships: []
       }
+      account_recovery_requests: {
+        Row: {
+          admin_notes: string | null
+          attachments: string[]
+          created_at: string
+          email: string
+          explanation: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          attachments?: string[]
+          created_at?: string
+          email: string
+          explanation: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          admin_notes?: string | null
+          attachments?: string[]
+          created_at?: string
+          email?: string
+          explanation?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
       action_rate_limits: {
         Row: {
           action_type: string
@@ -779,6 +821,30 @@ export type Database = {
           monthly_trade_limit?: number
           tier?: Database["public"]["Enums"]["kyc_tier"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      mfa_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          id?: string
+          used_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -2898,6 +2964,7 @@ export type Database = {
         Args: { p_key: string; p_response?: Json }
         Returns: undefined
       }
+      count_unused_recovery_codes: { Args: never; Returns: number }
       create_notification: {
         Args: {
           p_data?: Json
@@ -3137,6 +3204,14 @@ export type Database = {
           p_source_ts: string
         }
         Returns: Json
+      }
+      redeem_recovery_code: {
+        Args: { p_code: string; p_user_id: string }
+        Returns: boolean
+      }
+      regenerate_recovery_codes: {
+        Args: { p_codes: string[] }
+        Returns: number
       }
       release_escrow_with_fee:
         | {
