@@ -72,14 +72,18 @@ export const RatingDialog = ({
   };
 
   const displayRating = hoveredRating || rating;
+  // Identity is always shown as a handle — never a full name.
+  const handle = ratedName?.trim()
+    ? `@${ratedName.trim().replace(/^@/, "")}`
+    : "this trader";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Rate Your Trade</DialogTitle>
+          <DialogTitle>Rate your trade</DialogTitle>
           <DialogDescription>
-            How was your experience trading with {ratedName}?
+            How was your experience trading with {handle}?
           </DialogDescription>
         </DialogHeader>
 
