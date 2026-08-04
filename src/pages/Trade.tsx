@@ -743,7 +743,7 @@ const TradePageContent = () => {
         tradeId={trade.id}
         raterId={user?.id || ""}
         ratedId={counterpartyId || ""}
-        ratedName={counterparty?.full_name || counterparty?.username || "Trader"}
+        ratedName={counterparty?.username || "Trader"}
       />
     </div>
   );

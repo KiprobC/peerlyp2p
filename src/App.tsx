@@ -30,6 +30,7 @@ import KYCUpload from "./pages/KYCUpload";
 import MyOffers from "./pages/MyOffers";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import AccountRecovery from "./pages/AccountRecovery";
 
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -122,6 +123,10 @@ const AppRoutes = () => {
       <Route
         path="/forgot-password"
         element={<ForgotPassword />}
+      />
+      <Route
+        path="/account-recovery"
+        element={<AccountRecovery />}
       />
 
       <Route
