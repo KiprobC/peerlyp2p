@@ -11,6 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, CheckCircle, Clock, Users, MessageSquare, FileText, Shield, Scale } from "lucide-react";
 import { format } from "date-fns";
+import { RatingsModerationPanel } from "@/components/admin/RatingsModerationPanel";
+
 
 interface DisputeMessagesProps {
   tradeId: string;
@@ -173,9 +175,16 @@ export const AdminModeration = () => {
       <Tabs defaultValue="disputes" className="space-y-4">
         <TabsList>
           <TabsTrigger value="disputes">Disputes</TabsTrigger>
+          <TabsTrigger value="ratings">Ratings</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="moderators">Moderators</TabsTrigger>
         </TabsList>
+
+        {/* Ratings Tab */}
+        <TabsContent value="ratings">
+          <RatingsModerationPanel />
+        </TabsContent>
+
 
         {/* Disputes Tab */}
         <TabsContent value="disputes" className="space-y-4">

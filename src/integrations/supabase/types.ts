@@ -100,9 +100,12 @@ export type Database = {
           email: string
           explanation: string
           id: string
+          mfa_removed_at: string | null
+          mfa_removed_by: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
+          updated_at: string
           user_id: string | null
           username: string
         }
@@ -113,9 +116,12 @@ export type Database = {
           email: string
           explanation: string
           id?: string
+          mfa_removed_at?: string | null
+          mfa_removed_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          updated_at?: string
           user_id?: string | null
           username: string
         }
@@ -126,9 +132,12 @@ export type Database = {
           email?: string
           explanation?: string
           id?: string
+          mfa_removed_at?: string | null
+          mfa_removed_by?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
+          updated_at?: string
           user_id?: string | null
           username?: string
         }
@@ -2851,12 +2860,29 @@ export type Database = {
         Returns: undefined
       }
       admin_push_dispatch_status: { Args: never; Returns: Json }
+      admin_record_mfa_removal: {
+        Args: {
+          p_factors?: number
+          p_reason: string
+          p_request_id: string
+          p_target_user: string
+        }
+        Returns: undefined
+      }
       admin_reject_deposit: {
         Args: { p_notes?: string; p_request_id: string }
         Returns: undefined
       }
       admin_reject_withdrawal: {
         Args: { p_notes?: string; p_request_id: string }
+        Returns: undefined
+      }
+      admin_remove_rating: {
+        Args: { p_rating_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_review_recovery_request: {
+        Args: { p_decision: string; p_notes?: string; p_request_id: string }
         Returns: undefined
       }
       admin_rotate_deposit_address: {
