@@ -68,6 +68,8 @@ import AdminPWADiagnostics from "./pages/admin/AdminPWADiagnostics";
 import AdminManualTreasury from "./pages/admin/AdminManualTreasury";
 import AdminWithdrawalLimits from "./pages/admin/AdminWithdrawalLimits";
 import AdminTreasuryOverview from "./pages/admin/AdminTreasuryOverview";
+import AdminAccountRecovery from "./pages/admin/AdminAccountRecovery";
+
 import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
@@ -289,6 +291,8 @@ const AppRoutes = () => {
         <Route path="manual-treasury" element={<AdminManualTreasury />} />
         <Route path="withdrawal-limits" element={<AdminWithdrawalLimits />} />
         <Route path="treasury-overview" element={<AdminTreasuryOverview />} />
+        <Route path="account-recovery" element={<AdminAccountRecovery />} />
+
       </Route>
       
       {/* Moderator routes - ModeratorLayout handles role check internally */}
