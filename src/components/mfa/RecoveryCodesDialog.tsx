@@ -43,6 +43,7 @@ export const RecoveryCodesDialog = ({
     try {
       await navigator.clipboard.writeText(codes.join("\n"));
       setCopied(true);
+      setAcknowledged(true);
       setTimeout(() => setCopied(false), 2000);
       toast.success("Recovery codes copied");
     } catch {
@@ -50,22 +51,37 @@ export const RecoveryCodesDialog = ({
     }
   };
 
+  const handleDownload = () => {
+    if (!codes) return;
+    downloadRecoveryCodes(codes);
+    setAcknowledged(true);
+  };
+
   const handlePrint = () => {
     if (!codes) return;
-    if (!printRecoveryCodes(codes)) toast.error("Allow pop-ups to print your codes");
+    if (printRecoveryCodes(codes)) setAcknowledged(true);
+    else toast.error("Allow pop-ups to print your codes");
   };
 
   return (
+    // Blocking modal: cannot be dismissed with Escape, an outside click, or the
+    // close button. The only exit is the acknowledgement gate below.
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : undefined)}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent
+        className="sm:max-w-md [&>button]:hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
+
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-primary" />
             Your recovery codes
           </DialogTitle>
           <DialogDescription>
-            Save these now. They are the only way back into your account if you lose your
-            authenticator.
+            These recovery codes will only be shown once. Store them safely — they are the
+            only way back into your account if you lose your authenticator.
           </DialogDescription>
         </DialogHeader>
 
@@ -102,7 +118,7 @@ export const RecoveryCodesDialog = ({
                 {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
                 Copy
               </Button>
-              <Button variant="outline" size="sm" onClick={() => downloadRecoveryCodes(codes)}>
+              <Button variant="outline" size="sm" onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-1" />
                 Download
               </Button>

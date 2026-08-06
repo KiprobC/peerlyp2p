@@ -28,6 +28,8 @@ const KNOWN_PREFIXES = [
   "/settings",
   "/notifications",
   "/how-it-works",
+  "/admin",
+  "/moderator",
 ];
 
 /** Only allow in-app absolute paths that map to a registered route. */
@@ -42,6 +44,9 @@ const has = (text: string, ...needles: string[]) =>
 export const resolveNotificationRoute = (n: NotificationLike): string => {
   const data = (n.data ?? {}) as Record<string, any>;
   const text = `${n.title ?? ""} ${n.message ?? ""}`.toLowerCase();
+
+  // 1a. Admin/staff queue notifications carry an explicit `link`.
+  if (typeof data.link === "string" && isKnownRoute(data.link)) return data.link;
 
   // 1. Explicit payload routing wins (future-proof: target_route/target_id).
   if (typeof data.target_route === "string") {
