@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useMFA } from "@/hooks/useMFA";
+import { useRecoveryCodes } from "@/hooks/useRecoveryCodes";
+import { RecoveryCodesDialog } from "@/components/mfa/RecoveryCodesDialog";
 import { Shield, Loader2, Copy, CheckCircle, Smartphone, Key, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,6 +26,11 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
   const [step, setStep] = useState<"intro" | "qr" | "verify">("intro");
   const [verificationCode, setVerificationCode] = useState("");
   const [copiedSecret, setCopiedSecret] = useState(false);
+  const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [generatingCodes, setGeneratingCodes] = useState(false);
+
+  const { regenerate } = useRecoveryCodes();
   
   const { 
     enrollmentData, 
@@ -46,17 +53,29 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
 
   const handleVerify = async () => {
     if (!enrollmentData || verificationCode.length !== 6) return;
-    
+
     const result = await verifyEnrollment(enrollmentData.id, verificationCode);
-    
-    // Only close dialog after MFA state has been refreshed and confirmed enabled
+
+    // Only continue after MFA state has been refreshed and confirmed enabled
     if (result.success && result.isEnabled) {
-      // Reset dialog state
       setStep("intro");
       setVerificationCode("");
       setCopiedSecret(false);
       onOpenChange(false);
-      onSuccess?.();
+
+      // Mandatory: issue recovery codes exactly once and block until acknowledged.
+      setGeneratingCodes(true);
+      setRecoveryCodes(null);
+      setShowRecoveryCodes(true);
+      const { codes, error } = await regenerate();
+      setGeneratingCodes(false);
+      if (error || !codes) {
+        setShowRecoveryCodes(false);
+        toast.error("2FA is enabled, but recovery codes could not be generated. Please generate them from Settings.");
+        onSuccess?.();
+        return;
+      }
+      setRecoveryCodes(codes);
     }
   };
 
@@ -89,6 +108,7 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -260,5 +280,17 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <RecoveryCodesDialog
+      open={showRecoveryCodes}
+      onOpenChange={setShowRecoveryCodes}
+      codes={recoveryCodes}
+      generating={generatingCodes}
+      onDone={() => {
+        setRecoveryCodes(null);
+        onSuccess?.();
+      }}
+    />
+    </>
   );
 };

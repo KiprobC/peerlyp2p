@@ -75,6 +75,8 @@ function nameSimilarity(a: string, b: string): number {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  let failedSubmissionId: string | null = null;
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -103,6 +105,7 @@ Deno.serve(async (req) => {
     }
 
     const { submission_id } = await req.json();
+    failedSubmissionId = submission_id ?? null;
     if (!submission_id) {
       return new Response(JSON.stringify({ error: "submission_id required" }), {
         status: 400,
@@ -237,9 +240,15 @@ Deno.serve(async (req) => {
     if (selfieQuality && selfieQuality.is_real_person === false) critical.push("selfie_invalid");
     if (faceMatch && faceMatch.match === false && (faceMatch.confidence ?? 0) >= 0.7) critical.push("face_mismatch");
 
+    const aiUnavailable = !idQuality && !selfieQuality && !faceMatch;
+
     let decision = "needs_review";
     let reason = "manual_review";
-    if (critical.length > 0) {
+    if (aiUnavailable) {
+      decision = "needs_review";
+      reason = "ai_unavailable";
+      console.error("kyc-auto-verify: AI vision unavailable, escalating to manual review");
+    } else if (critical.length > 0) {
       decision = "auto_rejected";
       reason = critical.join(",");
     } else if (score >= 85) {
@@ -267,10 +276,29 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("kyc-auto-verify error:", err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("kyc-auto-verify error:", message);
+
+    // Never leave the submission stuck in `pending`: escalate to manual review
+    // and record the failure in the admin audit log.
+    try {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      if (failedSubmissionId) {
+        await admin.rpc("kyc_job_failed", {
+          p_submission_id: failedSubmissionId,
+          p_error: message,
+        });
+      }
+    } catch (logErr) {
+      console.error("kyc-auto-verify: failed to record job failure", logErr);
+    }
+
+    return new Response(
+      JSON.stringify({ ok: false, status: "needs_review", reason: "bot_failed", error: message }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

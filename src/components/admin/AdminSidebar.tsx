@@ -29,8 +29,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { useAdminPendingCounts, AdminPendingCounts } from "@/hooks/useAdminPendingCounts";
 
-const navSections = [
+type BadgeKey = "kyc" | "disputes" | "treasury" | "recovery" | "support" | "risk";
+
+interface NavItem {
+  href: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  badge?: BadgeKey;
+}
+
+const badgeCount = (key: BadgeKey | undefined, counts: AdminPendingCounts): number => {
+  if (!key) return 0;
+  if (key === "treasury") return counts.deposits + counts.withdrawals;
+  return counts[key] ?? 0;
+};
+
+const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: "Overview",
     items: [
@@ -57,29 +74,29 @@ const navSections = [
       { href: "/admin/escrow", icon: Lock, label: "Escrow Management" },
       { href: "/admin/treasury", icon: Landmark, label: "Treasury (Ledger)" },
       { href: "/admin/treasury-overview", icon: BarChart3, label: "Treasury Overview" },
-      { href: "/admin/manual-treasury", icon: Wallet, label: "Manual Treasury" },
+      { href: "/admin/manual-treasury", icon: Wallet, label: "Manual Treasury", badge: "treasury" },
       { href: "/admin/withdrawal-limits", icon: Percent, label: "Withdrawal Limits" },
     ],
   },
   {
     title: "Support",
     items: [
-      { href: "/admin/support", icon: MessageCircle, label: "Support Chat" },
-      { href: "/admin/disputes", icon: AlertTriangle, label: "Disputes" },
+      { href: "/admin/support", icon: MessageCircle, label: "Support Chat", badge: "support" },
+      { href: "/admin/disputes", icon: AlertTriangle, label: "Disputes", badge: "disputes" },
       { href: "/admin/moderation", icon: UserCheck, label: "Moderation" },
-      { href: "/admin/account-recovery", icon: LifeBuoy, label: "Account Recovery" },
+      { href: "/admin/account-recovery", icon: LifeBuoy, label: "Account Recovery", badge: "recovery" },
 
       { href: "/admin/payment-methods", icon: Globe, label: "Payment Methods" },
-      { href: "/admin/kyc", icon: FileCheck, label: "KYC Verification" },
+      { href: "/admin/kyc", icon: FileCheck, label: "KYC Verification", badge: "kyc" },
       { href: "/admin/notifications", icon: Bell, label: "Notifications" },
     ],
   },
   {
     title: "System",
     items: [
-      { href: "/admin/controls", icon: Shield, label: "Platform Controls" },
-      { href: "/admin/risk", icon: AlertTriangle, label: "Risk Controls" },
-      { href: "/admin/risk-center", icon: ShieldAlert, label: "Risk Center" },
+      { href: "/admin/platform-controls", icon: Shield, label: "Platform Controls" },
+      { href: "/admin/risk-controls", icon: AlertTriangle, label: "Risk Controls" },
+      { href: "/admin/risk-center", icon: ShieldAlert, label: "Risk Center", badge: "risk" },
       { href: "/admin/security", icon: Shield, label: "Security & MFA" },
       { href: "/admin/settings", icon: Settings, label: "Settings" },
       { href: "/admin/logs", icon: Shield, label: "Audit Logs" },
@@ -93,6 +110,7 @@ const navSections = [
 const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
   const location = useLocation();
   const { signOut } = useAuth();
+  const { counts } = useAdminPendingCounts();
 
   return (
     <>
@@ -130,7 +148,15 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
                     )}
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate flex-1">{item.label}</span>
+                    {badgeCount(item.badge, counts) > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="h-5 min-w-5 px-1.5 justify-center rounded-full text-[10px] font-semibold shrink-0"
+                      >
+                        {badgeCount(item.badge, counts) > 99 ? "99+" : badgeCount(item.badge, counts)}
+                      </Badge>
+                    )}
                   </Link>
                 );
               })}

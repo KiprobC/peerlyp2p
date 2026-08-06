@@ -2859,6 +2859,7 @@ export type Database = {
         Args: { p_notes?: string; p_request_id: string; p_tx_hash: string }
         Returns: undefined
       }
+      admin_pending_counts: { Args: never; Returns: Json }
       admin_push_dispatch_status: { Args: never; Returns: Json }
       admin_record_mfa_removal: {
         Args: {
@@ -3136,6 +3137,10 @@ export type Database = {
         Args: { p_scope: string; p_user_id: string }
         Returns: boolean
       }
+      kyc_job_failed: {
+        Args: { p_error: string; p_submission_id: string }
+        Returns: Json
+      }
       lock_escrow:
         | {
             Args: {
@@ -3317,6 +3322,7 @@ export type Database = {
           p_id_front_url: string
           p_id_number: string
           p_id_type: string
+          p_phone?: string
           p_selfie_url: string
         }
         Returns: Json
