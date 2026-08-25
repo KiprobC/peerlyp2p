@@ -12,6 +12,23 @@ export const useRecoveryCodes = () => {
   const { user } = useAuth();
   const [remaining, setRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const RECOVERY_OPERATION_TIMEOUT_MS = 15_000;
+
+  const withTimeout = async <T,>(operation: Promise<T>): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error("Recovery-code generation timed out. Please try again from Settings.")),
+        RECOVERY_OPERATION_TIMEOUT_MS
+      );
+    });
+
+    try {
+      return await Promise.race([operation, timeout]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -37,11 +54,11 @@ export const useRecoveryCodes = () => {
     setLoading(true);
     try {
       const codes = generateRecoveryCodes();
-      const { error } = await (supabase.rpc as any)("regenerate_recovery_codes", {
-        p_codes: codes,
-      });
+      const { error } = await withTimeout(
+        (supabase.rpc as any)("regenerate_recovery_codes", { p_codes: codes })
+      );
       if (error) throw error;
-      await refresh();
+      await withTimeout(refresh());
       return { codes, error: null };
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to generate recovery codes";

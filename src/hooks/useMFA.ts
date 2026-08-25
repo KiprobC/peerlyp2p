@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -51,9 +51,24 @@ export const useMFA = () => {
   // Track MFA verification attempts for rate limiting
   const [attempts, setAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
+  const enrollmentVerificationInFlight = useRef(false);
 
   const MAX_ATTEMPTS = 5;
   const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+  const MFA_OPERATION_TIMEOUT_MS = 15_000;
+
+  const withTimeout = async <T,>(operation: Promise<T>, message: string): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(message)), MFA_OPERATION_TIMEOUT_MS);
+    });
+
+    try {
+      return await Promise.race([operation, timeout]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
 
   const checkRateLimit = useCallback(() => {
     if (lockedUntil && new Date() < lockedUntil) {
@@ -186,24 +201,29 @@ export const useMFA = () => {
 
   // Verify enrollment with TOTP code
   const verifyEnrollment = async (factorId: string, code: string): Promise<{ success: boolean; error?: string; isEnabled?: boolean }> => {
+    if (enrollmentVerificationInFlight.current) {
+      return { success: false, error: "Verification already in progress" };
+    }
     if (!checkRateLimit()) return { success: false, error: "Rate limited" };
-    
+
+    enrollmentVerificationInFlight.current = true;
     setState(prev => ({ ...prev, verifying: true }));
 
     try {
       // First create a challenge
-      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId,
-      });
+      const { data: challengeData, error: challengeError } = await withTimeout(
+        supabase.auth.mfa.challenge({ factorId }),
+        "MFA verification timed out. Please try again."
+      );
 
       if (challengeError) throw challengeError;
+      if (!challengeData?.id) throw new Error("MFA challenge could not be created");
 
       // Then verify
-      const { data, error } = await supabase.auth.mfa.verify({
-        factorId,
-        challengeId: challengeData.id,
-        code,
-      });
+      const { error } = await withTimeout(
+        supabase.auth.mfa.verify({ factorId, challengeId: challengeData.id, code }),
+        "MFA verification timed out. Please try again."
+      );
 
       if (error) {
         incrementAttempt();
@@ -213,13 +233,22 @@ export const useMFA = () => {
       resetAttempts();
 
       // Persist user preference ("enabled in Security")
-      await supabase
-        .from("user_settings")
-        .update({ two_factor_enabled: true })
-        .eq("user_id", user.id);
+      if (!user) throw new Error("Your session expired. Please sign in again.");
+      const { error: settingsError } = await withTimeout(
+        supabase
+          .from("user_settings")
+          .update({ two_factor_enabled: true })
+          .eq("user_id", user.id),
+        "Saving MFA settings timed out. Please try again."
+      );
+      if (settingsError) throw settingsError;
 
       // Refresh factors FIRST to get updated state before closing dialog
-      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const { data: factorsData, error: factorsError } = await withTimeout(
+        supabase.auth.mfa.listFactors(),
+        "Refreshing MFA status timed out. Please try again."
+      );
+      if (factorsError) throw factorsError;
       const verifiedFactors = factorsData?.totp.filter((f) => f.status === "verified") || [];
       const isNowEnabled = verifiedFactors.length > 0;
 
@@ -236,11 +265,14 @@ export const useMFA = () => {
       toast.success("Two-factor authentication enabled successfully!");
 
       return { success: true, isEnabled: isNowEnabled };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error verifying MFA enrollment:", error);
-      toast.error(error.message || "Invalid verification code");
+      const message = error instanceof Error ? error.message : "MFA verification failed";
+      toast.error(message);
+      return { success: false, error: message };
+    } finally {
+      enrollmentVerificationInFlight.current = false;
       setState(prev => ({ ...prev, verifying: false }));
-      return { success: false, error: error.message };
     }
   };
 

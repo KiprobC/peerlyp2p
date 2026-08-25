@@ -29,6 +29,7 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
   const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const [generatingCodes, setGeneratingCodes] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   const { regenerate } = useRecoveryCodes();
   
@@ -54,6 +55,7 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
   const handleVerify = async () => {
     if (!enrollmentData || verificationCode.length !== 6) return;
 
+    setVerificationError(null);
     const result = await verifyEnrollment(enrollmentData.id, verificationCode);
 
     // Only continue after MFA state has been refreshed and confirmed enabled
@@ -67,15 +69,22 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
       setGeneratingCodes(true);
       setRecoveryCodes(null);
       setShowRecoveryCodes(true);
-      const { codes, error } = await regenerate();
-      setGeneratingCodes(false);
-      if (error || !codes) {
-        setShowRecoveryCodes(false);
-        toast.error("2FA is enabled, but recovery codes could not be generated. Please generate them from Settings.");
-        onSuccess?.();
-        return;
+      try {
+        const { codes, error } = await regenerate();
+        if (error || !codes) {
+          toast.error("2FA is enabled, but recovery codes could not be generated. Please generate them from Settings.");
+          setShowRecoveryCodes(false);
+          onSuccess?.();
+          return;
+        }
+        setRecoveryCodes(codes);
+      } finally {
+        setGeneratingCodes(false);
       }
-      setRecoveryCodes(codes);
+    } else {
+      setVerificationError(
+        result.error || "MFA verification completed, but enrollment could not be confirmed. Please try again."
+      );
     }
   };
 
@@ -209,6 +218,9 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
                 disabled={isLocked}
                 autoComplete="one-time-code"
               />
+              {verificationError && (
+                <p className="text-sm text-destructive">{verificationError}</p>
+              )}
               {attempts > 0 && attempts < 5 && (
                 <p className="text-xs text-muted-foreground text-center">
                   {5 - attempts} attempts remaining
