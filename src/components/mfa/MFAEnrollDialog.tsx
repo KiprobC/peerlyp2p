@@ -68,7 +68,6 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
       // Mandatory: issue recovery codes exactly once and block until acknowledged.
       setGeneratingCodes(true);
       setRecoveryCodes(null);
-      setShowRecoveryCodes(true);
       try {
         const { codes, error } = await regenerate();
         if (error || !codes) {
@@ -78,6 +77,7 @@ export const MFAEnrollDialog = ({ open, onOpenChange, onSuccess }: MFAEnrollDial
           return;
         }
         setRecoveryCodes(codes);
+        setShowRecoveryCodes(true);
       } finally {
         setGeneratingCodes(false);
       }

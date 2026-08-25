@@ -52,16 +52,21 @@ export const useRecoveryCodes = () => {
     { codes: string[]; error: null } | { codes: null; error: string }
   > => {
     setLoading(true);
+    console.info("[MFA] recovery:start");
     try {
       const codes = generateRecoveryCodes();
       const { error } = await withTimeout(
-        (supabase.rpc as any)("regenerate_recovery_codes", { p_codes: codes })
+        Promise.resolve(
+          (supabase.rpc as any)("regenerate_recovery_codes", { p_codes: codes })
+        )
       );
       if (error) throw error;
       await withTimeout(refresh());
+      console.info("[MFA] recovery:success");
       return { codes, error: null };
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to generate recovery codes";
+      console.info("[MFA] recovery:failure", { message });
       return { codes: null, error: message };
     } finally {
       setLoading(false);

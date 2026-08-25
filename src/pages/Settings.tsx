@@ -41,7 +41,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useMFA } from "@/hooks/useMFA";
 import { MFAEnrollDialog } from "@/components/mfa/MFAEnrollDialog";
+import { RecoveryCodesDialog } from "@/components/mfa/RecoveryCodesDialog";
 import { MFAVerifyDialog } from "@/components/mfa/MFAVerifyDialog";
+import { useRecoveryCodes } from "@/hooks/useRecoveryCodes";
 import { PasskeyDeviceList } from "@/components/security/PasskeyDeviceList";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { SettingsItem, SettingsSection } from "@/components/settings/SettingsItem";
@@ -60,6 +62,7 @@ const Settings = () => {
   const { profile } = useProfile();
   const { settings, loading, updateSettings, refetch } = useSettings();
   const { factors, isEnabled, loading: mfaLoading, disableMFA, fetchFactors } = useMFA();
+  const { regenerate: regenerateRecoveryCodes } = useRecoveryCodes();
   const { passkeys } = usePasskeyContext();
   const hasPasskey = passkeys.length > 0;
 
@@ -80,6 +83,9 @@ const Settings = () => {
   const [showPasskeyVerify, setShowPasskeyVerify] = useState(false);
   const [showDeletePasskeyVerify, setShowDeletePasskeyVerify] = useState(false);
   const [showEnable2FAPasskey, setShowEnable2FAPasskey] = useState(false);
+  const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const [generatingRecoveryCodes, setGeneratingRecoveryCodes] = useState(false);
 
   // Re-fetch MFA when security dialog opens
   useEffect(() => {
@@ -252,6 +258,21 @@ const Settings = () => {
   const handleEnable2FAOTPVerified = () => {
     setShowOTPForEnable2FA(false);
     setShowEnrollDialog(true);
+  };
+
+  const handleGenerateRecoveryCodes = async () => {
+    setGeneratingRecoveryCodes(true);
+    try {
+      const result = await regenerateRecoveryCodes();
+      if (result.error || !result.codes) {
+        toast.error(result.error || "Recovery codes could not be generated");
+        return;
+      }
+      setRecoveryCodes(result.codes);
+      setShowRecoveryCodes(true);
+    } finally {
+      setGeneratingRecoveryCodes(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -598,6 +619,16 @@ const Settings = () => {
                       Disable
                     </Button>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={handleGenerateRecoveryCodes}
+                    disabled={generatingRecoveryCodes}
+                  >
+                    {generatingRecoveryCodes && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Generate new recovery codes
+                  </Button>
                 </div>
               ) : (
                 <Button 
@@ -827,6 +858,14 @@ const Settings = () => {
         open={showEnrollDialog} 
         onOpenChange={setShowEnrollDialog}
         onSuccess={handleMFAEnrollSuccess}
+      />
+
+      <RecoveryCodesDialog
+        open={showRecoveryCodes}
+        onOpenChange={setShowRecoveryCodes}
+        codes={recoveryCodes}
+        generating={generatingRecoveryCodes}
+        onDone={() => setRecoveryCodes(null)}
       />
 
       {/* MFA Verification for Password Change */}

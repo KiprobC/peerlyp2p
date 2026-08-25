@@ -70,6 +70,10 @@ export const useMFA = () => {
     }
   };
 
+  const logMFA = (marker: string, details?: Record<string, unknown>) => {
+    console.info(`[MFA] ${marker}`, details ?? "");
+  };
+
   const checkRateLimit = useCallback(() => {
     if (lockedUntil && new Date() < lockedUntil) {
       const remainingMs = lockedUntil.getTime() - Date.now();
@@ -173,16 +177,23 @@ export const useMFA = () => {
   // Start MFA enrollment
   const startEnrollment = async (friendlyName?: string) => {
     if (!checkRateLimit()) return { success: false, error: "Rate limited" };
-    
+    logMFA("enroll:start");
     setState(prev => ({ ...prev, enrolling: true }));
 
     try {
-      const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: friendlyName || "Authenticator App",
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: friendlyName || "Authenticator App",
+        }),
+        "MFA enrollment timed out. Please try again."
+      );
 
       if (error) throw error;
+      if (!data?.id || !data.totp?.qr_code || !data.totp?.secret) {
+        throw new Error("MFA enrollment returned incomplete data");
+      }
+      logMFA("enroll:success", { factorId: data.id });
 
       setState(prev => ({
         ...prev,
@@ -191,11 +202,13 @@ export const useMFA = () => {
       }));
 
       return { success: true, data };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error starting MFA enrollment:", error);
-      toast.error(error.message || "Failed to start MFA enrollment");
+      const message = error instanceof Error ? error.message : "Failed to start MFA enrollment";
+      toast.error(message);
       setState(prev => ({ ...prev, enrolling: false }));
-      return { success: false, error: error.message };
+      logMFA("enroll:failure", { message });
+      return { success: false, error: message };
     }
   };
 
@@ -210,7 +223,23 @@ export const useMFA = () => {
     setState(prev => ({ ...prev, verifying: true }));
 
     try {
+      if (!user) throw new Error("No authenticated session is available for MFA verification");
+      if (!state.enrollmentData || state.enrollmentData.id !== factorId) {
+        throw new Error("MFA enrollment is stale. Please start enrollment again.");
+      }
+      logMFA("session:check:start");
+      const { data: sessionData, error: sessionError } = await withTimeout(
+        supabase.auth.getSession(),
+        "MFA session check timed out. Please try again."
+      );
+      if (sessionError) throw sessionError;
+      if (!sessionData.session || sessionData.session.user.id !== user.id) {
+        throw new Error("Authenticated session is missing or belongs to another user");
+      }
+      logMFA("session:check:success", { userId: user.id });
+
       // First create a challenge
+      logMFA("challenge:start", { factorId });
       const { data: challengeData, error: challengeError } = await withTimeout(
         supabase.auth.mfa.challenge({ factorId }),
         "MFA verification timed out. Please try again."
@@ -218,9 +247,11 @@ export const useMFA = () => {
 
       if (challengeError) throw challengeError;
       if (!challengeData?.id) throw new Error("MFA challenge could not be created");
+      logMFA("challenge:success", { factorId, challengeId: challengeData.id });
 
       // Then verify
-      const { error } = await withTimeout(
+      logMFA("verify:start", { factorId, challengeId: challengeData.id });
+      const { data: verifyData, error } = await withTimeout(
         supabase.auth.mfa.verify({ factorId, challengeId: challengeData.id, code }),
         "MFA verification timed out. Please try again."
       );
@@ -229,26 +260,72 @@ export const useMFA = () => {
         incrementAttempt();
         throw error;
       }
+      logMFA("verify:success", { factorId, challengeId: challengeData.id, hasData: !!verifyData });
 
       resetAttempts();
 
+      // Confirm the factor that was just verified before changing application state.
+      logMFA("factors:list:start");
+      const { data: verifiedFactorsData, error: verifiedFactorsError } = await withTimeout(
+        supabase.auth.mfa.listFactors(),
+        "Confirming MFA verification timed out. Please try again."
+      );
+      if (verifiedFactorsError) throw verifiedFactorsError;
+      const verifiedFactor = verifiedFactorsData?.totp.find(
+        (factor) => factor.id === factorId && factor.status === "verified"
+      );
+      if (!verifiedFactor) throw new Error("MFA factor was not confirmed as verified");
+      logMFA("factors:list:success", { factorId, status: verifiedFactor.status });
+
       // Persist user preference ("enabled in Security")
-      if (!user) throw new Error("Your session expired. Please sign in again.");
-      const { error: settingsError } = await withTimeout(
-        supabase
-          .from("user_settings")
-          .update({ two_factor_enabled: true })
-          .eq("user_id", user.id),
+      logMFA("settings:update:start", { userId: user.id });
+      const { data: settingsData, error: settingsError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("user_settings")
+            .update({ two_factor_enabled: true })
+            .eq("user_id", user.id)
+            .select("user_id, two_factor_enabled")
+            .maybeSingle()
+        ),
         "Saving MFA settings timed out. Please try again."
       );
       if (settingsError) throw settingsError;
+      if (!settingsData) {
+        logMFA("settings:insert:start", { userId: user.id });
+        const { data: insertedSettings, error: insertError } = await withTimeout(
+          Promise.resolve(
+            supabase
+              .from("user_settings")
+              .insert({ user_id: user.id, two_factor_enabled: true })
+              .select("user_id, two_factor_enabled")
+              .single()
+          ),
+          "Creating MFA settings timed out. Please try again."
+        );
+        if (insertError) throw insertError;
+        if (!insertedSettings?.two_factor_enabled || insertedSettings.user_id !== user.id) {
+          throw new Error("MFA was verified, but account settings could not be created");
+        }
+        logMFA("settings:insert:success", { userId: user.id });
+      }
+      if (!settingsData?.two_factor_enabled || settingsData.user_id !== user.id) {
+        if (settingsData) {
+          throw new Error("MFA was verified, but the account setting was not updated");
+        }
+      }
+      if (settingsData?.two_factor_enabled) {
+        logMFA("settings:update:success", { userId: user.id });
+      }
 
       // Refresh factors FIRST to get updated state before closing dialog
+      logMFA("factors:list:start");
       const { data: factorsData, error: factorsError } = await withTimeout(
         supabase.auth.mfa.listFactors(),
         "Refreshing MFA status timed out. Please try again."
       );
       if (factorsError) throw factorsError;
+      logMFA("factors:list:success", { factorId });
       const verifiedFactors = factorsData?.totp.filter((f) => f.status === "verified") || [];
       const isNowEnabled = verifiedFactors.length > 0;
 
@@ -269,6 +346,7 @@ export const useMFA = () => {
       console.error("Error verifying MFA enrollment:", error);
       const message = error instanceof Error ? error.message : "MFA verification failed";
       toast.error(message);
+      logMFA("verify:failure", { message });
       return { success: false, error: message };
     } finally {
       enrollmentVerificationInFlight.current = false;
