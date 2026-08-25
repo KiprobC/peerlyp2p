@@ -96,9 +96,11 @@ const Login = () => {
   const handleOtpFallbackVerified = () => {
     // Email OTP verified — accept session and proceed without signing out
     setShowOtpFallback(false);
-    acceptPasskeyFallback();
-    toast.success("Verified by email — welcome back!");
-    navigate(getRedirectPath());
+    void acceptPasskeyFallback().then((promoted) => {
+      if (!promoted) return;
+      toast.success("Verified by email — welcome back!");
+      navigate(getRedirectPath());
+    });
   };
 
   const handleMFASubmit = async (e: React.FormEvent) => {

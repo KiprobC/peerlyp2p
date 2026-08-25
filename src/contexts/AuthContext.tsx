@@ -65,7 +65,7 @@ interface AuthContextType {
   completeMFAChallenge: (code: string, trustDevice: boolean) => Promise<{ error: Error | null }>;
   completePasskeyChallenge: () => Promise<{ error: Error | null }>;
   redeemRecoveryCode: (code: string) => Promise<{ error: Error | null }>;
-  acceptPasskeyFallback: () => void;
+  acceptPasskeyFallback: () => Promise<boolean>;
   cancelMFAChallenge: () => Promise<void>;
   cancelPasskeyChallenge: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -109,12 +109,12 @@ const resolveRequiredVerification = async (
     const verified = factors?.totp?.find((f) => f.status === "verified");
     if (!verified) return { kind: "none" };
 
-    if (isTrustedDevice()) return { kind: "none" };
+    if (isTrustedDevice(userId)) return { kind: "none" };
 
     return { kind: "mfa", factorId: verified.id };
   } catch (e) {
     console.error("[auth] verification resolution failed", e);
-    return { kind: "none" };
+    throw e;
   }
 };
 
@@ -125,6 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [mfaChallenge, setMfaChallenge] = useState<MFAChallenge | null>(null);
   const [passkeyChallenge, setPasskeyChallenge] = useState<PasskeyChallenge | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const signInInProgressRef = useRef(false);
 
   // Mirror of authState readable inside async callbacks / listeners.
   const stateRef = useRef<AuthState>("loading");
@@ -154,9 +155,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [setState]);
 
   /** Pulls the current session and promotes. Used after a challenge succeeds. */
-  const promoteFromCurrentSession = useCallback(async (): Promise<boolean> => {
+  const promoteFromCurrentSession = useCallback(async (expectedState: AuthState): Promise<boolean> => {
+    if (stateRef.current !== expectedState) return false;
     const { data } = await supabase.auth.getSession();
-    if (!data.session) return false;
+    if (!data.session || stateRef.current !== expectedState) return false;
     promoteToAuthenticated(data.session);
     return true;
   }, [promoteToAuthenticated]);
@@ -239,7 +241,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        // A session alone is NOT authentication — re-check the second factor.
+        // A session alone is NOT authentication — re-check every configured factor.
         const required = await resolveRequiredVerification(current.user.id);
         if (!mounted) return;
 
@@ -248,6 +250,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(current.user);
           setMfaChallenge({ factorId: required.factorId, email: current.user.email ?? "" });
           setState("pending_mfa");
+          return;
+        }
+
+        if (await checkHasPasskey(current.user.email ?? "")) {
+          setSession(current);
+          setUser(current.user);
+          setPasskeyChallenge({ email: current.user.email ?? "" });
+          setState("pending_passkey");
           return;
         }
 
@@ -272,7 +282,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, newSession) => {
+    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       const pending =
         stateRef.current === "pending_mfa" || stateRef.current === "pending_passkey";
 
@@ -294,10 +304,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
         if (!newSession) return;
-        if (pending) {
+        if (signInInProgressRef.current || pending) {
           // Keep the raw session but do NOT authenticate — a challenge is open.
           setSession(newSession);
           setUser(newSession.user);
+          return;
+        }
+        // OAuth and other auth events must pass through the same factor gate.
+        const required = await resolveRequiredVerification(newSession.user.id);
+        if (stateRef.current !== "loading" && stateRef.current !== "unauthenticated") return;
+        if (required.kind === "mfa") {
+          setSession(newSession);
+          setUser(newSession.user);
+          setMfaChallenge({ factorId: required.factorId, email: newSession.user.email ?? "" });
+          setState("pending_mfa");
+          return;
+        }
+        if (await checkHasPasskey(newSession.user.email ?? "")) {
+          setSession(newSession);
+          setUser(newSession.user);
+          setPasskeyChallenge({ email: newSession.user.email ?? "" });
+          setState("pending_passkey");
           return;
         }
         promoteToAuthenticated(newSession);
@@ -308,7 +335,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [initialized, clearAuth, promoteToAuthenticated]);
+  }, [initialized, clearAuth, promoteToAuthenticated, setState]);
 
   // ── Cross-tab synchronization ─────────────────────────────────────────────
   useEffect(() => {
@@ -324,6 +351,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (required.kind === "mfa") {
             setMfaChallenge({ factorId: required.factorId, email: data.session.user.email ?? "" });
             setState("pending_mfa");
+            return;
+          }
+          if (await checkHasPasskey(data.session.user.email ?? "")) {
+            setSession(data.session);
+            setUser(data.session.user);
+            setPasskeyChallenge({ email: data.session.user.email ?? "" });
+            setState("pending_passkey");
             return;
           }
           promoteToAuthenticated(data.session);
@@ -361,41 +395,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string, rememberMe = true) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error };
-    if (!data.session) return { error: new Error("No session returned") };
+    signInInProgressRef.current = true;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error };
+      if (!data.session) return { error: new Error("No session returned") };
 
     // Record the persistence preference before any challenge screen appears.
-    setRememberMe(rememberMe);
+      setRememberMe(rememberMe);
 
 
     // 1. MFA always takes precedence over passkeys.
-    const required = await resolveRequiredVerification(data.user.id);
-    if (required.kind === "mfa") {
+      const required = await resolveRequiredVerification(data.user.id);
+      if (required.kind === "mfa") {
       setSession(data.session);
       setUser(data.user);
       setMfaChallenge({ factorId: required.factorId, email });
       setState("pending_mfa");
-      return { error: null, mfaRequired: true, passkeyRequired: false };
-    }
+        return { error: null, mfaRequired: true, passkeyRequired: false };
+      }
 
     // 2. Passkey gate (only when MFA is not required/configured/trusted).
-    const hasPasskey = await checkHasPasskey(email);
-    if (hasPasskey) {
+      const hasPasskey = await checkHasPasskey(email);
+      if (hasPasskey) {
       setSession(data.session);
       setUser(data.user);
       setPasskeyChallenge({ email });
       setState("pending_passkey");
-      return { error: null, mfaRequired: false, passkeyRequired: true };
-    }
+        return { error: null, mfaRequired: false, passkeyRequired: true };
+      }
 
     // 3. Fully authenticated.
-    import("@/lib/fingerprint")
-      .then(({ collectFingerprint }) => collectFingerprint("login"))
-      .catch(() => {});
+      import("@/lib/fingerprint")
+        .then(({ collectFingerprint }) => collectFingerprint("login"))
+        .catch(() => {});
 
-    promoteToAuthenticated(data.session);
-    return { error: null, mfaRequired: false, passkeyRequired: false };
+      promoteToAuthenticated(data.session);
+      return { error: null, mfaRequired: false, passkeyRequired: false };
+    } finally {
+      signInInProgressRef.current = false;
+    }
   };
 
   const completeMFAChallenge = async (code: string, trustDevice: boolean) => {
@@ -414,14 +453,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       if (verifyError) throw verifyError;
 
-      if (trustDevice) trustThisDevice();
-
-      const promoted = await promoteFromCurrentSession();
+      const promoted = await promoteFromCurrentSession("pending_mfa");
       if (!promoted) throw new Error("Session unavailable after verification");
+      if (trustDevice && user) trustThisDevice(user.id);
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error("MFA verification failed") };
     }
   };
 
@@ -431,19 +469,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const result = await loginWithPasskey(passkeyChallenge.email);
       if (!result.verified) return { error: new Error(result.error || "Authentication failed") };
 
-      const promoted = await promoteFromCurrentSession();
+      const promoted = await promoteFromCurrentSession("pending_passkey");
       if (!promoted) throw new Error("Session unavailable after verification");
 
       return { error: null };
-    } catch (error: any) {
-      return { error };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error("Passkey verification failed") };
     }
   };
 
   /** Alternative verification (email OTP) satisfied the passkey gate. */
-  const acceptPasskeyFallback = () => {
-    if (stateRef.current !== "pending_passkey") return;
-    void promoteFromCurrentSession();
+  const acceptPasskeyFallback = async (): Promise<boolean> => {
+    if (stateRef.current !== "pending_passkey") return false;
+    return promoteFromCurrentSession("pending_passkey");
   };
 
   /**
@@ -468,7 +506,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       clearTrustedDevice();
       setMfaChallenge(null);
-      const promoted = await promoteFromCurrentSession();
+      const promoted = await promoteFromCurrentSession("pending_mfa");
       if (!promoted) return { error: new Error("Session unavailable after recovery") };
       return { error: null };
     } catch (e) {
