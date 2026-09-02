@@ -1,17 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { verifyRegistrationResponse } from "https://esm.sh/@simplewebauthn/server@13.1.1";
+import { expectedOrigins, expectedRPIDs } from "../_shared/webauthn-rp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-function rpFromOrigin(origin: string | null): { rpID: string; origin: string } {
-  return {
-    rpID: "peerlyp2p.lovable.app",
-    origin: origin || "https://peerlyp2p.lovable.app",
-  };
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -52,13 +46,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Challenge expired" }), { status: 400, headers: corsHeaders });
     }
 
-    const { rpID, origin } = rpFromOrigin(req.headers.get("Origin"));
+    const reqOrigin = req.headers.get("Origin");
 
     const verification = await verifyRegistrationResponse({
       response,
       expectedChallenge: chal.challenge,
-      expectedOrigin: origin,
-      expectedRPID: rpID,
+      expectedOrigin: expectedOrigins(reqOrigin),
+      expectedRPID: expectedRPIDs(reqOrigin),
       requireUserVerification: false,
     });
 
