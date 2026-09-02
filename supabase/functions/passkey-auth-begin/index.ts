@@ -1,16 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
 import { generateAuthenticationOptions } from "https://esm.sh/@simplewebauthn/server@13.1.1";
+import { registrationRpID } from "../_shared/webauthn-rp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-function rpFromOrigin(origin: string | null): { rpID: string; origin: string } {
-  const o = origin || "https://peerlyp2p.lovable.app";
-  const url = new URL(o);
-  return { rpID: url.hostname, origin: o };
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -54,7 +49,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { rpID } = rpFromOrigin(req.headers.get("Origin"));
+    const rpID = registrationRpID(req.headers.get("Origin"));
     const options = await generateAuthenticationOptions({
       rpID,
       userVerification: "preferred",
