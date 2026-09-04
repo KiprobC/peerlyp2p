@@ -2918,6 +2918,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      assert_step_up: {
+        Args: { p_action?: string; p_max_age_minutes?: number }
+        Returns: undefined
+      }
       assert_trade_transition: {
         Args: {
           p_new_status: Database["public"]["Enums"]["trade_status"]
@@ -3065,6 +3069,15 @@ export type Database = {
             }
             Returns: Json
           }
+      execute_internal_transfer_internal: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_idempotency_key: string
+          p_recipient_username: string
+        }
+        Returns: Json
+      }
       fail_idempotency_key: {
         Args: { p_error?: string; p_key: string }
         Returns: undefined
@@ -3132,6 +3145,7 @@ export type Database = {
         Returns: boolean
       }
       is_platform_enabled: { Args: { p_setting_id: string }; Returns: boolean }
+      is_service_context: { Args: never; Returns: boolean }
       is_user_frozen: { Args: { p_user_id: string }; Returns: boolean }
       is_user_frozen_for: {
         Args: { p_scope: string; p_user_id: string }
@@ -3141,26 +3155,25 @@ export type Database = {
         Args: { p_error: string; p_submission_id: string }
         Returns: Json
       }
-      lock_escrow:
-        | {
-            Args: {
-              p_amount: number
-              p_crypto_type: string
-              p_seller_id: string
-              p_trade_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_crypto_type: string
-              p_idempotency_key: string
-              p_seller_id: string
-              p_trade_id: string
-            }
-            Returns: Json
-          }
+      lock_escrow: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_idempotency_key: string
+          p_seller_id: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
+      lock_escrow_internal: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_seller_id: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
       lock_trade_evidence: {
         Args: { p_trade_id: string; p_uploader_role: string }
         Returns: boolean
@@ -3244,28 +3257,27 @@ export type Database = {
         Args: { p_codes: string[] }
         Returns: number
       }
-      release_escrow_with_fee:
-        | {
-            Args: {
-              p_buyer_id: string
-              p_crypto_type: string
-              p_escrow_amount: number
-              p_seller_id: string
-              p_trade_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_buyer_id: string
-              p_crypto_type: string
-              p_escrow_amount: number
-              p_idempotency_key: string
-              p_seller_id: string
-              p_trade_id: string
-            }
-            Returns: Json
-          }
+      release_escrow_with_fee: {
+        Args: {
+          p_buyer_id: string
+          p_crypto_type: string
+          p_escrow_amount: number
+          p_idempotency_key: string
+          p_seller_id: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
+      release_escrow_with_fee_internal: {
+        Args: {
+          p_buyer_id: string
+          p_crypto_type: string
+          p_escrow_amount: number
+          p_seller_id: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
       reset_trading_stats_if_needed: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -3278,26 +3290,25 @@ export type Database = {
         }
         Returns: Json
       }
-      return_escrow_with_reservation:
-        | {
-            Args: {
-              p_amount: number
-              p_crypto_type: string
-              p_seller_id: string
-              p_trade_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_amount: number
-              p_crypto_type: string
-              p_idempotency_key: string
-              p_seller_id: string
-              p_trade_id: string
-            }
-            Returns: Json
-          }
+      return_escrow_with_reservation: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_idempotency_key: string
+          p_seller_id: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
+      return_escrow_with_reservation_internal: {
+        Args: {
+          p_amount: number
+          p_crypto_type: string
+          p_seller_id: string
+          p_trade_id: string
+        }
+        Returns: Json
+      }
       reverse_internal_transfer: {
         Args: { p_reason: string; p_transfer_id: string }
         Returns: Json
@@ -3408,12 +3419,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3437,11 +3448,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3462,11 +3473,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3487,11 +3498,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3504,11 +3515,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
