@@ -114,14 +114,21 @@ const Dashboard = () => {
                   )}
                 </Button>
               </Link>
-              <Link to="/settings">
-                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Button>
-              </Link>
-              <div className="pl-2 sm:pl-3 border-l border-border">
-                <ProfilePopover />
-              </div>
+              <button
+                onClick={toggleBalanceVisibility}
+                className="flex items-center gap-1.5 pl-2 sm:pl-3 border-l border-border text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+              >
+                <span className="tabular-nums">
+                  {balanceHidden ? "****" : `${currencySymbol}${totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                </span>
+                {balanceHidden ? (
+                  <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+              </button>
+              <ProfilePopover compact />
             </div>
           </div>
         </div>

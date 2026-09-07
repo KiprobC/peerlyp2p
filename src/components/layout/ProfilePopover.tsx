@@ -12,7 +12,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useModeratorRole } from "@/hooks/useModeratorRole";
 import { Separator } from "@/components/ui/separator";
 
-export const ProfilePopover = () => {
+export const ProfilePopover = ({ compact = false }: { compact?: boolean }) => {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const { isModerator, isAdmin } = useModeratorRole();
@@ -35,10 +35,10 @@ export const ProfilePopover = () => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Avatar className="h-8 w-8">
+        <Button variant="ghost" size="icon" className={`rounded-full ${compact ? "h-7 w-7" : ""}`}>
+          <Avatar className={compact ? "h-6 w-6" : "h-8 w-8"}>
             <AvatarImage src={profile?.avatar_url || ""} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+            <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
               {getInitials(profile?.username)}
             </AvatarFallback>
           </Avatar>
