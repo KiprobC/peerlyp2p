@@ -10,7 +10,6 @@ import {
   ArrowDownLeft,
   Plus,
   Bell,
-  Settings,
   TrendingUp,
   Clock,
   Shield,
