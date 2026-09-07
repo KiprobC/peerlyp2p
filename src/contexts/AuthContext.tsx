@@ -89,6 +89,16 @@ const isExpiring = (session: Session | null): boolean => {
   return Date.now() >= session.expires_at * 1000 - 60_000;
 };
 
+/** True when the current session already completed a second factor (AAL2). */
+const hasCompletedSecondFactor = async (): Promise<boolean> => {
+  try {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    return data?.currentLevel === "aal2";
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Decides whether a valid Supabase session still needs second-factor
  * verification. Pure read — never mutates state.
@@ -109,6 +119,8 @@ const resolveRequiredVerification = async (
     const verified = factors?.totp?.find((f) => f.status === "verified");
     if (!verified) return { kind: "none" };
 
+    if (await hasCompletedSecondFactor()) return { kind: "none" };
+
     if (isTrustedDevice(userId)) return { kind: "none" };
 
     return { kind: "mfa", factorId: verified.id };
@@ -116,6 +128,26 @@ const resolveRequiredVerification = async (
     console.error("[auth] verification resolution failed", e);
     throw e;
   }
+};
+
+/**
+ * Second factor is required only ONCE per sign-in. If the account has TOTP
+ * enrolled (or the session is already AAL2), the passkey gate is skipped —
+ * asking for a passkey right after a successful 2FA code is redundant.
+ */
+const passkeyGateRequired = async (userId: string, email: string): Promise<boolean> => {
+  try {
+    if (await hasCompletedSecondFactor()) return false;
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("two_factor_enabled")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (settings?.two_factor_enabled) return false;
+  } catch {
+    /* fall through to the passkey check */
+  }
+  return checkHasPasskey(email);
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
