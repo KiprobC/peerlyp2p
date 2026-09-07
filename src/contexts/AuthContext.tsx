@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isTrustedDevice, trustThisDevice, clearTrustedDevice } from "@/lib/trustedDevice";
 import { checkHasPasskey, loginWithPasskey } from "@/lib/passkeyAuth";
+import { markUnlocked } from "@/hooks/useQuickUnlock";
 import {
   setRememberMe,
   clearRememberMe,
@@ -285,7 +286,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        if (await checkHasPasskey(current.user.email ?? "")) {
+        if (await passkeyGateRequired(current.user.id, current.user.email ?? "")) {
           setSession(current);
           setUser(current.user);
           setPasskeyChallenge({ email: current.user.email ?? "" });
@@ -352,7 +353,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setState("pending_mfa");
           return;
         }
-        if (await checkHasPasskey(newSession.user.email ?? "")) {
+        if (await passkeyGateRequired(newSession.user.id, newSession.user.email ?? "")) {
           setSession(newSession);
           setUser(newSession.user);
           setPasskeyChallenge({ email: newSession.user.email ?? "" });
@@ -385,7 +386,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setState("pending_mfa");
             return;
           }
-          if (await checkHasPasskey(data.session.user.email ?? "")) {
+          if (await passkeyGateRequired(data.session.user.id, data.session.user.email ?? "")) {
             setSession(data.session);
             setUser(data.session.user);
             setPasskeyChallenge({ email: data.session.user.email ?? "" });
@@ -448,7 +449,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
     // 2. Passkey gate (only when MFA is not required/configured/trusted).
-      const hasPasskey = await checkHasPasskey(email);
+      const hasPasskey = await passkeyGateRequired(data.user.id, email);
       if (hasPasskey) {
       setSession(data.session);
       setUser(data.user);
@@ -488,6 +489,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const promoted = await promoteFromCurrentSession("pending_mfa");
       if (!promoted) throw new Error("Session unavailable after verification");
       if (trustDevice && user) trustThisDevice(user.id);
+      markUnlocked();
 
       return { error: null };
     } catch (error: unknown) {
@@ -503,6 +505,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const promoted = await promoteFromCurrentSession("pending_passkey");
       if (!promoted) throw new Error("Session unavailable after verification");
+      markUnlocked();
 
       return { error: null };
     } catch (error: unknown) {
