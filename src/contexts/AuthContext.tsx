@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isTrustedDevice, trustThisDevice, clearTrustedDevice } from "@/lib/trustedDevice";
 import { checkHasPasskey, loginWithPasskey } from "@/lib/passkeyAuth";
-import { markUnlocked } from "@/hooks/useQuickUnlock";
 import {
   setRememberMe,
   clearRememberMe,
@@ -74,6 +73,17 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/** Marks this browser session as freshly verified (Quick Unlock keys). */
+const markUnlocked = () => {
+  try {
+    const now = String(Date.now());
+    sessionStorage.setItem("quick_unlock_unlocked_at", now);
+    sessionStorage.setItem("quick_unlock_last_activity", now);
+  } catch {
+    /* noop */
+  }
+};
 
 const AUTH_STORAGE_KEY = "auth_session_sync";
 const SESSION_EXPIRED_KEY = "session_expired";
