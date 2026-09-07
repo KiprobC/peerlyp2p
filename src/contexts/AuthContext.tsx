@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { isTrustedDevice, trustThisDevice, clearTrustedDevice } from "@/lib/trustedDevice";
 import { checkHasPasskey, loginWithPasskey } from "@/lib/passkeyAuth";
+import { markUnlocked } from "@/hooks/useQuickUnlock";
 import {
   setRememberMe,
   clearRememberMe,
@@ -89,6 +90,16 @@ const isExpiring = (session: Session | null): boolean => {
   return Date.now() >= session.expires_at * 1000 - 60_000;
 };
 
+/** True when the current session already completed a second factor (AAL2). */
+const hasCompletedSecondFactor = async (): Promise<boolean> => {
+  try {
+    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    return data?.currentLevel === "aal2";
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Decides whether a valid Supabase session still needs second-factor
  * verification. Pure read — never mutates state.
@@ -109,6 +120,8 @@ const resolveRequiredVerification = async (
     const verified = factors?.totp?.find((f) => f.status === "verified");
     if (!verified) return { kind: "none" };
 
+    if (await hasCompletedSecondFactor()) return { kind: "none" };
+
     if (isTrustedDevice(userId)) return { kind: "none" };
 
     return { kind: "mfa", factorId: verified.id };
@@ -116,6 +129,26 @@ const resolveRequiredVerification = async (
     console.error("[auth] verification resolution failed", e);
     throw e;
   }
+};
+
+/**
+ * Second factor is required only ONCE per sign-in. If the account has TOTP
+ * enrolled (or the session is already AAL2), the passkey gate is skipped —
+ * asking for a passkey right after a successful 2FA code is redundant.
+ */
+const passkeyGateRequired = async (userId: string, email: string): Promise<boolean> => {
+  try {
+    if (await hasCompletedSecondFactor()) return false;
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("two_factor_enabled")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (settings?.two_factor_enabled) return false;
+  } catch {
+    /* fall through to the passkey check */
+  }
+  return checkHasPasskey(email);
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -253,7 +286,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
-        if (await checkHasPasskey(current.user.email ?? "")) {
+        if (await passkeyGateRequired(current.user.id, current.user.email ?? "")) {
           setSession(current);
           setUser(current.user);
           setPasskeyChallenge({ email: current.user.email ?? "" });
@@ -320,7 +353,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setState("pending_mfa");
           return;
         }
-        if (await checkHasPasskey(newSession.user.email ?? "")) {
+        if (await passkeyGateRequired(newSession.user.id, newSession.user.email ?? "")) {
           setSession(newSession);
           setUser(newSession.user);
           setPasskeyChallenge({ email: newSession.user.email ?? "" });
@@ -353,7 +386,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setState("pending_mfa");
             return;
           }
-          if (await checkHasPasskey(data.session.user.email ?? "")) {
+          if (await passkeyGateRequired(data.session.user.id, data.session.user.email ?? "")) {
             setSession(data.session);
             setUser(data.session.user);
             setPasskeyChallenge({ email: data.session.user.email ?? "" });
@@ -416,7 +449,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
     // 2. Passkey gate (only when MFA is not required/configured/trusted).
-      const hasPasskey = await checkHasPasskey(email);
+      const hasPasskey = await passkeyGateRequired(data.user.id, email);
       if (hasPasskey) {
       setSession(data.session);
       setUser(data.user);
@@ -456,6 +489,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const promoted = await promoteFromCurrentSession("pending_mfa");
       if (!promoted) throw new Error("Session unavailable after verification");
       if (trustDevice && user) trustThisDevice(user.id);
+      markUnlocked();
 
       return { error: null };
     } catch (error: unknown) {
@@ -471,6 +505,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const promoted = await promoteFromCurrentSession("pending_passkey");
       if (!promoted) throw new Error("Session unavailable after verification");
+      markUnlocked();
 
       return { error: null };
     } catch (error: unknown) {
