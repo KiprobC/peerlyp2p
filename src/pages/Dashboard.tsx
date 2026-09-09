@@ -34,8 +34,16 @@ import { SendCryptoDialog } from "@/components/wallet/SendCryptoDialog";
 import { ProfilePopover } from "@/components/layout/ProfilePopover";
 import { ConnectivityIndicator } from "@/components/connectivity/ConnectivityIndicator";
 import { formatDistanceToNow } from "date-fns";
+import { formatCompact, formatGrouped, formatExact } from "@/lib/formatNumber";
 
 const BALANCE_HIDDEN_KEY = "peerly_balance_hidden";
+
+/** Header balance: exact when it fits, compact (e.g. 2.91B) when it does not. */
+const formatHeaderBalance = (value: number): string => {
+  const v = Number.isFinite(value) ? value : 0;
+  if (Math.abs(v) >= 1_000_000) return formatCompact(v);
+  return formatGrouped(v, 2, 2);
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
