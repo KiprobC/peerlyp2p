@@ -97,15 +97,15 @@ const Dashboard = () => {
       {/* Top Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="container mx-auto px-3 sm:px-4">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <Link to="/" className="flex items-center gap-2">
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
+            <Link to="/" className="flex items-center gap-2 shrink-0">
               <img src={peerlyIcon} alt="Peerly" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
               <span className="text-lg sm:text-xl font-bold text-foreground">Peerly</span>
             </Link>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <ConnectivityIndicator />
-              <Link to="/notifications">
+              <Link to="/notifications" className="shrink-0">
                 <Button variant="ghost" size="icon" className="relative h-9 w-9 sm:h-10 sm:w-10">
                   <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   {unreadCount > 0 && (
@@ -115,19 +115,24 @@ const Dashboard = () => {
               </Link>
               <button
                 onClick={toggleBalanceVisibility}
-                className="flex items-center gap-1.5 pl-2 sm:pl-3 border-l border-border text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                className="flex items-center gap-1.5 h-9 pl-2 sm:pl-3 border-l border-border text-sm font-semibold text-foreground hover:text-primary transition-colors shrink-0"
                 aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+                title={balanceHidden ? undefined : `${currencySymbol}${formatExact(totalPortfolioValue)}`}
               >
-                <span className="tabular-nums">
-                  {balanceHidden ? "****" : `${currencySymbol}${totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                <span className="w-[84px] sm:w-[124px] text-right truncate tabular-nums leading-none">
+                  {balanceHidden
+                    ? "••••••"
+                    : `${currencySymbol}${formatHeaderBalance(totalPortfolioValue)}`}
                 </span>
                 {balanceHidden ? (
-                  <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
+                  <EyeOff className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 ) : (
-                  <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                  <Eye className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 )}
               </button>
-              <ProfilePopover compact />
+              <div className="shrink-0">
+                <ProfilePopover compact />
+              </div>
             </div>
           </div>
         </div>
