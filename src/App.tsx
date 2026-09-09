@@ -314,11 +314,14 @@ const App = () => (
     <BrowserRouter>
       <AuthProvider>
         <PasskeyProvider>
-          <QuickUnlockGate>
-            <AppRoutes />
-            <MobileBottomNav />
-            <InstallPrompt />
-          </QuickUnlockGate>
+          <NotificationOverlayProvider>
+            <QuickUnlockGate>
+              <AppRoutes />
+              <MobileBottomNav />
+              <InstallPrompt />
+              <NotificationOverlay />
+            </QuickUnlockGate>
+          </NotificationOverlayProvider>
         </PasskeyProvider>
       </AuthProvider>
     </BrowserRouter>
