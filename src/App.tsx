@@ -74,6 +74,8 @@ import { ModeratorLayout } from "./pages/moderator/ModeratorLayout";
 import { ModeratorDashboard } from "./pages/moderator/ModeratorDashboard";
 import { ModeratorDisputes } from "./pages/moderator/ModeratorDisputes";
 import { PasskeyProvider } from "@/contexts/PasskeyContext";
+import { NotificationOverlayProvider } from "@/contexts/NotificationOverlayContext";
+import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
 
 const queryClient = new QueryClient();
 
@@ -314,11 +316,14 @@ const App = () => (
     <BrowserRouter>
       <AuthProvider>
         <PasskeyProvider>
-          <QuickUnlockGate>
-            <AppRoutes />
-            <MobileBottomNav />
-            <InstallPrompt />
-          </QuickUnlockGate>
+          <NotificationOverlayProvider>
+            <QuickUnlockGate>
+              <AppRoutes />
+              <MobileBottomNav />
+              <InstallPrompt />
+              <NotificationOverlay />
+            </QuickUnlockGate>
+          </NotificationOverlayProvider>
         </PasskeyProvider>
       </AuthProvider>
     </BrowserRouter>
