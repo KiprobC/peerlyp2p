@@ -101,7 +101,7 @@ const CreateOffer = () => {
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 peerly-desktop-page">
           <div className="flex items-center justify-between h-16">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="w-5 h-5" /></Button>
             <h1 className="text-lg font-semibold">Create Offer</h1>
@@ -111,7 +111,7 @@ const CreateOffer = () => {
       </nav>
 
       <main className="pt-20 pb-8">
-        <div className="container mx-auto px-4 max-w-lg">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page">
           <div className="mb-6">
             <WizardProgress currentStep={currentStep} completedSteps={completedSteps} />
           </div>

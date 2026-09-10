@@ -236,6 +236,20 @@
   border-radius: inherit;
 }
 
+@media (min-width: 1200px) {
+  .peerly-desktop-page {
+    width: 100%;
+    max-width: none;
+    padding-inline: clamp(2rem, 4vw, 4.5rem);
+  }
+
+  .peerly-desktop-content {
+    width: 100%;
+    max-width: 1440px;
+    margin-inline: auto;
+  }
+}
+
 /* Peerly SVG Logo Loader animations */
 .peerly-svg-loader {
   animation: peerlyBreathe 2s ease-in-out infinite;

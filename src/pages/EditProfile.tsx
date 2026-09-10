@@ -172,7 +172,7 @@ const EditProfile = () => {
 
       {/* Main Content */}
       <main className="pt-24 pb-24">
-        <div className="container mx-auto px-4 max-w-2xl">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Avatar Section */}
             <Card>

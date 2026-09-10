@@ -24,7 +24,7 @@ const Profile = () => {
           </div>
         </nav>
         <main className="pt-24 pb-16">
-          <div className="container mx-auto px-4 max-w-4xl space-y-6">
+          <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page space-y-6">
             <Skeleton className="h-40 w-full" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Skeleton className="h-64" />
@@ -61,7 +61,7 @@ const Profile = () => {
 
       {/* Main Content */}
       <main className="pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-4 max-w-4xl space-y-6">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page space-y-6">
           <ProfileHeader profile={profile} />
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

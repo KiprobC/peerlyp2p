@@ -90,7 +90,7 @@ export const AdminLayout = () => {
         <header className="hidden lg:flex sticky top-0 z-40 bg-card/95 backdrop-blur-sm border-b border-border px-6 py-3 justify-end">
           <ModeratorNotificationBell />
         </header>
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="peerly-desktop-page p-4 sm:p-6 lg:p-8">
           <Outlet />
         </div>
       </main>

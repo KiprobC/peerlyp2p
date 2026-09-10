@@ -433,7 +433,7 @@ const TradePageContent = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col">
-        <div className="container mx-auto px-0 sm:px-4 max-w-5xl flex-1 flex flex-col">
+        <div className="container mx-auto px-0 sm:px-4 xl:max-w-none peerly-desktop-page flex-1 flex flex-col">
           <div className="flex-1 flex bg-card sm:border-x sm:border-t border-border sm:rounded-t-xl overflow-hidden">
             
             {/* Left Actions Panel - Desktop only (visible during disputes for seller release) */}

@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { KYCSubmissionsPanel } from "@/components/admin/KYCSubmissionsPanel";
+import { createKycDocumentSignedUrl } from "@/lib/kycDocuments";
+import { KYCDocumentPreview } from "@/components/admin/KYCDocumentPreview";
 
 const kycStatusConfig = {
   pending: { label: "Pending", icon: Clock, variant: "secondary" as const },
@@ -27,6 +29,7 @@ const kycStatusConfig = {
 
 interface KYCDocument {
   type: string;
+  sourcePath: string;
   url: string | null;
 }
 
@@ -59,24 +62,21 @@ export const AdminKYC = () => {
         const docs: KYCDocument[] = [];
         
         if (profile.id_front_url) {
-          const { data } = await supabase.storage
-            .from("kyc-documents")
-            .createSignedUrl(profile.id_front_url, 3600);
-          docs.push({ type: "ID Front", url: data?.signedUrl || null });
+          const { url, error } = await createKycDocumentSignedUrl(profile.id_front_url);
+          if (error) console.error("Unable to sign KYC ID front", error);
+          docs.push({ type: "ID Front", sourcePath: profile.id_front_url, url });
         }
         
         if (profile.id_back_url) {
-          const { data } = await supabase.storage
-            .from("kyc-documents")
-            .createSignedUrl(profile.id_back_url, 3600);
-          docs.push({ type: "ID Back", url: data?.signedUrl || null });
+          const { url, error } = await createKycDocumentSignedUrl(profile.id_back_url);
+          if (error) console.error("Unable to sign KYC ID back", error);
+          docs.push({ type: "ID Back", sourcePath: profile.id_back_url, url });
         }
         
         if (profile.selfie_url) {
-          const { data } = await supabase.storage
-            .from("kyc-documents")
-            .createSignedUrl(profile.selfie_url, 3600);
-          docs.push({ type: "Selfie with ID", url: data?.signedUrl || null });
+          const { url, error } = await createKycDocumentSignedUrl(profile.selfie_url);
+          if (error) console.error("Unable to sign KYC selfie", error);
+          docs.push({ type: "Selfie with ID", sourcePath: profile.selfie_url, url });
         }
         
         setDocuments(docs);
@@ -265,12 +265,9 @@ export const AdminKYC = () => {
                     <div key={index} className="border border-border rounded-lg p-4">
                       <p className="font-medium text-sm mb-2">{doc.type}</p>
                       {doc.url ? (
-                        <img
-                          src={doc.url}
-                          alt={doc.type}
-                          className="w-full h-48 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => setPreviewImage(doc.url)}
-                        />
+                        <button type="button" className="block w-full text-left" onClick={() => setPreviewImage(doc.url)}>
+                          <KYCDocumentPreview url={doc.url} sourcePath={doc.sourcePath} label={doc.type} className="h-48 cursor-pointer transition-opacity hover:opacity-80" />
+                        </button>
                       ) : (
                         <div className="w-full h-48 bg-secondary/50 rounded flex items-center justify-center text-muted-foreground">
                           Not available
@@ -355,7 +352,7 @@ export const AdminKYC = () => {
             <X className="w-4 h-4" />
           </Button>
           {previewImage && (
-            <img src={previewImage} alt="Document preview" className="w-full h-auto" />
+            <KYCDocumentPreview url={previewImage} label="Document preview" className="max-h-[80vh] min-h-[20rem]" />
           )}
         </DialogContent>
       </Dialog>

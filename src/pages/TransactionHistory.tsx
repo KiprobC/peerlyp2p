@@ -191,7 +191,7 @@ const TransactionHistory = () => {
       </nav>
 
       <main className="pt-20 pb-24 md:pb-16">
-        <div className="container mx-auto px-4 max-w-3xl">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page">
           {/* Filters */}
           <div className="flex flex-wrap gap-2 mb-4">
             <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TxType)}>

@@ -104,7 +104,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
-        <div className="container mx-auto px-3 sm:px-4">
+        <div className="container mx-auto px-3 sm:px-4 peerly-desktop-page">
           <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <img src={peerlyIcon} alt="Peerly" className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg" />
@@ -196,6 +196,8 @@ const Dashboard = () => {
             </div>
           </div>
 
+          <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:items-start gap-6">
+            <div className="min-w-0">
           {/* Portfolio Overview */}
           <div className="glass-card mb-6 sm:mb-8 p-3 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4">
@@ -316,8 +318,10 @@ const Dashboard = () => {
             </div>
           </div>
 
+            </div>
+
           {/* Quick Stats & Recent Trades */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6">
             {/* Quick Stats */}
             <div className="glass-card p-4 sm:p-6">
               <h3 className="font-semibold mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
@@ -347,7 +351,7 @@ const Dashboard = () => {
             </div>
 
             {/* Recent Trades */}
-            <div className="glass-card lg:col-span-2 p-4 sm:p-6">
+            <div className="glass-card p-4 sm:p-6">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
@@ -412,6 +416,7 @@ const Dashboard = () => {
                 )}
               </div>
             </div>
+          </div>
           </div>
         </div>
       </main>

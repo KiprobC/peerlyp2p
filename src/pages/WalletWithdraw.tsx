@@ -113,7 +113,7 @@ const WalletWithdraw = () => {
       </nav>
 
       <main className="pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-4 max-w-lg space-y-6">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page space-y-6">
           {/* Info Banner */}
           <div className="flex items-start gap-3 p-4 bg-primary/10 border border-primary/20 rounded-lg">
             <Wallet className="w-5 h-5 text-primary shrink-0 mt-0.5" />

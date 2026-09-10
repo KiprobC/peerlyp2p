@@ -107,7 +107,7 @@ export const ModeratorLayout = () => {
           </div>
           <ModeratorNotificationBell />
         </header>
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="peerly-desktop-page p-4 sm:p-6 lg:p-8">
           <Outlet />
         </div>
       </main>

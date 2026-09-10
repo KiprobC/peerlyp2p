@@ -223,7 +223,7 @@ const ProfileSetup = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page py-8">
         {/* Progress Steps */}
         <div className="max-w-3xl mx-auto mb-12">
           <div className="flex items-center justify-between">

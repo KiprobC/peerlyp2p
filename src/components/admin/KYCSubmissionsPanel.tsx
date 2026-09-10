@@ -11,6 +11,8 @@ import { Bot, CheckCircle, XCircle, Clock, Eye, ShieldCheck, ShieldX, Maximize2 
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { InlineLoader } from "@/components/loaders";
+import { createKycDocumentSignedUrl } from "@/lib/kycDocuments";
+import { KYCDocumentPreview } from "@/components/admin/KYCDocumentPreview";
 
 interface Submission {
   id: string;
@@ -81,8 +83,9 @@ export const KYCSubmissionsPanel = () => {
       selfie: s.selfie_url,
     })) {
       if (path) {
-        const { data } = await supabase.storage.from("kyc-documents").createSignedUrl(path, 3600);
-        if (data?.signedUrl) urls[k] = data.signedUrl;
+        const { url, error } = await createKycDocumentSignedUrl(path);
+        if (error) console.error(`Unable to sign KYC ${k} document`, error);
+        if (url) urls[k] = url;
       }
     }
     setSignedUrls(urls);
@@ -205,7 +208,11 @@ export const KYCSubmissionsPanel = () => {
                     <p className="text-xs uppercase text-muted-foreground mb-1">{k}</p>
                     {signedUrls[k] ? (
                       <a href={signedUrls[k]} target="_blank" rel="noreferrer">
-                        <img src={signedUrls[k]} alt={k} className="w-full h-40 object-cover rounded" />
+                        <KYCDocumentPreview
+                          url={signedUrls[k]}
+                          sourcePath={selected[`${k === "front" ? "id_front" : k === "back" ? "id_back" : "selfie"}_url` as keyof Submission] as string | null}
+                          label={k}
+                        />
                       </a>
                     ) : (
                       <div className="w-full h-40 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">

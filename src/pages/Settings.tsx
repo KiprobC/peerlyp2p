@@ -375,7 +375,7 @@ const Settings = () => {
           </div>
         </nav>
         <main className="pt-20 pb-16 px-4">
-          <div className="max-w-lg mx-auto space-y-4">
+          <div className="max-w-lg mx-auto xl:max-w-none peerly-desktop-page space-y-4">
             <Skeleton className="h-32 rounded-xl" />
             <Skeleton className="h-48 rounded-xl" />
             <Skeleton className="h-32 rounded-xl" />

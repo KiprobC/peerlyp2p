@@ -247,7 +247,7 @@ const Marketplace = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="pt-16 pb-24 md:pb-16">
-        <div className="container mx-auto px-3 md:px-4 max-w-5xl">
+        <div className="container mx-auto px-3 md:px-4 xl:max-w-none peerly-desktop-page">
           {/* Minimal header */}
           <div className="flex items-center justify-between mb-4 pt-2">
             <div className="flex items-center gap-3">
@@ -284,13 +284,13 @@ const Marketplace = () => {
           {/* Offers Grid */}
           <ErrorBoundary>
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-44 rounded-2xl" />
                 ))}
               </div>
             ) : filteredOffers.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {filteredOffers.map((offer) => {
                   const offerCurrency = offer?.fiat_currency || "KES";
                   const isOutsideRegion = showGlobalOffers && countryCurrency && offerCurrency !== countryCurrency;

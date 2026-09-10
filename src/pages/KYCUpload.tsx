@@ -308,7 +308,7 @@ const KYCUpload = () => {
       </nav>
 
       <main className="pt-24 pb-16">
-        <div className="container mx-auto px-4 max-w-2xl space-y-6">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page space-y-6">
           {/* Status */}
           {kycStatus === "verified" ? (
             <Card className="border-primary/50 bg-primary/5">

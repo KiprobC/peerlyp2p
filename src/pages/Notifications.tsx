@@ -63,7 +63,7 @@ const Notifications = () => {
       </nav>
 
       <main className="pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-4 max-w-2xl">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page">
           {loading ? (
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (

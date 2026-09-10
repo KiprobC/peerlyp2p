@@ -24,6 +24,8 @@ import {
 import { toast } from "sonner";
 import { InlineLoader } from "@/components/loaders";
 import { formatDistanceToNow } from "date-fns";
+import { createKycDocumentSignedUrl, isKycPdf } from "@/lib/kycDocuments";
+import { KYCDocumentPreview } from "@/components/admin/KYCDocumentPreview";
 
 type DocKey = "front" | "back" | "selfie";
 const DOC_LABEL: Record<DocKey, string> = {
@@ -132,16 +134,20 @@ const DocViewer = ({
         onWheel={onWheel}
       >
         {url ? (
-          <img
-            src={url}
-            alt={label}
-            draggable={false}
-            className="max-w-none max-h-none transition-transform"
-            style={{
-              transform: `translate(${state.x}px, ${state.y}px) scale(${state.zoom}) rotate(${state.rotation}deg)`,
-              transformOrigin: "center center",
-            }}
-          />
+          isKycPdf(url) ? (
+            <KYCDocumentPreview url={url} label={label} className="h-full min-h-[30rem]" />
+          ) : (
+            <img
+              src={url}
+              alt={label}
+              draggable={false}
+              className="max-w-none max-h-none transition-transform"
+              style={{
+                transform: `translate(${state.x}px, ${state.y}px) scale(${state.zoom}) rotate(${state.rotation}deg)`,
+                transformOrigin: "center center",
+              }}
+            />
+          )
         ) : (
           <p className="text-sm text-muted-foreground">Not available</p>
         )}
@@ -241,10 +247,9 @@ export const AdminKYCViewer = () => {
       };
       for (const k of Object.keys(map) as DocKey[]) {
         if (map[k]) {
-          const { data: signed } = await supabase.storage
-            .from("kyc-documents")
-            .createSignedUrl(map[k] as string, 3600);
-          urls[k] = signed?.signedUrl ?? null;
+          const { url, error } = await createKycDocumentSignedUrl(map[k]);
+          if (error) console.error(`Unable to sign KYC ${k} document`, error);
+          urls[k] = url;
         }
       }
       setSignedUrls(urls);

@@ -151,7 +151,7 @@ const MyOffers = () => {
           </div>
         </nav>
         <main className="pt-24 pb-16">
-          <div className="container mx-auto px-4 max-w-4xl space-y-4">
+          <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-32" />
             ))}
@@ -189,7 +189,7 @@ const MyOffers = () => {
 
       {/* Main Content */}
       <main className="pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-4 max-w-4xl space-y-6">
+        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page space-y-6">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
