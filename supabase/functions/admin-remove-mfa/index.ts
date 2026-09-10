@@ -37,6 +37,12 @@ Deno.serve(async (req) => {
     });
     if (isAdmin !== true) return json({ error: "Admin access required" }, 403);
 
+    const { error: stepUpError } = await userClient.rpc("assert_step_up", {
+      p_action: "admin_mfa_removal",
+      p_max_age_minutes: 15,
+    });
+    if (stepUpError) return json({ error: "Step-up verification required" }, 403);
+
     const body = await req.json().catch(() => ({}));
     const targetUserId = typeof body.target_user_id === "string" ? body.target_user_id.trim() : "";
     const requestId = typeof body.request_id === "string" ? body.request_id.trim() : null;

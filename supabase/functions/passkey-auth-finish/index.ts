@@ -35,6 +35,22 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unknown credential" }), { status: 400, headers: corsHeaders });
     }
 
+    if (_purpose === "step_up") {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Authenticated session required" }), { status: 401, headers: corsHeaders });
+      }
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } },
+      );
+      const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+      if (claims?.claims?.sub !== pk.user_id) {
+        return new Response(JSON.stringify({ error: "Step-up session does not match credential" }), { status: 403, headers: corsHeaders });
+      }
+    }
+
     const { data: chal } = await admin
       .from("webauthn_challenges")
       .select("*")
@@ -62,7 +78,7 @@ Deno.serve(async (req) => {
         counter: Number(pk.counter),
         transports: pk.transports,
       },
-      requireUserVerification: false,
+      requireUserVerification: _purpose === "step_up",
     });
 
     if (!verification.verified) {

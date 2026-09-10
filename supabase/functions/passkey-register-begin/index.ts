@@ -26,6 +26,14 @@ Deno.serve(async (req) => {
     const userId = claims.claims.sub as string;
     const userEmail = (claims.claims.email as string) || "user";
 
+    const { error: stepUpError } = await supabase.rpc("assert_step_up", {
+      p_action: "passkey_registration",
+      p_max_age_minutes: 15,
+    });
+    if (stepUpError) {
+      return new Response(JSON.stringify({ error: stepUpError.message }), { status: 403, headers: corsHeaders });
+    }
+
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: existing } = await admin.from("passkeys").select("credential_id, transports").eq("user_id", userId);

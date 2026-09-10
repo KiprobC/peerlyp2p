@@ -136,6 +136,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    const { error: stepUpError } = await supabase.rpc("assert_step_up", {
+      p_action: "on_chain_escrow_release",
+      p_max_age_minutes: 15,
+    });
+    if (stepUpError) {
+      await settle(false, { error: "Step-up verification required" });
+      return new Response(JSON.stringify({ error: "Step-up verification required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (trade.status !== "payment_sent" && trade.status !== "disputed") {
       await settle(false, { error: `bad status: ${trade.status}` });
       return new Response(JSON.stringify({ error: `Cannot release escrow for trade with status: ${trade.status}` }), {

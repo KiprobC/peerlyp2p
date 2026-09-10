@@ -25,6 +25,14 @@ Deno.serve(async (req) => {
     }
     const userId = claims.claims.sub as string;
 
+    const { error: stepUpError } = await supabase.rpc("assert_step_up", {
+      p_action: "passkey_registration",
+      p_max_age_minutes: 15,
+    });
+    if (stepUpError) {
+      return new Response(JSON.stringify({ error: stepUpError.message }), { status: 403, headers: corsHeaders });
+    }
+
     const { response, deviceName } = await req.json();
     if (!response) {
       return new Response(JSON.stringify({ error: "Missing response" }), { status: 400, headers: corsHeaders });

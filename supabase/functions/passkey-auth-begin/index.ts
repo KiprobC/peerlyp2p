@@ -27,9 +27,16 @@ Deno.serve(async (req) => {
       userId = (claims?.claims?.sub as string) || null;
     }
 
-    if (!userId && email) {
+    if (_purpose !== "step_up" && !userId && email) {
       const { data: profile } = await admin.from("profiles").select("user_id").eq("email", email).maybeSingle();
       userId = profile?.user_id || null;
+    }
+
+    if (_purpose === "step_up" && !userId) {
+      return new Response(JSON.stringify({ error: "Authenticated session required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (!userId) {
