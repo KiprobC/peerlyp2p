@@ -148,7 +148,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="pt-20 sm:pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-3 sm:px-4">
+        <div className="container mx-auto px-3 sm:px-4 peerly-desktop-page">
           {/* Welcome Section */}
           <div className="flex flex-col gap-3 mb-6 sm:mb-8">
             <div>
