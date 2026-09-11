@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useModeratorDisputes, useModeratorTradeMessages } from "@/hooks/useModeratorRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,7 @@ const MessageViewer = ({ tradeId }: MessageViewerProps) => {
 
 export const ModeratorDisputes = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { disputes, pendingDisputes, resolvedDisputes, loading, resolveDispute, updateStatus, claimDispute, availability } =
     useModeratorDisputes();
   const [selectedDispute, setSelectedDispute] = useState<any>(null);
@@ -254,6 +256,15 @@ export const ModeratorDisputes = () => {
                       <Badge variant={dispute.status === "in_review" ? "default" : "secondary"}>
                         {dispute.status}
                       </Badge>
+                      {isAssignedToMe(dispute) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate(`/trade/${dispute.trade_id}`)}
+                        >
+                          Open dispute
+                        </Button>
+                      )}
                       {!isAssignedToMe(dispute) &&
                         dispute.status === "assigned" &&
                         availability?.status === "online" &&

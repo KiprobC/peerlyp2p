@@ -210,22 +210,14 @@ export const useModeratorDisputes = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("dispute_assignments")
-        .update({
-          assigned_to: user.id,
-          status: "in_review",
-          first_response_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("trade_id", tradeId)
-        .eq("status", "assigned")
-        .is("first_response_at", null)
-        .select("id")
-        .maybeSingle();
+      const { data, error } = await (supabase.rpc as any)("claim_dispute_moderator", {
+        p_trade_id: tradeId,
+      });
 
       if (error) throw error;
-      if (!data) throw new Error("This dispute has already been claimed");
+      if (!(data as { success?: boolean }).success) {
+        throw new Error((data as { error?: string }).error || "Failed to claim dispute");
+      }
       await fetchDisputes();
       return { error: null };
     } catch (error) {
