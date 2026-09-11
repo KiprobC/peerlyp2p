@@ -59,7 +59,7 @@ const MAX_VISIBLE_DESKTOP = 4;
 const MAX_VISIBLE_MOBILE = 3;
 
 /** Notification types that should stay until the user acts on them. */
-const STICKY_TYPES = new Set(["trade", "payment"]);
+const STICKY_TYPES = new Set<string>();
 
 export const NotificationOverlayProvider = ({
   children,
