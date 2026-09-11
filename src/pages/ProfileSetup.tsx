@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { KYCCountryForm } from "@/components/profile/KYCCountryForm";
+import peerlyLogo from "@/assets/peerly-logo.png";
 import {
   User,
   CreditCard,
@@ -29,6 +30,46 @@ const steps = [
   { id: 3, title: "Payment Details", icon: CreditCard },
   { id: 4, title: "Profile Picture", icon: Camera },
 ];
+
+type FormErrors = Record<string, string>;
+
+const isValidAdultDate = (value: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const selected = new Date(Date.UTC(year, month - 1, day));
+  if (
+    selected.getUTCFullYear() !== year ||
+    selected.getUTCMonth() !== month - 1 ||
+    selected.getUTCDate() !== day
+  ) {
+    return false;
+  }
+
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const selectedUtc = selected.getTime();
+  if (selectedUtc >= todayUtc) return false;
+
+  let age = today.getFullYear() - year;
+  const birthdayPassed =
+    today.getMonth() > month - 1 ||
+    (today.getMonth() === month - 1 && today.getDate() >= day);
+  if (!birthdayPassed) age -= 1;
+  return age >= 18;
+};
+
+const isValidPhone = (value: string): boolean => {
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  return /^[+\d\s().-]+$/.test(trimmed) && digits.length >= 7 && digits.length <= 15;
+};
+
+const getDateInputMax = (): string => {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
+};
 
 const ProfileSetup = () => {
   const navigate = useNavigate();
@@ -61,6 +102,7 @@ const ProfileSetup = () => {
   const [idBackUrl, setIdBackUrl] = useState("");
   const [selfieUrl, setSelfieUrl] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
 
   // Populate form data from profile
   useEffect(() => {
@@ -90,12 +132,73 @@ const ProfileSetup = () => {
   }, [profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setErrors(prev => {
+      const next = { ...prev };
+      delete next[e.target.name];
+      return next;
+    });
   };
 
   const handleKYCChange = useCallback((data: Partial<typeof formData>) => {
     setFormData(prev => ({ ...prev, ...data }));
+    setErrors(prev => {
+      const next = { ...prev };
+      Object.keys(data).forEach(key => delete next[key]);
+      return next;
+    });
   }, []);
+
+  const validatePersonalInfo = (): FormErrors => {
+    const next: FormErrors = {};
+    if (formData.full_name.trim().length < 2) next.full_name = "Enter your full name.";
+    if (!isValidPhone(formData.phone)) next.phone = "Enter a valid phone number.";
+    if (!formData.date_of_birth) {
+      next.date_of_birth = "Date of birth is required.";
+    } else if (!isValidAdultDate(formData.date_of_birth)) {
+      next.date_of_birth = "Enter a valid past date. You must be at least 18 years old.";
+    }
+    if (!formData.city.trim()) next.city = "City is required.";
+    if (!formData.address.trim()) next.address = "Address is required.";
+    return next;
+  };
+
+  const validateKYC = (): FormErrors => {
+    const next: FormErrors = {};
+    if (!formData.kyc_country) next.kyc_country = "Select your country of residence.";
+    if (!formData.id_type) next.id_type = "Select an ID type.";
+    if (formData.id_number.trim().length < 4) next.id_number = "Enter a valid ID number.";
+    if (!idFrontUrl) next.id_front = "Upload the front of your ID.";
+    if (!idBackUrl) next.id_back = "Upload the back of your ID.";
+    if (!selfieUrl) next.selfie = "Upload a selfie with your ID.";
+    if (!isValidAdultDate(formData.date_of_birth)) {
+      next.date_of_birth = "You must be at least 18 years old to complete verification.";
+    }
+    return next;
+  };
+
+  const validatePayment = (): FormErrors => {
+    const next: FormErrors = {};
+    if (!isValidPhone(formData.mpesa_phone)) next.mpesa_phone = "Enter a valid M-PESA phone number.";
+    if (!formData.bank_name.trim()) next.bank_name = "Bank name is required.";
+    if (!formData.bank_account_name.trim()) next.bank_account_name = "Account name is required.";
+    if (formData.bank_account_number.trim().length < 4) {
+      next.bank_account_number = "Enter a valid account number.";
+    }
+    return next;
+  };
+
+  const validateStep = (step: number): FormErrors => {
+    if (step === 1) return validatePersonalInfo();
+    if (step === 2) return { ...validateKYC() };
+    if (step === 3) return validatePayment();
+    return {
+      ...validatePersonalInfo(),
+      ...validateKYC(),
+      ...validatePayment(),
+      ...(!avatarUrl ? { avatar: "Upload a profile picture." } : {}),
+    };
+  };
 
   const uploadFile = async (file: File, bucket: string, folder: string): Promise<string | null> => {
     if (!user) return null;
@@ -123,6 +226,14 @@ const ProfileSetup = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({
+        ...prev,
+        [type === "avatar" ? "avatar" : type]: "Choose an image file no larger than 5MB.",
+      }));
+      return;
+    }
+
     setIsSubmitting(true);
     const bucket = type === "avatar" ? "avatars" : "kyc-documents";
     const url = await uploadFile(file, bucket, type);
@@ -132,6 +243,11 @@ const ProfileSetup = () => {
       else if (type === "id_back") setIdBackUrl(url);
       else if (type === "selfie") setSelfieUrl(url);
       else setAvatarUrl(url);
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[type === "avatar" ? "avatar" : type];
+        return next;
+      });
       toast.success("File uploaded successfully");
     } else {
       toast.error("Failed to upload file");
@@ -140,6 +256,13 @@ const ProfileSetup = () => {
   };
 
   const saveStep = async () => {
+    const validationErrors = validateStep(currentStep);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast.error("Please fix the highlighted fields before continuing.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     let updates: Record<string, unknown> = { setup_step: currentStep + 1 };
@@ -162,8 +285,8 @@ const ProfileSetup = () => {
         id_front_url: idFrontUrl,
         id_back_url: idBackUrl,
         selfie_url: selfieUrl,
-        kyc_status: idFrontUrl && selfieUrl ? "submitted" : "pending",
-        kyc_submitted_at: idFrontUrl && selfieUrl ? new Date().toISOString() : null,
+        kyc_status: idFrontUrl && idBackUrl && selfieUrl ? "submitted" : "pending",
+        kyc_submitted_at: idFrontUrl && idBackUrl && selfieUrl ? new Date().toISOString() : null,
       };
     } else if (currentStep === 3) {
       updates = {
@@ -214,11 +337,8 @@ const ProfileSetup = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">P</span>
+              <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
             </div>
-            <span className="font-bold text-xl text-foreground">
-              Peer<span className="text-primary">ly</span>
-            </span>
           </div>
         </div>
       </div>
@@ -226,7 +346,7 @@ const ProfileSetup = () => {
       <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page py-8">
         {/* Progress Steps */}
         <div className="max-w-3xl mx-auto mb-12">
-          <div className="flex items-center justify-between">
+          <div className="hidden sm:flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className="flex flex-col items-center">
@@ -252,6 +372,22 @@ const ProfileSetup = () => {
                     }`}
                   />
                 )}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-1 sm:hidden">
+            {steps.map((step) => (
+              <div key={step.id} className="min-w-0 flex flex-col items-center text-center">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    currentStep >= step.id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  {currentStep > step.id ? <Check className="w-4 h-4" /> : <step.icon className="w-4 h-4" />}
+                </div>
+                <span className="text-[10px] leading-tight mt-1 break-words">{step.title}</span>
               </div>
             ))}
           </div>
@@ -281,6 +417,7 @@ const ProfileSetup = () => {
                         className="pl-10"
                       />
                     </div>
+                    {errors.full_name && <p className="mt-1 text-xs text-destructive">{errors.full_name}</p>}
                   </div>
 
                   <div>
@@ -295,6 +432,7 @@ const ProfileSetup = () => {
                         className="pl-10"
                       />
                     </div>
+                    {errors.phone && <p className="mt-1 text-xs text-destructive">{errors.phone}</p>}
                   </div>
 
                   <div>
@@ -304,11 +442,13 @@ const ProfileSetup = () => {
                       <Input
                         name="date_of_birth"
                         type="date"
+                        max={getDateInputMax()}
                         value={formData.date_of_birth}
                         onChange={handleChange}
                         className="pl-10"
                       />
                     </div>
+                    {errors.date_of_birth && <p className="mt-1 text-xs text-destructive">{errors.date_of_birth}</p>}
                   </div>
 
                   <div>
@@ -323,6 +463,7 @@ const ProfileSetup = () => {
                         className="pl-10"
                       />
                     </div>
+                    {errors.city && <p className="mt-1 text-xs text-destructive">{errors.city}</p>}
                   </div>
 
                   <div>
@@ -333,6 +474,7 @@ const ProfileSetup = () => {
                       value={formData.address}
                       onChange={handleChange}
                     />
+                    {errors.address && <p className="mt-1 text-xs text-destructive">{errors.address}</p>}
                   </div>
                 </div>
               </div>
@@ -353,6 +495,7 @@ const ProfileSetup = () => {
                     id_type: formData.id_type,
                     id_number: formData.id_number,
                   }}
+                  errors={errors}
                   onChange={handleKYCChange}
                 />
 
@@ -388,6 +531,7 @@ const ProfileSetup = () => {
                           </div>
                         )}
                       </div>
+                      {errors.id_front && <p className="mt-1 text-xs text-destructive">{errors.id_front}</p>}
                     </div>
 
                     {/* ID Back */}
@@ -417,6 +561,7 @@ const ProfileSetup = () => {
                           </div>
                         )}
                       </div>
+                      {errors.id_back && <p className="mt-1 text-xs text-destructive">{errors.id_back}</p>}
                     </div>
                   </div>
 
@@ -448,6 +593,7 @@ const ProfileSetup = () => {
                         </div>
                       )}
                     </div>
+                    {errors.selfie && <p className="mt-1 text-xs text-destructive">{errors.selfie}</p>}
                   </div>
                 </div>
               </div>
@@ -476,11 +622,12 @@ const ProfileSetup = () => {
                           className="pl-10"
                         />
                       </div>
+                      {errors.mpesa_phone && <p className="mt-1 text-xs text-destructive">{errors.mpesa_phone}</p>}
                     </div>
                   </div>
 
                   <div className="p-4 bg-secondary rounded-lg">
-                    <h3 className="font-semibold mb-3">Bank Transfer (Optional)</h3>
+                    <h3 className="font-semibold mb-3">Bank Transfer</h3>
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium mb-2">Bank Name</label>
@@ -494,6 +641,7 @@ const ProfileSetup = () => {
                             className="pl-10"
                           />
                         </div>
+                        {errors.bank_name && <p className="mt-1 text-xs text-destructive">{errors.bank_name}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">Account Name</label>
@@ -503,6 +651,7 @@ const ProfileSetup = () => {
                           value={formData.bank_account_name}
                           onChange={handleChange}
                         />
+                        {errors.bank_account_name && <p className="mt-1 text-xs text-destructive">{errors.bank_account_name}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-2">Account Number</label>
@@ -512,6 +661,7 @@ const ProfileSetup = () => {
                           value={formData.bank_account_number}
                           onChange={handleChange}
                         />
+                        {errors.bank_account_number && <p className="mt-1 text-xs text-destructive">{errors.bank_account_number}</p>}
                       </div>
                     </div>
                   </div>
@@ -559,6 +709,7 @@ const ProfileSetup = () => {
                     </div>
                   )}
                 </div>
+                {errors.avatar && <p className="text-xs text-destructive">{errors.avatar}</p>}
               </div>
             )}
 

@@ -54,6 +54,31 @@ const kycStatusConfig = {
   },
 };
 
+const isValidAdultDate = (value: string): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const selected = new Date(Date.UTC(year, month - 1, day));
+  if (
+    selected.getUTCFullYear() !== year ||
+    selected.getUTCMonth() !== month - 1 ||
+    selected.getUTCDate() !== day
+  ) {
+    return false;
+  }
+
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  if (selected.getTime() >= todayUtc) return false;
+
+  let age = today.getFullYear() - year;
+  const birthdayPassed =
+    today.getMonth() > month - 1 ||
+    (today.getMonth() === month - 1 && today.getDate() >= day);
+  if (!birthdayPassed) age -= 1;
+  return age >= 18;
+};
+
 const KYCUpload = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -156,7 +181,7 @@ const KYCUpload = () => {
     !!identity.id_type &&
     identity.id_number.trim().length >= 4 &&
     fullName.trim().length >= 3 &&
-    !!dob &&
+    isValidAdultDate(dob) &&
     phoneValid;
 
   const handleFileUpload = async (
@@ -197,6 +222,10 @@ const KYCUpload = () => {
       return;
     }
     if (!detailsComplete) {
+      if (!isValidAdultDate(dob)) {
+        toast.error("You must be at least 18 years old and enter a valid past date of birth");
+        return;
+      }
       toast.error("Please complete all verification details first");
       return;
     }
@@ -228,6 +257,8 @@ const KYCUpload = () => {
           toast.error("Your account is already verified.");
         } else if (msg.includes("MISSING_FIELDS")) {
           toast.error("Some verification details are missing. Please review the form.");
+        } else if (msg.includes("MINIMUM_AGE_NOT_MET")) {
+          toast.error("You must be at least 18 years old to submit verification.");
         } else {
           toast.error("Failed to submit verification");
         }
@@ -398,6 +429,11 @@ const KYCUpload = () => {
                     max={new Date().toISOString().slice(0, 10)}
                     onChange={(e) => setDob(e.target.value)}
                   />
+                  {dob && !isValidAdultDate(dob) && (
+                    <p className="text-xs text-destructive">
+                      Enter a valid past date. You must be at least 18 years old.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

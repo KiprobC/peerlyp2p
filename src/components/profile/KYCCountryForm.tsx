@@ -23,6 +23,7 @@ interface KYCCountryFormProps {
     id_type: string;
     id_number: string;
   }>) => void;
+  errors?: Partial<Record<"kyc_country" | "id_type" | "id_number", string>>;
 }
 
 // Country-specific ID types
@@ -80,7 +81,7 @@ const ID_TYPES_BY_COUNTRY: Record<string, { value: string; label: string }[]> = 
   ],
 };
 
-export const KYCCountryForm = ({ formData, onChange }: KYCCountryFormProps) => {
+export const KYCCountryForm = ({ formData, onChange, errors }: KYCCountryFormProps) => {
   const { detectedCountry, loading: detectingCountry } = useCountryDetection();
   const { countries, getCountryByCode } = useCountries();
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
@@ -118,6 +119,7 @@ export const KYCCountryForm = ({ formData, onChange }: KYCCountryFormProps) => {
           onValueChange={handleCountryChange}
           placeholder={detectingCountry ? "Detecting..." : "Select your country"}
         />
+        {errors?.kyc_country && <p className="text-xs text-destructive">{errors.kyc_country}</p>}
         {detectedCountry && formData.kyc_country === detectedCountry && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <MapPin className="w-3 h-3" />
@@ -147,6 +149,7 @@ export const KYCCountryForm = ({ formData, onChange }: KYCCountryFormProps) => {
             ))}
           </SelectContent>
         </Select>
+        {errors?.id_type && <p className="text-xs text-destructive">{errors.id_type}</p>}
       </div>
 
       {/* ID Number */}
@@ -157,6 +160,7 @@ export const KYCCountryForm = ({ formData, onChange }: KYCCountryFormProps) => {
           onChange={(e) => onChange({ id_number: e.target.value })}
           placeholder={getIdNumberPlaceholder(formData.kyc_country, formData.id_type)}
         />
+        {errors?.id_number && <p className="text-xs text-destructive">{errors.id_number}</p>}
       </div>
 
       {/* Country-specific info */}
