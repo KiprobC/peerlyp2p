@@ -32,11 +32,12 @@ BEGIN
      OR COALESCE(trim(p_full_name), '') = ''
      OR p_date_of_birth IS NULL
      OR COALESCE(trim(p_id_front_url), '') = ''
+      OR COALESCE(trim(p_id_back_url), '') = ''
      OR COALESCE(trim(p_selfie_url), '') = '' THEN
     RAISE EXCEPTION 'MISSING_FIELDS';
   END IF;
 
-  IF p_date_of_birth >= (CURRENT_DATE - INTERVAL '18 years')::date THEN
+  IF p_date_of_birth > (CURRENT_DATE - INTERVAL '18 years')::date THEN
     RAISE EXCEPTION 'MINIMUM_AGE_NOT_MET';
   END IF;
 
