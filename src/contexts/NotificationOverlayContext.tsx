@@ -25,6 +25,8 @@ export interface OverlayToast {
   kind: ToastKind;
   title: string;
   message?: string;
+  notificationType?: string;
+  notificationData?: unknown;
   actionLabel?: string;
   actionRoute?: string;
   /** Sticky toasts stay until dismissed/opened. */
@@ -35,6 +37,8 @@ export interface OverlayToast {
 export interface NotifyOptions {
   id?: string;
   message?: string;
+  notificationType?: string;
+  notificationData?: unknown;
   actionLabel?: string;
   actionRoute?: string;
   sticky?: boolean;
@@ -87,6 +91,8 @@ export const NotificationOverlayProvider = ({
         kind,
         title,
         message: options.message,
+        notificationType: options.notificationType,
+        notificationData: options.notificationData,
         actionLabel: options.actionLabel,
         actionRoute: options.actionRoute,
         sticky: options.sticky,
@@ -135,6 +141,8 @@ export const NotificationOverlayProvider = ({
           push(mapKind(n.type, n.title, n.message), n.title, {
             id: n.id,
             message: n.message,
+            notificationType: n.type,
+            notificationData: n.data,
             actionLabel: actionLabelFor(n.type),
             actionRoute: resolveNotificationRoute(n),
             sticky: STICKY_TYPES.has(n.type),

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   Info,
@@ -165,7 +165,10 @@ const ToastCard = ({
 export const NotificationOverlay = () => {
   const { toasts, dismiss } = useNotificationOverlay();
   const isMobile = useIsMobile();
-  const visible = toasts.slice(0, visibleLimit(isMobile));
+  const { pathname } = useLocation();
+  const visible = toasts
+    .filter((toast) => shouldShowToast(toast, pathname))
+    .slice(0, visibleLimit(isMobile));
 
   if (visible.length === 0) return null;
 
@@ -181,5 +184,56 @@ export const NotificationOverlay = () => {
         <ToastCard key={toast.id} toast={toast} onDismiss={dismiss} />
       ))}
     </div>
+  );
+};
+
+const CRITICAL_NOTIFICATION_TERMS = [
+  "security",
+  "recovery",
+  "withdraw",
+  "deposit",
+  "dispute",
+  "kyc",
+  "verification",
+  "suspicious",
+  "password",
+  "passkey",
+  "2fa",
+  "fraud",
+];
+
+const isCriticalNotification = (toast: OverlayToast) => {
+  const text = `${toast.title} ${toast.message ?? ""}`.toLowerCase();
+  const data = toast.notificationData as Record<string, unknown> | undefined;
+  const staffRoute = toast.actionRoute?.startsWith("/admin") ||
+    toast.actionRoute?.startsWith("/moderator");
+
+  return (
+    staffRoute ||
+    CRITICAL_NOTIFICATION_TERMS.some((term) => text.includes(term)) ||
+    ["kyc", "system"].includes(toast.notificationType ?? "") &&
+      Boolean(data && (data as { requires_action?: boolean }).requires_action)
+  );
+};
+
+const isActiveTradeRoute = (pathname: string, actionRoute?: string) => {
+  const activeTradeId = pathname.match(/^\/trade\/([^/]+)$/)?.[1];
+  const notificationTradeId = actionRoute?.match(/^\/trade\/([^/?]+)(?:\?.*)?$/)?.[1];
+  return Boolean(activeTradeId && notificationTradeId && activeTradeId === notificationTradeId);
+};
+
+const shouldShowToast = (toast: OverlayToast, pathname: string) => {
+  if (!isActiveTradeRoute(pathname, toast.actionRoute) || isCriticalNotification(toast)) {
+    return true;
+  }
+
+  // Trade and chat screens already render these events in their timeline/chat.
+  if (["message", "trade", "payment"].includes(toast.notificationType ?? "")) {
+    return false;
+  }
+
+  const text = `${toast.title} ${toast.message ?? ""}`.toLowerCase();
+  return !["message", "typing", "trade status", "status update"].some((term) =>
+    text.includes(term)
   );
 };
