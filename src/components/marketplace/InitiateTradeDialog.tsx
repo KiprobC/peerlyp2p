@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/select";
 import { Shield, Star, AlertTriangle, Globe, AlertCircle, RefreshCw, TrendingUp, Info } from "lucide-react";
 import { useTrades } from "@/hooks/useTrades";
-import { useEscrow } from "@/hooks/useEscrow";
 import { useAuth } from "@/contexts/AuthContext";
 import { OfferWithProfile, getAvailableAmount } from "@/hooks/useOffers";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,8 +125,7 @@ const OfferUpdatedWarning = ({ onReview, onClose }: { onReview: () => void; onCl
 const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsideRegion, userCurrency }: InitiateTradeDialogProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { createTrade, updateTrade } = useTrades();
-  const { lockEscrow } = useEscrow();
+  const { createTrade } = useTrades();
   
   // Core state
   const [loading, setLoading] = useState(false);
@@ -395,6 +393,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
           fiat_amount: parsedFiatAmount,
           fiat_currency: fiatCurrency,
           payment_method: selectedPayment,
+          idempotency_key: crypto.randomUUID(),
         });
 
         if (error || !data) {
@@ -413,92 +412,6 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
         toast.error(createErr?.message || "Failed to create trade. Please try again.");
         setLoading(false);
         return;
-      }
-
-      // Step 3: Lock escrow using the real trade UUID
-      let escrowResult: { success: boolean; error?: string };
-      try {
-        escrowResult = await lockEscrow(
-          seller_id,
-          cryptoType || "BTC",
-          calculatedCryptoAmount,
-          tradeData.id
-        );
-      } catch (escrowErr: any) {
-        console.error("Escrow error:", escrowErr);
-        // Cancel the trade since escrow failed
-        try {
-          await updateTrade(tradeData.id, {
-            status: "cancelled",
-            cancelled_at: new Date().toISOString(),
-            cancelled_by: user.id,
-          });
-        } catch (cancelErr) {
-          console.error("Failed to cancel trade after escrow error:", cancelErr);
-        }
-        toast.error("Failed to lock escrow. Please try again.");
-        await fetchLatestOffer(false);
-        setLoading(false);
-        return;
-      }
-
-      if (!escrowResult.success) {
-        // Escrow failed - cancel the trade
-        try {
-          await updateTrade(tradeData.id, {
-            status: "cancelled",
-            cancelled_at: new Date().toISOString(),
-            cancelled_by: user.id,
-          });
-        } catch (cancelErr) {
-          console.error("Failed to cancel trade after escrow failure:", cancelErr);
-        }
-        
-        const errorLower = (escrowResult.error || "").toLowerCase();
-        
-        // Check if it's a balance issue
-        if (errorLower.includes("insufficient") || errorLower.includes("balance") || errorLower.includes("available")) {
-          // Re-fetch latest offer data to check if it was partial fill or seller wallet issue
-          const refreshedOffer = await fetchLatestOffer(false);
-          const refreshedAvailable = refreshedOffer 
-            ? Math.max(0, (refreshedOffer.crypto_amount ?? 0) - (refreshedOffer.reserved_amount ?? 0))
-            : 0;
-          
-          // Compare with what we calculated - if offer's available didn't change much, 
-          // it's a seller wallet issue, not a partial fill
-          const offerAvailableChanged = Math.abs(refreshedAvailable - latestAvailable) > 0.000001;
-          
-          if (offerAvailableChanged && refreshedAvailable < calculatedCryptoAmount) {
-            // Offer was partially filled by another buyer
-            setPartialFillInfo({
-              requestedCrypto: calculatedCryptoAmount,
-              availableCrypto: refreshedAvailable,
-            });
-            toast.warning("Another buyer filled part of this offer. Please adjust your amount.");
-          } else {
-            // Seller's wallet has insufficient funds (not a partial fill)
-            toast.error("Seller currently has insufficient funds to complete this trade. Please try a smaller amount or another offer.");
-            await fetchLatestOffer(false);
-          }
-        } else {
-          toast.error(escrowResult.error || "Failed to lock escrow for this trade.");
-          await fetchLatestOffer(false);
-        }
-        
-        setLoading(false);
-        return;
-      }
-
-      // Step 4: Update trade to mark escrow as locked and confirmed
-      try {
-        await updateTrade(tradeData.id, {
-          escrow_locked: true,
-          status: "confirmed",
-        });
-      } catch (updateErr: any) {
-        console.error("Failed to confirm trade:", updateErr);
-        // Trade was created and escrow locked - navigate anyway
-        toast.warning("Trade created but confirmation update failed. Proceeding...");
       }
 
       toast.success("Trade initiated! Crypto is now locked in escrow.");
@@ -725,7 +638,7 @@ const InitiateTradeDialog = ({ open, onOpenChange, offer: initialOffer, isOutsid
           <div className="flex items-start gap-2 p-3 bg-accent/10 border border-accent/30 rounded-lg text-sm">
             <AlertTriangle className="w-4 h-4 text-accent mt-0.5 shrink-0" />
             <p className="text-muted-foreground">
-              Once you initiate this trade, the seller's crypto will be locked in escrow. 
+              Once you initiate this trade, the seller's crypto will be secured automatically in escrow. 
               Complete the payment within {timeLimit} minutes.
             </p>
           </div>

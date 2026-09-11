@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
-  Lock, 
   Unlock, 
   CheckCircle, 
   XCircle, 
@@ -18,7 +17,6 @@ interface MobileTradeActionsProps {
   isSeller: boolean;
   actionLoading: boolean;
   paymentSentAt: string | null;
-  onConfirmTrade: () => Promise<void>;
   onPaymentSent: () => Promise<void>;
    onReleaseEscrow: () => void | Promise<void>;
    onCancelTrade: () => void | Promise<void>;
@@ -34,7 +32,6 @@ export const MobileTradeActions = ({
   isSeller,
   actionLoading,
   paymentSentAt,
-  onConfirmTrade,
   onPaymentSent,
   onReleaseEscrow,
   onCancelTrade,
@@ -95,7 +92,6 @@ export const MobileTradeActions = ({
   };
 
   // Determine button states
-  const canLockEscrow = isSeller && status === "pending";
   const canMarkPaid = isBuyer && status === "confirmed";
   const canReleaseCrypto = isSeller && (status === "payment_sent" || status === "disputed");
   const canCancel = isBuyer && ["pending", "confirmed"].includes(status);
@@ -122,24 +118,6 @@ export const MobileTradeActions = ({
       )}
 
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Lock Escrow - Seller only, pending state */}
-        {canLockEscrow && (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => handleAction("lock", onConfirmTrade)}
-            disabled={actionLoading || loadingAction !== null}
-            className="h-8 text-xs gap-1.5 flex-1"
-          >
-            {loadingAction === "lock" ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Lock className="w-3.5 h-3.5" />
-            )}
-            Lock Escrow
-          </Button>
-        )}
-
         {/* Mark as Paid - Buyer only, confirmed state */}
         {canMarkPaid && (
           <Button

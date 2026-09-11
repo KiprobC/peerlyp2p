@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
-  Lock, 
   Unlock, 
   CheckCircle, 
   XCircle, 
@@ -15,7 +14,6 @@ interface TradeActionsProps {
   isBuyer: boolean;
   isSeller: boolean;
   actionLoading: boolean;
-  onConfirmTrade: () => Promise<void>;
   onPaymentSent: () => Promise<void>;
   onReleaseEscrow: () => Promise<void>;
   onCancelTrade: () => Promise<void>;
@@ -27,7 +25,6 @@ export const TradeActions = ({
   isBuyer,
   isSeller,
   actionLoading,
-  onConfirmTrade,
   onPaymentSent,
   onReleaseEscrow,
   onCancelTrade,
@@ -50,18 +47,6 @@ export const TradeActions = ({
   }
 
   const actions = [];
-
-  // Seller: Lock Escrow (pending)
-  if (isSeller && status === "pending") {
-    actions.push({
-      key: "lock",
-      label: "Lock Escrow",
-      icon: Lock,
-      variant: "default" as const,
-      onClick: () => handleAction("lock", onConfirmTrade),
-      className: "bg-primary hover:bg-primary/90",
-    });
-  }
 
   // Buyer: Mark as Paid (confirmed)
   if (isBuyer && status === "confirmed") {

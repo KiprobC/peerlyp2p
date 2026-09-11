@@ -151,19 +151,30 @@ export const useTrades = () => {
     fiat_amount: number;
     fiat_currency: string;
     payment_method: string;
+    idempotency_key?: string;
   }) => {
     if (!user) return { error: new Error("Not authenticated"), data: null };
 
     try {
-      const { data, error } = await supabase
-        .from("trades")
-        .insert(trade)
-        .select()
-        .single();
+      const { data, error } = await (supabase.rpc as any)("create_trade_with_escrow", {
+        p_offer_id: trade.offer_id,
+        p_buyer_id: trade.buyer_id,
+        p_seller_id: trade.seller_id,
+        p_crypto_type: trade.crypto_type,
+        p_crypto_amount: trade.crypto_amount,
+        p_fiat_amount: trade.fiat_amount,
+        p_fiat_currency: trade.fiat_currency,
+        p_payment_method: trade.payment_method,
+        p_idempotency_key: trade.idempotency_key || crypto.randomUUID(),
+      });
 
       if (error) throw error;
       await fetchTrades();
-      return { error: null, data: data as Trade };
+      const result = data as { success: boolean; error?: string; trade?: Trade };
+      if (!result.success || !result.trade) {
+        throw new Error(result.error || "Failed to create trade");
+      }
+      return { error: null, data: result.trade };
     } catch (error: any) {
       return { error, data: null };
     }

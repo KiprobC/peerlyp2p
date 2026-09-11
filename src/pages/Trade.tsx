@@ -234,24 +234,6 @@ const TradePageContent = () => {
     }
   };
 
-  const handleConfirmTrade = async () => {
-    if (!trade) return;
-    setActionLoading(true);
-
-    const { error } = await updateTrade(trade.id, {
-      status: "confirmed",
-      escrow_locked: true,
-    });
-
-    if (error) {
-      toast.error("Failed to confirm trade");
-    } else {
-      toast.success("Escrow locked successfully");
-      refetchTrades();
-    }
-    setActionLoading(false);
-  };
-
   const handlePaymentSent = async () => {
     // Payment proof is now required - open dialog instead
     setPaymentProofDialogOpen(true);
@@ -446,7 +428,6 @@ const TradePageContent = () => {
                 isSeller={isSeller}
                 actionLoading={actionLoading}
                 paymentSentAt={trade.payment_confirmed_at}
-                onConfirmTrade={handleConfirmTrade}
                 onPaymentSent={handlePaymentSent}
                onReleaseEscrow={handleOpenReleaseDialog}
                onCancelTrade={handleOpenCancelDialog}
@@ -631,7 +612,6 @@ const TradePageContent = () => {
                     isSeller={isSeller}
                     actionLoading={actionLoading}
                     paymentSentAt={trade.payment_confirmed_at}
-                    onConfirmTrade={handleConfirmTrade}
                     onPaymentSent={handlePaymentSent}
                    onReleaseEscrow={handleOpenReleaseDialog}
                    onCancelTrade={handleOpenCancelDialog}

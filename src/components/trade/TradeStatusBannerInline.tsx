@@ -15,8 +15,8 @@ const statusConfigs: Record<string, {
   color: string;
 }> = {
   pending: {
-    buyerLabel: "Waiting for seller to lock escrow",
-    sellerLabel: "Lock escrow to begin trade",
+    buyerLabel: "Securing escrow",
+    sellerLabel: "Securing escrow",
     icon: Clock,
     color: "text-amber-500",
   },
