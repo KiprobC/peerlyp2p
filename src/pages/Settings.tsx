@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyIcon from "@/assets/peerly-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   ArrowLeft, 
   Bell, 
+  ChevronLeft,
+  ChevronRight,
   Shield, 
   Moon, 
   Trash2, 
@@ -86,6 +90,7 @@ const Settings = () => {
   const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const [generatingRecoveryCodes, setGeneratingRecoveryCodes] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Re-fetch MFA when security dialog opens
   useEffect(() => {
@@ -385,10 +390,52 @@ const Settings = () => {
     );
   }
 
+  const desktopNavigation = [
+    { label: "Dashboard", icon: Wallet, to: "/dashboard" },
+    { label: "Marketplace", icon: Globe, to: "/marketplace" },
+    { label: "Trades", icon: FileWarning, to: "/trades" },
+    { label: "Wallet", icon: Wallet, to: "/wallet/deposit" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Minimal Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+      {/* Desktop sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-40 hidden border-r border-border/70 bg-card/95 backdrop-blur-xl transition-[width] duration-200 md:flex md:flex-col ${sidebarCollapsed ? "w-20" : "w-64"}`}>
+        <div className="flex h-20 items-center justify-between border-b border-border/60 px-4">
+          <Link to="/dashboard" className="flex items-center">
+            <img src={sidebarCollapsed ? peerlyIcon : peerlyLogo} alt="Peerly" className={sidebarCollapsed ? "h-9 w-9 rounded-xl" : "h-8 w-auto max-w-[145px] object-contain object-left"} />
+          </Link>
+          <Button variant="ghost" size="icon" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label="Toggle sidebar" className="shrink-0">
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
+        <nav className="flex-1 space-y-1 px-3 py-6">
+          <p className={`mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground ${sidebarCollapsed ? "sr-only" : ""}`}>Workspace</p>
+          {desktopNavigation.map((item) => (
+            <Link key={item.to} to={item.to} title={sidebarCollapsed ? item.label : undefined} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+              <item.icon className="h-5 w-5 shrink-0" />
+              {!sidebarCollapsed && <span>{item.label}</span>}
+            </Link>
+          ))}
+          <button onClick={() => setShowSupportChat(true)} title={sidebarCollapsed ? "Messages" : undefined} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+            <MessageSquare className="h-5 w-5 shrink-0" />
+            {!sidebarCollapsed && <span>Messages</span>}
+          </button>
+          <Link to="/notifications" title={sidebarCollapsed ? "Notifications" : undefined} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+            <Bell className="h-5 w-5 shrink-0" />
+            {!sidebarCollapsed && <span>Notifications</span>}
+          </Link>
+        </nav>
+        <div className="space-y-1 border-t border-border/60 px-3 py-5">
+          <Link to="/settings" title={sidebarCollapsed ? "Settings" : undefined} className="flex items-center gap-3 rounded-xl bg-primary/12 px-3 py-3 text-sm font-medium text-primary"><Shield className="h-5 w-5 shrink-0" />{!sidebarCollapsed && <span>Settings</span>}</Link>
+          <Link to="/profile" title={sidebarCollapsed ? "Profile" : undefined} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"><User className="h-5 w-5 shrink-0" />{!sidebarCollapsed && <span>Profile</span>}</Link>
+          <Link to="/how-it-works" title={sidebarCollapsed ? "Help" : undefined} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"><HelpCircle className="h-5 w-5 shrink-0" />{!sidebarCollapsed && <span>Help & FAQ</span>}</Link>
+          <button onClick={signOut} title={sidebarCollapsed ? "Sign out" : undefined} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><LogOut className="h-5 w-5 shrink-0" />{!sidebarCollapsed && <span>Sign out</span>}</button>
+        </div>
+      </aside>
+
+      {/* Mobile header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm md:hidden">
         <div className="container mx-auto px-4">
           <div className="flex items-center h-14">
             <Link to="/dashboard">
@@ -401,11 +448,42 @@ const Settings = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="pt-16 pb-24">
-        <div className="max-w-lg mx-auto">
+      <div className={`transition-[margin] duration-200 ${sidebarCollapsed ? "md:ml-20" : "md:ml-64"}`}>
+        <header className="hidden h-20 items-center justify-between border-b border-border/70 bg-background/85 px-6 backdrop-blur-xl md:flex xl:px-10">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Workspace</p>
+            <h1 className="mt-1 text-xl font-semibold">Settings & preferences</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link to="/notifications"><Button variant="outline" size="icon" className="rounded-xl"><Bell className="h-4 w-4" /></Button></Link>
+            <Link to="/profile" className="hidden text-sm text-muted-foreground hover:text-foreground lg:block">@{profile?.username || "Profile"}</Link>
+            <Button variant="outline" size="sm" className="rounded-xl" onClick={() => navigate("/dashboard")}><ArrowLeft className="mr-2 h-4 w-4" />Dashboard</Button>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="pb-24 pt-16 md:pb-16 md:pt-0">
+          <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8 xl:px-10">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-12 md:items-start">
+              <aside className="hidden md:col-span-3 md:block xl:col-span-2">
+                <div className="sticky top-6 rounded-2xl border border-border/70 bg-card p-3">
+                  <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Settings menu</p>
+                  <nav className="space-y-1 text-sm">
+                    <a href="#account" className="flex items-center gap-3 rounded-xl bg-primary/10 px-3 py-2.5 font-medium text-primary"><User className="h-4 w-4" />Account</a>
+                    <a href="#notifications" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><Bell className="h-4 w-4" />Notifications</a>
+                    <a href="#verification" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><BadgeCheck className="h-4 w-4" />KYC & verification</a>
+                    <a href="#support" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><HelpCircle className="h-4 w-4" />Support</a>
+                    <a href="#danger" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><Trash2 className="h-4 w-4" />Danger zone</a>
+                  </nav>
+                </div>
+              </aside>
+              <div className="min-w-0 md:col-span-9 xl:col-span-10">
+                <div className="mb-6 hidden md:block">
+                  <p className="text-sm text-muted-foreground">Manage your profile, security, preferences and account support from one workspace.</p>
+                </div>
           
           {/* Account Section */}
+          <div id="account" className="md:grid md:grid-cols-2 md:gap-5">
           <SettingsSection title="Account">
             <SettingsItem
               icon={User}
@@ -438,6 +516,7 @@ const Settings = () => {
           </SettingsSection>
 
           {/* Notifications Section */}
+          <div id="notifications">
           <SettingsSection title="Notifications">
             <SettingsItem
               icon={Bell}
@@ -468,12 +547,16 @@ const Settings = () => {
               }}
             />
           </SettingsSection>
+          </div>
+
+          </div>
 
           <div className="px-4">
             <PushNotificationSettings />
           </div>
 
           {/* Privacy & Safety Section */}
+          <div id="verification">
           <SettingsSection title="Privacy & Safety">
             <SettingsItem
               icon={Eye}
@@ -490,8 +573,10 @@ const Settings = () => {
               onClick={() => navigate("/profile/kyc")}
             />
           </SettingsSection>
+          </div>
 
           {/* Support Section */}
+          <div id="support">
           <SettingsSection title="Support">
             <SettingsItem
               icon={HelpCircle}
@@ -515,8 +600,10 @@ const Settings = () => {
               onClick={() => setShowSupportChat(true)}
             />
           </SettingsSection>
+          </div>
 
           {/* Danger Zone */}
+          <div id="danger">
           <SettingsSection title="Danger Zone">
             <SettingsItem
               icon={Trash2}
@@ -527,9 +614,13 @@ const Settings = () => {
               chevron={false}
             />
           </SettingsSection>
+          </div>
 
         </div>
-      </main>
+          </div>
+          </div>
+        </main>
+      </div>
 
       {/* Security Dialog */}
       <Dialog open={showSecurityDialog} onOpenChange={setShowSecurityDialog}>
