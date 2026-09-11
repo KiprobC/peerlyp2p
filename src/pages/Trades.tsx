@@ -105,12 +105,25 @@ const Trades = () => {
               </TabsTrigger>
               <TabsTrigger value="completed" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <span className="truncate">Done</span>
+                <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-secondary text-secondary-foreground text-[10px] sm:text-xs rounded-full flex items-center justify-center">
+                  {completedTrades.length}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="disputed" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <span className="truncate">Disputed</span>
+                <span className={`absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[10px] sm:text-xs ${
+                  disputedTrades.length > 0
+                    ? "bg-destructive text-destructive-foreground font-semibold ring-2 ring-destructive/30"
+                    : "bg-secondary text-secondary-foreground"
+                }`}>
+                  {disputedTrades.length}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="cancelled" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
                 <span className="truncate">Cancelled</span>
+                <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-secondary text-secondary-foreground text-[10px] sm:text-xs rounded-full flex items-center justify-center">
+                  {cancelledTrades.length}
+                </span>
               </TabsTrigger>
             </TabsList>
 
