@@ -395,6 +395,8 @@ const TradePageContent = () => {
   const isTradeActive = !["completed", "cancelled"].includes(trade.status);
   const isDisputed = trade.status === "disputed";
   const isDisputeResolved = trade.resolution_type !== null;
+  const savedOfferText = trade.offer?.terms || "";
+  const [savedOfferTerms, savedPaymentInstructions] = savedOfferText.split("\n\n---\n\n");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -475,6 +477,26 @@ const TradePageContent = () => {
                 fiatCurrency={trade.fiat_currency || "USD"}
                 paymentMethod={trade.payment_method}
               />
+
+              {savedOfferText && (
+                <div className="border-b border-border bg-secondary/20 px-3 py-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Offer details
+                  </p>
+                  <div className="grid gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">Offer Terms</p>
+                      <p className="whitespace-pre-wrap text-foreground">{savedOfferTerms}</p>
+                    </div>
+                    {savedPaymentInstructions !== undefined && (
+                      <div className="border-t border-border pt-3 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
+                        <p className="mb-1 text-xs font-medium text-muted-foreground">Payment Instructions</p>
+                        <p className="whitespace-pre-wrap text-foreground">{savedPaymentInstructions}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Risk Warning Banner */}
               <RiskWarningBanner counterpartyId={counterpartyId} />

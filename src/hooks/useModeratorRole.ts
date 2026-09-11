@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useModeratorAvailability } from "./useModeratorAvailability";
 
 export type AppRole = "admin" | "moderator" | "user";
 
@@ -96,6 +97,7 @@ export interface AssignedDispute {
 
 export const useModeratorDisputes = () => {
   const { user } = useAuth();
+  const { availability } = useModeratorAvailability();
   const [disputes, setDisputes] = useState<AssignedDispute[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -201,6 +203,36 @@ export const useModeratorDisputes = () => {
     }
   };
 
+  const claimDispute = async (tradeId: string) => {
+    if (!user) return { error: new Error("Not authenticated") };
+    if (availability?.status !== "online" || availability.active_cases_count >= availability.max_cases) {
+      return { error: new Error("Moderator must be online and have available capacity") };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("dispute_assignments")
+        .update({
+          assigned_to: user.id,
+          status: "in_review",
+          first_response_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("trade_id", tradeId)
+        .eq("status", "assigned")
+        .is("first_response_at", null)
+        .select("id")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) throw new Error("This dispute has already been claimed");
+      await fetchDisputes();
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  };
+
   const updateStatus = async (tradeId: string, status: string) => {
     if (!user) return { error: new Error("Not authenticated") };
 
@@ -248,7 +280,7 @@ export const useModeratorDisputes = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchDisputes]);
+  }, [availability, fetchDisputes, user]);
 
   const pendingDisputes = disputes.filter(
     (d) => d.status === "assigned" || d.status === "in_review" || d.status === "pending"
@@ -262,6 +294,8 @@ export const useModeratorDisputes = () => {
     loading,
     resolveDispute,
     updateStatus,
+    claimDispute,
+    availability,
     refetch: fetchDisputes,
   };
 };

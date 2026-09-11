@@ -6,6 +6,10 @@ export interface TradeProfile {
   username: string | null;
 }
 
+export interface TradeOfferDetails {
+  terms: string | null;
+}
+
 export interface Trade {
   id: string;
   offer_id: string;
@@ -36,6 +40,7 @@ export interface Trade {
   expires_at: string | null;
   buyer_profile?: TradeProfile;
   seller_profile?: TradeProfile;
+  offer?: TradeOfferDetails | null;
 }
 
 // TradeMessage type moved to useTradeMessages.ts hook
@@ -96,7 +101,7 @@ export const useTrades = () => {
     try {
       const { data, error } = await supabase
         .from("trades")
-        .select("*")
+        .select("*, offer:offers(terms)")
         .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
         .order("created_at", { ascending: false });
 

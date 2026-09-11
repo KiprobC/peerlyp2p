@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SLATimer } from "@/components/moderator/SLATimer";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { 
   AlertTriangle, 
   CheckCircle, 
@@ -80,7 +79,7 @@ const MessageViewer = ({ tradeId }: MessageViewerProps) => {
 
 export const ModeratorDisputes = () => {
   const { user } = useAuth();
-  const { disputes, pendingDisputes, resolvedDisputes, loading, resolveDispute, updateStatus } =
+  const { disputes, pendingDisputes, resolvedDisputes, loading, resolveDispute, updateStatus, claimDispute, availability } =
     useModeratorDisputes();
   const [selectedDispute, setSelectedDispute] = useState<any>(null);
   const [resolveDialog, setResolveDialog] = useState(false);
@@ -93,37 +92,11 @@ export const ModeratorDisputes = () => {
     if (!user) return;
     setAssigning(dispute.id);
     try {
-      // Check if already assigned
-      if (dispute.assigned_to && dispute.assigned_to !== "00000000-0000-0000-0000-000000000000") {
-        toast.error("This dispute is already assigned to a moderator");
-        return;
-      }
-      
-      const { error } = await supabase.rpc('assign_dispute_moderator', {
-        p_trade_id: dispute.trade_id,
-        p_moderator_id: user.id,
-        p_priority: dispute.priority || 'normal',
-        p_notes: 'Self-assigned from dispute queue'
-      });
-
+      const { error } = await claimDispute(dispute.trade_id);
       if (error) throw error;
       toast.success("Dispute assigned to you");
     } catch (error: any) {
-      // If dispute already has assignment, try updating it
-      const { error: updateError } = await supabase
-        .from("dispute_assignments")
-        .update({ 
-          assigned_to: user.id, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq("trade_id", dispute.trade_id)
-        .is("assigned_to", null);
-
-      if (updateError) {
-        toast.error("Failed to assign dispute: " + (error.message || "Unknown error"));
-      } else {
-        toast.success("Dispute assigned to you");
-      }
+      toast.error("Failed to assign dispute: " + (error.message || "Unknown error"));
     } finally {
       setAssigning(null);
     }
@@ -281,6 +254,20 @@ export const ModeratorDisputes = () => {
                       <Badge variant={dispute.status === "in_review" ? "default" : "secondary"}>
                         {dispute.status}
                       </Badge>
+                      {!isAssignedToMe(dispute) &&
+                        dispute.status === "assigned" &&
+                        availability?.status === "online" &&
+                        availability.active_cases_count < availability.max_cases && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSelfAssign(dispute)}
+                            disabled={assigning === dispute.id}
+                          >
+                            <HandMetal className="mr-1 h-3.5 w-3.5" />
+                            {assigning === dispute.id ? "Claiming..." : "Take dispute"}
+                          </Button>
+                        )}
                     </div>
                   </div>
                 </CardHeader>

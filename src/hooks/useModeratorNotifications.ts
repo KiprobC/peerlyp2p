@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationSound } from "./useNotificationSound";
+import { useModeratorAvailability } from "./useModeratorAvailability";
 import { toast } from "sonner";
 
 export interface ModeratorNotification {
@@ -25,6 +26,7 @@ export interface ModeratorNotification {
 
 export const useModeratorNotifications = () => {
   const { user } = useAuth();
+  const { availability } = useModeratorAvailability();
   const [notifications, setNotifications] = useState<ModeratorNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const { playNotificationSound } = useNotificationSound();
@@ -98,7 +100,6 @@ export const useModeratorNotifications = () => {
           event: "INSERT",
           schema: "public",
           table: "dispute_assignments",
-          filter: `assigned_to=eq.${user.id}`,
         },
         async (payload) => {
           const newAssignment = payload.new as ModeratorNotification;
@@ -115,13 +116,27 @@ export const useModeratorNotifications = () => {
             trade: tradeData
           };
 
-          setNotifications(prev => [fullNotification, ...prev]);
+          if (newAssignment.assigned_to === user.id) {
+            setNotifications(prev => [fullNotification, ...prev]);
+          }
 
           // Play sound and show toast for new assignments (not during initial load)
-          if (!isInitialLoadRef.current) {
+          if (
+            !isInitialLoadRef.current &&
+            (newAssignment.assigned_to === user.id ||
+              (availability?.status === "online" &&
+                availability.active_cases_count < availability.max_cases))
+          ) {
             playNotificationSound("trade");
-            toast.warning("New Dispute Assigned", {
-              description: `A ${newAssignment.priority || 'normal'} priority dispute requires your attention.`,
+            toast.warning(
+              newAssignment.assigned_to === user.id
+                ? "New Dispute Assigned"
+                : "New Dispute Available",
+              {
+              description:
+                newAssignment.assigned_to === user.id
+                  ? `A ${newAssignment.priority || 'normal'} priority dispute requires your attention.`
+                  : "An unclaimed dispute is ready to review.",
               duration: 8000,
               action: {
                 label: "Review",
@@ -129,7 +144,8 @@ export const useModeratorNotifications = () => {
                   window.location.href = `/trade/${newAssignment.trade_id}`;
                 },
               },
-            });
+              }
+            );
           }
         }
       )
@@ -139,7 +155,6 @@ export const useModeratorNotifications = () => {
           event: "UPDATE",
           schema: "public",
           table: "dispute_assignments",
-          filter: `assigned_to=eq.${user.id}`,
         },
         (payload) => {
           const updated = payload.new as ModeratorNotification;
@@ -157,7 +172,7 @@ export const useModeratorNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, playNotificationSound]);
+  }, [user, availability, playNotificationSound]);
 
   const unreadCount = notifications.length;
 
