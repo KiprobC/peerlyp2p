@@ -77,7 +77,16 @@ import { PasskeyProvider } from "@/contexts/PasskeyContext";
 import { NotificationOverlayProvider } from "@/contexts/NotificationOverlayContext";
 import { NotificationOverlay } from "@/components/notifications/NotificationOverlay";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (n) => Math.min(1000 * 2 ** n, 8000),
+      refetchOnReconnect: true,
+      refetchOnWindowFocus: true,
+    },
+  },
+});
 
 const AppRoutes = () => {
   useThemeInit();
