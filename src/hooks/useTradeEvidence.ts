@@ -85,33 +85,50 @@ export const useTradeEvidence = (tradeId: string) => {
 
     setUploading(true);
 
+    const withTimeout = <T,>(p: PromiseLike<T>, ms: number, label: string): Promise<T> =>
+      Promise.race([
+        Promise.resolve(p),
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error(`${label} timed out. Check your connection and try again.`)), ms)
+        ),
+      ]);
+
     try {
+      // Make sure the token is fresh before a long upload.
+      const { data: sess } = await withTimeout(supabase.auth.getSession(), 10_000, "Session check");
+      if (sess.session?.expires_at && Date.now() >= sess.session.expires_at * 1000 - 60_000) {
+        await withTimeout(supabase.auth.refreshSession(), 15_000, "Session refresh");
+      }
+
       // Upload file to storage
       const fileExt = file.name.split(".").pop();
       const fileName = `${user.id}/${tradeId}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("trade-evidence")
-        .upload(fileName, file, {
+      const { error: uploadError } = await withTimeout(
+        supabase.storage.from("trade-evidence").upload(fileName, file, {
           cacheControl: "3600",
           upsert: false,
-        });
+        }),
+        90_000,
+        "Upload"
+      );
 
       if (uploadError) throw uploadError;
 
       // Get signed URL for private bucket (1 year expiry)
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from("trade-evidence")
-        .createSignedUrl(fileName, 60 * 60 * 24 * 365);
+      const { data: urlData, error: urlError } = await withTimeout(
+        supabase.storage.from("trade-evidence").createSignedUrl(fileName, 60 * 60 * 24 * 365),
+        15_000,
+        "File link"
+      );
 
       if (urlError || !urlData?.signedUrl) {
         throw new Error("Failed to generate file URL");
       }
 
       // Insert evidence record
-      const { error: insertError } = await supabase
-        .from("trade_evidence")
-        .insert({
+      const { error: insertError } = await withTimeout(
+        supabase.from("trade_evidence").insert({
           trade_id: tradeId,
           uploader_id: user.id,
           uploader_role: uploaderRole,
@@ -121,18 +138,21 @@ export const useTradeEvidence = (tradeId: string) => {
           file_type: file.type,
           file_size: file.size,
           description,
-        });
+        }),
+        15_000,
+        "Saving evidence"
+      );
 
       if (insertError) throw insertError;
 
       const successMsg = evidenceType === "chat_attachment" ? "File attached" : "Evidence uploaded successfully";
       toast.success(successMsg);
-      await fetchEvidence();
+      void fetchEvidence();
       return { success: true, fileUrl: urlData.signedUrl };
     } catch (error: any) {
       console.error("Error uploading evidence:", error);
-      toast.error("Failed to upload evidence");
-      return { success: false, error: error.message };
+      toast.error(error?.message ? `Upload failed: ${error.message}` : "Failed to upload evidence");
+      return { success: false, error: error?.message ?? "Upload failed" };
     } finally {
       setUploading(false);
     }

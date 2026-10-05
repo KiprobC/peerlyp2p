@@ -325,7 +325,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // Keep realtime sockets on the freshest token so channels don't go stale.
+      if (newSession?.access_token) {
+        try { supabase.realtime.setAuth(newSession.access_token); } catch { /* noop */ }
+      }
+      // IMPORTANT: never await Supabase calls inside this callback — it runs
+      // while the auth lock is held, and awaiting deadlocks every subsequent
+      // request (pages stuck on skeletons, uploads stuck). Defer the work.
+      setTimeout(() => { void handleAuthEvent(event, newSession); }, 0);
+    });
+
+    const handleAuthEvent = async (event: string, newSession: Session | null) => {
       const pending =
         stateRef.current === "pending_mfa" || stateRef.current === "pending_passkey";
 
@@ -347,38 +358,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (event === "SIGNED_IN" || event === "USER_UPDATED") {
         if (!newSession) return;
+        // Already authenticated (e.g. SIGNED_IN re-emitted on tab focus):
+        // just keep the fresh session, no re-verification round-trips.
+        if (stateRef.current === "authenticated") {
+          setSession(newSession);
+          setUser(newSession.user);
+          return;
+        }
         if (signInInProgressRef.current || pending) {
           // Keep the raw session but do NOT authenticate — a challenge is open.
           setSession(newSession);
           setUser(newSession.user);
           return;
         }
-        // OAuth and other auth events must pass through the same factor gate.
-        const required = await resolveRequiredVerification(newSession.user.id);
-        if (stateRef.current !== "loading" && stateRef.current !== "unauthenticated") return;
-        if (required.kind === "mfa") {
-          setSession(newSession);
-          setUser(newSession.user);
-          setMfaChallenge({ factorId: required.factorId, email: newSession.user.email ?? "" });
-          setState("pending_mfa");
-          return;
-        }
-        if (await passkeyGateRequired(newSession.user.id, newSession.user.email ?? "")) {
-          setSession(newSession);
-          setUser(newSession.user);
-          setPasskeyChallenge({ email: newSession.user.email ?? "" });
-          setState("pending_passkey");
-          return;
-        }
-        promoteToAuthenticated(newSession);
-        if (event === "SIGNED_IN") {
-          localStorage.setItem(AUTH_STORAGE_KEY, `login_${Date.now()}`);
+        try {
+          // OAuth and other auth events must pass through the same factor gate.
+          const required = await resolveRequiredVerification(newSession.user.id);
+          if (stateRef.current !== "loading" && stateRef.current !== "unauthenticated") return;
+          if (required.kind === "mfa") {
+            setSession(newSession);
+            setUser(newSession.user);
+            setMfaChallenge({ factorId: required.factorId, email: newSession.user.email ?? "" });
+            setState("pending_mfa");
+            return;
+          }
+          if (await passkeyGateRequired(newSession.user.id, newSession.user.email ?? "")) {
+            setSession(newSession);
+            setUser(newSession.user);
+            setPasskeyChallenge({ email: newSession.user.email ?? "" });
+            setState("pending_passkey");
+            return;
+          }
+          promoteToAuthenticated(newSession);
+          if (event === "SIGNED_IN") {
+            localStorage.setItem(AUTH_STORAGE_KEY, `login_${Date.now()}`);
+          }
+        } catch (e) {
+          console.error("[auth] sign-in event handling failed", e);
         }
       }
-    });
+    };
 
     return () => subscription.unsubscribe();
   }, [initialized, clearAuth, promoteToAuthenticated, setState]);
+
+  // ── Resume after inactivity: refresh stale token + revive realtime ────────
+  useEffect(() => {
+    const onResume = async () => {
+      if (document.visibilityState !== "visible") return;
+      if (stateRef.current !== "authenticated") return;
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (isExpiring(data.session)) await refreshSession();
+        const rt = supabase.realtime as unknown as { isConnected?: () => boolean; connect: () => void };
+        if (rt.isConnected && !rt.isConnected()) rt.connect();
+      } catch (e) {
+        console.error("[auth] resume check failed", e);
+      }
+    };
+    document.addEventListener("visibilitychange", onResume);
+    window.addEventListener("online", onResume);
+    return () => {
+      document.removeEventListener("visibilitychange", onResume);
+      window.removeEventListener("online", onResume);
+    };
+  }, [refreshSession]);
 
   // ── Cross-tab synchronization ─────────────────────────────────────────────
   useEffect(() => {
