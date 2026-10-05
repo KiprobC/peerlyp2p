@@ -2971,6 +2971,7 @@ export type Database = {
         Args: { p_action_type: string; p_ip_address: string; p_user_id: string }
         Returns: Json
       }
+      claim_dispute_moderator: { Args: { p_trade_id: string }; Returns: Json }
       claim_idempotency_key: {
         Args: {
           p_actor_id?: string
@@ -3019,6 +3020,20 @@ export type Database = {
           p_terms: string
           p_time_limit: number
           p_user_id: string
+        }
+        Returns: Json
+      }
+      create_trade_with_escrow: {
+        Args: {
+          p_buyer_id: string
+          p_crypto_amount: number
+          p_crypto_type: string
+          p_fiat_amount: number
+          p_fiat_currency: string
+          p_idempotency_key: string
+          p_offer_id: string
+          p_payment_method: string
+          p_seller_id: string
         }
         Returns: Json
       }
