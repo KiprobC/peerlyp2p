@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton, TradeCardSkeleton } from "@/components/loaders";
 import {
   ArrowDownLeft, ArrowRight, ArrowUpRight, Bell, ChevronLeft,
-  ChevronRight, CircleHelp, Clock3, CreditCard, Eye, EyeOff, LayoutDashboard,
+  ChevronRight, CircleHelp, ChartCandlestick, ChartLine, Clock3, CreditCard, Eye, EyeOff, LayoutDashboard,
   MessageCircle, Settings, Shield, Store, TrendingUp, User, Wallet, X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,8 @@ import { useTrades } from "@/hooks/useTrades";
 import { useMyOffers } from "@/hooks/useOffers";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCryptoPrices, USD_TO_KES } from "@/hooks/useCryptoPrices";
+import { useMarketSparklines, useMarketCandles } from "@/hooks/useMarketCharts";
+import { MarketSparkline, MarketCandleChart } from "@/components/market/MarketChart";
 import { useSettings } from "@/hooks/useSettings";
 import { useTraderStats } from "@/hooks/useTraderStats";
 import { usePortfolio } from "@/hooks/usePortfolio";
