@@ -102,8 +102,10 @@ const Dashboard = () => {
     const candleQuery = marketCandles[crypto];
     const candles = candleQuery?.data;
     const formatChartValue = (v: number) => `${currencySymbol}${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-    const formatChartTime = (ts: number) =>
-      new Intl.DateTimeFormat("en", { day: "short", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(ts));
+    const formatChartTime = (ts: number) => {
+      const d = new Date(ts);
+      return `${d.getDate()} ${d.toLocaleString("en", { month: "short" })}, ${d.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" })}`;
+    };
     return (
       <div key={crypto} className="rounded-xl border border-border/70 bg-secondary/25 p-4 transition-colors hover:bg-secondary/45">
         <div className="flex items-start justify-between gap-3">
