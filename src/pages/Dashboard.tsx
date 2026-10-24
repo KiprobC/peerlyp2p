@@ -98,6 +98,12 @@ const Dashboard = () => {
     const price = (cryptoPricesUSD[crypto] || 0) * conversionRate;
     const change = priceChanges[crypto] || 0;
     const positive = change >= 0;
+    const sparkline = marketSparklines?.[crypto];
+    const candleQuery = marketCandles[crypto];
+    const candles = candleQuery?.data;
+    const formatChartValue = (v: number) => `${currencySymbol}${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+    const formatChartTime = (ts: number) =>
+      new Intl.DateTimeFormat("en", { day: "short", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(ts));
     return (
       <div key={crypto} className="rounded-xl border border-border/70 bg-secondary/25 p-4 transition-colors hover:bg-secondary/45">
         <div className="flex items-start justify-between gap-3">
@@ -107,9 +113,35 @@ const Dashboard = () => {
           </div>
           <span className={`text-xs font-semibold ${positive ? "text-emerald-400" : "text-red-400"}`}>{positive ? "+" : ""}{change.toFixed(2)}%</span>
         </div>
-        <p className="mt-4 text-lg font-semibold tabular-nums">{currencySymbol}{price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
-        <div className="mt-3 flex h-7 items-end gap-1 opacity-70" aria-label={`${crypto} price trend`}>
-          {[28, 42, 34, 52, 44, 62, 56, positive ? 72 : 38].map((height, index) => <span key={index} className={`flex-1 rounded-t-sm ${positive ? "bg-emerald-400/70" : "bg-red-400/70"}`} style={{ height: `${height}%` }} />)}
+        <div className="mt-3">
+          {marketView === "line" ? (
+            sparkline && sparkline.length > 1 ? (
+              <MarketSparkline
+                prices={sparkline.map((p) => p * conversionRate)}
+                positive={positive}
+                formatValue={formatChartValue}
+                formatTime={(index, count) => formatChartTime(Date.now() - (count - 1 - index) * 3_600_000)}
+              />
+            ) : (
+              <div className="flex h-[76px] items-center justify-center rounded-lg bg-secondary/40 text-xs text-muted-foreground">
+                {sparklinesLoading ? "Loading chart…" : "Chart unavailable"}
+              </div>
+            )
+          ) : candles && candles.length > 0 ? (
+            <MarketCandleChart
+              candles={candles.map((c) => ({ t: c.t, o: c.o * conversionRate, h: c.h * conversionRate, l: c.l * conversionRate, c: c.c * conversionRate }))}
+              formatValue={formatChartValue}
+              formatTime={(c) => formatChartTime(c.t)}
+            />
+          ) : (
+            <div className="flex h-[76px] items-center justify-center rounded-lg bg-secondary/40 text-xs text-muted-foreground">
+              {candleQuery?.isLoading ? "Loading candles…" : "Chart unavailable"}
+            </div>
+          )}
+        </div>
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-sm font-semibold tabular-nums">{currencySymbol}{price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">7D {marketView === "line" ? "trend" : "candles"}</span>
         </div>
       </div>
     );
