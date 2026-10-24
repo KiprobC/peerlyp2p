@@ -51,6 +51,12 @@ const Dashboard = () => {
   const preferredCurrency = (settings?.preferred_currency || "KES") as import("@/hooks/usePortfolio").DisplayCurrency;
   const portfolio = usePortfolio(preferredCurrency);
   const { prices: cryptoPricesUSD, changes: priceChanges } = useCryptoPrices();
+  const { data: marketSparklines, isLoading: sparklinesLoading } = useMarketSparklines();
+  const [marketView, setMarketView] = useState<"line" | "candles">("line");
+  const candleBTC = useMarketCandles(marketView === "candles" ? "BTC" : null);
+  const candleETH = useMarketCandles(marketView === "candles" ? "ETH" : null);
+  const candleUSDT = useMarketCandles(marketView === "candles" ? "USDT" : null);
+  const marketCandles: Record<string, typeof candleBTC> = { BTC: candleBTC, ETH: candleETH, USDT: candleUSDT };
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
