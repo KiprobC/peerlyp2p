@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Check, Shield, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyLogo from "@/assets/peerly-icon.png";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const Signup = () => {
@@ -98,7 +98,7 @@ const Signup = () => {
         <div className="w-full max-w-md">
           {/* Logo */}
           <Link to="/" className="flex items-center mb-8">
-            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-8 rounded-lg" />
           </Link>
 
           <div className="mb-8">

@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { KYCCountryForm } from "@/components/profile/KYCCountryForm";
-import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyLogo from "@/assets/peerly-icon.png";
 import {
   User,
   CreditCard,
@@ -337,7 +337,7 @@ const ProfileSetup = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+              <img src={peerlyLogo} alt="Peerly" className="h-6 w-6 rounded-md" />
             </div>
           </div>
         </div>

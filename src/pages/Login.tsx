@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle, Fingerprint, KeyRound } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyLogo from "@/assets/peerly-icon.png";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
@@ -171,7 +171,7 @@ const Login = () => {
       <div className="min-h-screen bg-background flex items-center justify-center p-8">
         <div className="w-full max-w-md text-center">
           <Link to="/" className="flex items-center justify-center mb-8">
-            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-8 rounded-lg" />
           </Link>
           <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
             {isLoading ? (
@@ -232,7 +232,7 @@ const Login = () => {
           <div className="w-full max-w-md">
             {/* Logo */}
             <Link to="/" className="flex items-center mb-8">
-              <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+              <img src={peerlyLogo} alt="Peerly" className="h-8 w-8 rounded-lg" />
             </Link>
 
             <div className="mb-8">
@@ -438,7 +438,7 @@ const Login = () => {
         <div className="w-full max-w-md">
           {/* Logo */}
           <Link to="/" className="flex items-center mb-8">
-            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-8 rounded-lg" />
           </Link>
 
           <div className="mb-8">
