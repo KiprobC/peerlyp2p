@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Shield, Loader2, AlertCircle, Fingerprint, KeyRound } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyLogo from "@/assets/peerly-icon.png";
 import { OTPVerificationDialog } from "@/components/security/OTPVerificationDialog";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 

@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { KYCCountryForm } from "@/components/profile/KYCCountryForm";
-import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyLogo from "@/assets/peerly-icon.png";
 import {
   User,
   CreditCard,

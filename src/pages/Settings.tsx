@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import peerlyLogo from "@/assets/peerly-logo.png";
+import peerlyLogo from "@/assets/peerly-icon.png";
 import peerlyIcon from "@/assets/peerly-icon.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
