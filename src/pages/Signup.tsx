@@ -98,7 +98,7 @@ const Signup = () => {
         <div className="w-full max-w-md">
           {/* Logo */}
           <Link to="/" className="flex items-center mb-8">
-            <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+            <img src={peerlyLogo} alt="Peerly" className="h-8 w-8 rounded-lg" />
           </Link>
 
           <div className="mb-8">

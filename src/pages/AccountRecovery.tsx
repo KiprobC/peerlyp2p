@@ -86,7 +86,7 @@ const AccountRecovery = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center mb-8">
-          <img src={peerlyLogo} alt="Peerly" className="h-8 w-auto" />
+          <img src={peerlyLogo} alt="Peerly" className="h-8 w-8 rounded-lg" />
         </Link>
         {children}
       </div>
