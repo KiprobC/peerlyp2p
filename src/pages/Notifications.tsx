@@ -7,6 +7,7 @@ import {
   Bell,
   CheckCircle,
   DollarSign,
+  Inbox,
   MessageSquare,
   Shield,
   Settings,
@@ -17,6 +18,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { polishNotification } from "@/lib/treasuryCopy";
 import { resolveNotificationRoute } from "@/lib/notificationRoutes";
+import { AppShell, ShellCard, ShellCardTitle } from "@/components/layout/desktop/AppShell";
 
 const iconMap: Record<string, typeof Bell> = {
   trade: DollarSign,
@@ -38,124 +40,192 @@ const Notifications = () => {
     navigate(resolveNotificationRoute(notification));
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <h1 className="text-lg font-semibold ml-2">Notifications</h1>
+  const renderNotification = (notification: typeof notifications[0]) => {
+    const data = notification.data as Record<string, any> | null;
+    const needsRating = data?.needs_rating === true;
+    const needsProfileSetup = data?.action === "complete_profile";
+    const Icon = needsRating ? Star : needsProfileSetup ? UserPlus : (iconMap[notification.type] || Bell);
+    const polished = polishNotification(notification.title, notification.message);
+
+    return (
+      <div
+        key={notification.id}
+        className={`glass-card cursor-pointer transition-all ${
+          !notification.read ? "border-primary/30 bg-primary/5" : ""
+        } ${needsRating ? "border-accent/30" : ""} ${needsProfileSetup ? "border-primary/50" : ""}`}
+        onClick={() => handleNotificationClick(notification)}
+      >
+        <div className="flex items-start gap-4">
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              needsRating ? "bg-accent/20" : needsProfileSetup ? "bg-primary/20" : (!notification.read ? "bg-primary/20" : "bg-secondary")
+            }`}
+          >
+            <Icon
+              className={`w-5 h-5 ${
+                needsRating ? "text-accent fill-accent" : needsProfileSetup ? "text-primary" : (!notification.read ? "text-primary" : "text-muted-foreground")
+              }`}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3
+                  className={`font-medium ${
+                    !notification.read ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {polished.title}
+                </h3>
+                {needsRating && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-accent/50 text-accent gap-1">
+                    <Star className="h-2.5 w-2.5 fill-accent" />
+                    Rate now
+                  </Badge>
+                )}
+              </div>
+              {!notification.read && (
+                <span className="w-2 h-2 bg-primary rounded-full shrink-0 mt-2" />
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {polished.message}
+            </p>
+            {needsProfileSetup && (
+              <Button
+                size="sm"
+                className="mt-3"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNotificationClick(notification);
+                }}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Complete Profile
+              </Button>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              {formatDistanceToNow(new Date(notification.created_at), {
+                addSuffix: true,
+              })}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderList = () => {
+    if (loading) {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      );
+    }
+    if (notifications.length > 0) {
+      return <div className="space-y-3">{notifications.map(renderNotification)}</div>;
+    }
+    return (
+      <div className="text-center py-16">
+        <Bell className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
+        <p className="text-muted-foreground">No notifications yet</p>
+      </div>
+    );
+  };
+
+  const DesktopNotifications = () => (
+    <AppShell
+      eyebrow="Peerly"
+      title="Notifications"
+      subtitle={unreadCount > 0 ? `${unreadCount} unread update${unreadCount === 1 ? "" : "s"}` : "You're all caught up"}
+      actions={
+        unreadCount > 0 ? (
+          <Button variant="outline" size="sm" onClick={markAllAsRead} className="rounded-xl">
+            <CheckCircle className="h-4 w-4 mr-1.5" />
+            Mark all read
+          </Button>
+        ) : undefined
+      }
+      rail={
+        <>
+          <ShellCard>
+            <ShellCardTitle icon={<Inbox className="h-4 w-4 text-primary" />} title="Summary" />
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Unread</span>
+                <span className="font-semibold">{unreadCount}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-semibold">{notifications.length}</span>
+              </div>
             </div>
             {unreadCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-                <CheckCircle className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm" className="mt-4 w-full rounded-xl" onClick={markAllAsRead}>
+                <CheckCircle className="h-4 w-4 mr-1.5" />
                 Mark all read
               </Button>
             )}
-          </div>
-        </div>
-      </nav>
+          </ShellCard>
+          <ShellCard>
+            <ShellCardTitle icon={<Settings className="h-4 w-4 text-primary" />} title="Preferences" />
+            <p className="text-sm text-muted-foreground">
+              Choose how Peerly alerts you about trades, payments and security events.
+            </p>
+            <Link to="/settings" className="mt-4 block text-sm font-medium text-primary hover:underline">
+              Open notification settings →
+            </Link>
+          </ShellCard>
+          <ShellCard>
+            <ShellCardTitle icon={<Shield className="h-4 w-4 text-primary" />} title="Stay safe" />
+            <p className="text-sm text-muted-foreground">
+              Peerly never asks for your password or codes by message. Trade actions only happen inside the trade room.
+            </p>
+          </ShellCard>
+        </>
+      }
+    >
+      {renderList()}
+    </AppShell>
+  );
 
-      <main className="pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-4 xl:max-w-none peerly-desktop-page">
-          {loading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-20" />
-              ))}
+  return (
+    <>
+      <DesktopNotifications />
+      {/* Mobile layout — untouched */}
+      <div className="min-h-screen bg-background md:hidden">
+        {/* Header */}
+        <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center">
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="icon">
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <h1 className="text-lg font-semibold ml-2">Notifications</h1>
+              </div>
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark all read
+                </Button>
+              )}
             </div>
-          ) : notifications.length > 0 ? (
-            <div className="space-y-3">
-              {notifications.map((notification) => {
-                const data = notification.data as Record<string, any> | null;
-                const needsRating = data?.needs_rating === true;
-                const needsProfileSetup = data?.action === "complete_profile";
-                const Icon = needsRating ? Star : needsProfileSetup ? UserPlus : (iconMap[notification.type] || Bell);
-                const polished = polishNotification(notification.title, notification.message);
-                
-                return (
-                  <div
-                    key={notification.id}
-                    className={`glass-card cursor-pointer transition-all ${
-                      !notification.read ? "border-primary/30 bg-primary/5" : ""
-                    } ${needsRating ? "border-accent/30" : ""} ${needsProfileSetup ? "border-primary/50" : ""}`}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          needsRating ? "bg-accent/20" : needsProfileSetup ? "bg-primary/20" : (!notification.read ? "bg-primary/20" : "bg-secondary")
-                        }`}
-                      >
-                        <Icon
-                          className={`w-5 h-5 ${
-                            needsRating ? "text-accent fill-accent" : needsProfileSetup ? "text-primary" : (!notification.read ? "text-primary" : "text-muted-foreground")
-                          }`}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3
-                              className={`font-medium ${
-                                !notification.read ? "text-foreground" : "text-muted-foreground"
-                              }`}
-                            >
-                              {polished.title}
-                            </h3>
-                            {needsRating && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-accent/50 text-accent gap-1">
-                                <Star className="h-2.5 w-2.5 fill-accent" />
-                                Rate now
-                              </Badge>
-                            )}
-                          </div>
-                          {!notification.read && (
-                            <span className="w-2 h-2 bg-primary rounded-full shrink-0 mt-2" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {polished.message}
-                        </p>
-                        {needsProfileSetup && (
-                          <Button
-                            size="sm"
-                            className="mt-3"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleNotificationClick(notification);
-                            }}
-                          >
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            Complete Profile
-                          </Button>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {formatDistanceToNow(new Date(notification.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <Bell className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-              <p className="text-muted-foreground">No notifications yet</p>
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+          </div>
+        </nav>
+
+        <main className="pt-24 pb-24">
+          <div className="container mx-auto px-4">
+            {renderList()}
+          </div>
+        </main>
+      </div>
+    </>
   );
 };
 
