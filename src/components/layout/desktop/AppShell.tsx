@@ -46,6 +46,10 @@ interface AppShellProps {
   actions?: ReactNode;
   /** Right rail content (rendered ≥xl). Pass fragments of ShellCard elements. */
   rail?: ReactNode;
+  /** Keep the same page content on mobile while showing the full shell on desktop. */
+  responsive?: boolean;
+  /** Existing page header shown only below the desktop breakpoint. */
+  mobileHeader?: ReactNode;
   children: ReactNode;
   /** Skip the standard max-width container (used by full-height layouts like Trade) */
   fullWidth?: boolean;
@@ -63,16 +67,18 @@ export const AppShell = ({
   backTo,
   actions,
   rail,
+  responsive = false,
+  mobileHeader,
   children,
   fullWidth = false,
 }: AppShellProps) => {
   const { unreadCount } = useNotifications();
 
   return (
-    <div className="hidden min-h-screen bg-background md:block">
+    <div className={responsive ? "min-h-screen bg-background" : "hidden min-h-screen bg-background md:block"}>
       <DesktopSidebar />
-      <div className={`flex min-h-screen flex-col ${DESKTOP_SIDEBAR_WIDTH_CLASS}`}>
-        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
+      <div className={`flex min-h-screen flex-col ${responsive ? "md:ml-60" : DESKTOP_SIDEBAR_WIDTH_CLASS}`}>
+        <header className={`${responsive ? "hidden md:block " : ""}sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl`}>
           <div className="flex min-h-16 items-center justify-between gap-5 px-6 py-3 xl:px-10">
             <div className="flex min-w-0 items-center gap-4">
               {backTo && (
@@ -106,8 +112,9 @@ export const AppShell = ({
             </div>
           </div>
         </header>
-        <main className="flex-1 px-6 py-6 xl:px-10">
-          <div className={`mx-auto max-w-[1600px] ${fullWidth ? "h-full" : ""}`}>
+        <main className={`flex-1 ${responsive ? "px-0 py-0 md:px-6 md:py-6 xl:px-10" : "px-6 py-6 xl:px-10"}`}>
+          <div className={`mx-auto ${fullWidth ? "max-w-none h-full" : "max-w-[1600px]"}`}>
+            {responsive && mobileHeader && <div className="md:hidden">{mobileHeader}</div>}
             {rail ? (
               <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="min-w-0">{children}</div>

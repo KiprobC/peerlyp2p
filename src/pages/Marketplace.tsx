@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Globe, TrendingUp, Users } from "lucide-react";
+import { Globe, TrendingUp, Users, Plus, ShieldCheck } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import MarketplaceFilters from "@/components/marketplace/MarketplaceFilters";
 import OfferCard from "@/components/marketplace/OfferCard";
@@ -17,6 +17,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { useProfile } from "@/hooks/useProfile";
 import { useCurrencyConversion, useCountries } from "@/hooks/useCountries";
 import { calculateTraderTier, TraderTier, TRADER_TIERS } from "@/lib/traderTiers";
+import { AppShell, ShellCard, ShellCardTitle } from "@/components/layout/desktop/AppShell";
 
 const Marketplace = () => {
   const { user } = useAuth();
@@ -244,10 +245,31 @@ const Marketplace = () => {
   }, [offers]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="pt-16 pb-24 md:pb-16">
-        <div className="container mx-auto px-3 md:px-4 xl:max-w-none peerly-desktop-page">
+    <AppShell
+      responsive
+      eyebrow="Peerly Exchange"
+      title="P2P Marketplace"
+      subtitle="Buy and sell directly with verified traders"
+      mobileHeader={<Navbar />}
+      actions={<Link to="/create-offer"><Button size="sm"><Plus className="mr-1.5 h-4 w-4" />Create offer</Button></Link>}
+      rail={
+        <>
+          <ShellCard>
+            <ShellCardTitle icon={<TrendingUp className="h-4 w-4 text-primary" />} title="Market activity" />
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between"><span className="text-muted-foreground">Available offers</span><span className="font-semibold">{filteredOffers.length}</span></div>
+              <div className="flex items-center justify-between"><span className="text-muted-foreground">Traders online</span><span className="font-semibold text-success">{onlineTraders}</span></div>
+            </div>
+          </ShellCard>
+          <ShellCard>
+            <ShellCardTitle icon={<ShieldCheck className="h-4 w-4 text-primary" />} title="Trade with confidence" />
+            <p className="text-sm text-muted-foreground">Crypto stays protected in escrow while you complete payment directly with your trading partner.</p>
+          </ShellCard>
+        </>
+      }
+    >
+      <div className="pb-24 pt-16 md:pb-0 md:pt-0">
+        <div className="mx-auto space-y-5 px-3 md:px-0">
           {/* Minimal header */}
           <div className="flex items-center justify-between mb-4 pt-2">
             <div className="flex items-center gap-3">
@@ -374,7 +396,7 @@ const Marketplace = () => {
             )}
           </ErrorBoundary>
         </div>
-      </main>
+      </div>
 
       <CreateOfferDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
       <ErrorBoundary>
@@ -386,7 +408,7 @@ const Marketplace = () => {
           userCurrency={countryCurrency}
         />
       </ErrorBoundary>
-    </div>
+    </AppShell>
   );
 };
 

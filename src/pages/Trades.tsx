@@ -15,6 +15,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useTrades } from "@/hooks/useTrades";
 import { formatDistanceToNow } from "date-fns";
+import { AppShell, ShellCard, ShellCardTitle } from "@/components/layout/desktop/AppShell";
+import { Link as RouterLink } from "react-router-dom";
+import { Receipt as ReceiptIcon, Activity, ShieldCheck } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pending: { label: "Pending", variant: "secondary" },
@@ -76,9 +79,12 @@ const Trades = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
+    <AppShell
+      responsive
+      eyebrow="Peerly Exchange"
+      title="My Trades"
+      subtitle={`${activeTrades.length} active · ${completedTrades.length} completed`}
+      mobileHeader={<nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="flex items-center h-14 sm:h-16">
             <Link to="/dashboard">
@@ -89,10 +95,27 @@ const Trades = () => {
             <h1 className="text-base sm:text-lg font-semibold ml-1 sm:ml-2">My Trades</h1>
           </div>
         </div>
-      </nav>
-
-      <main className="pt-20 sm:pt-24 pb-24 md:pb-16">
-        <div className="container mx-auto px-3 sm:px-4 max-w-2xl">
+      </nav>}
+      rail={
+        <>
+          <ShellCard>
+            <ShellCardTitle icon={<Activity className="h-4 w-4 text-primary" />} title="Trade activity" />
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between"><span className="text-muted-foreground">Active</span><span className="font-semibold">{activeTrades.length}</span></div>
+              <div className="flex items-center justify-between"><span className="text-muted-foreground">Completed</span><span className="font-semibold">{completedTrades.length}</span></div>
+              <div className="flex items-center justify-between"><span className="text-muted-foreground">Disputed</span><span className="font-semibold">{disputedTrades.length}</span></div>
+            </div>
+          </ShellCard>
+          <ShellCard>
+            <ShellCardTitle icon={<ShieldCheck className="h-4 w-4 text-primary" />} title="Escrow protection" />
+            <p className="text-sm text-muted-foreground">Keep payments and trade conversations inside Peerly. Escrow remains locked until the trade is completed.</p>
+            <RouterLink to="/marketplace" className="mt-4 inline-flex text-sm font-medium text-primary hover:underline">Browse marketplace →</RouterLink>
+          </ShellCard>
+        </>
+      }
+    >
+      <main className="pb-24 pt-20 sm:pt-24 md:p-0">
+        <div className="mx-auto px-3 sm:px-4 md:px-0">
           <Tabs defaultValue="active" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-4 sm:mb-6 h-auto p-1">
               <TabsTrigger value="active" className="relative text-xs sm:text-sm py-2 px-1 sm:px-3">
@@ -186,7 +209,7 @@ const Trades = () => {
           </Tabs>
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 };
 
