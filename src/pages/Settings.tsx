@@ -464,20 +464,7 @@ const Settings = () => {
         {/* Main Content */}
         <main className="pb-24 pt-16 md:pb-16 md:pt-0">
           <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8 xl:px-10">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-12 md:items-start">
-              <aside className="hidden md:col-span-3 md:block xl:col-span-2">
-                <div className="sticky top-6 rounded-2xl border border-border/70 bg-card p-3">
-                  <p className="px-3 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Settings menu</p>
-                  <nav className="space-y-1 text-sm">
-                    <a href="#account" className="flex items-center gap-3 rounded-xl bg-primary/10 px-3 py-2.5 font-medium text-primary"><User className="h-4 w-4" />Account</a>
-                    <a href="#notifications" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><Bell className="h-4 w-4" />Notifications</a>
-                    <a href="#verification" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><BadgeCheck className="h-4 w-4" />KYC & verification</a>
-                    <a href="#support" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><HelpCircle className="h-4 w-4" />Support</a>
-                    <a href="#danger" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-muted-foreground hover:bg-secondary hover:text-foreground"><Trash2 className="h-4 w-4" />Danger zone</a>
-                  </nav>
-                </div>
-              </aside>
-              <div className="min-w-0 md:col-span-9 xl:col-span-10">
+            <div className="min-w-0">
                 <div className="mb-6 hidden md:block">
                   <p className="text-sm text-muted-foreground">Manage your profile, security, preferences and account support from one workspace.</p>
                 </div>
@@ -617,7 +604,6 @@ const Settings = () => {
           </div>
 
         </div>
-          </div>
           </div>
         </main>
       </div>
