@@ -491,7 +491,7 @@ const Settings = () => {
               iconColor="#f59e0b"
               label="Wallet"
               subtitle="Balances, deposits & withdrawals"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/wallet/deposit")}
             />
             <SettingsItem
               icon={Palette}
@@ -576,14 +576,7 @@ const Settings = () => {
               icon={MessageSquare}
               iconColor="#10b981"
               label="Contact Support"
-              subtitle="Chat with our team"
-              onClick={() => setShowSupportChat(true)}
-            />
-            <SettingsItem
-              icon={FileWarning}
-              iconColor="#f97316"
-              label="Report a Problem"
-              subtitle="Help us improve"
+              subtitle="Chat with support or report an issue"
               onClick={() => setShowSupportChat(true)}
             />
           </SettingsSection>
