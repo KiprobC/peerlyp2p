@@ -8,6 +8,13 @@
       "when": 1791214255317,
       "tag": "0000_restrict_withdrawal_limit_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794907160964,
+      "tag": "0001_tighten_selected_rls_access_rules",
+      "breakpoints": true
     }
   ]
 }
